@@ -336,7 +336,7 @@ func (db *DB) Echoes(names []string) []Echo {
 	var list []Echo
 
 	filter := make(map[string]bool)
-	for _, n := range(names) {
+	for _, n := range names {
 		filter[n] = true
 	}
 

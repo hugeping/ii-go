@@ -43,26 +43,29 @@ func IsEcho(e string) bool {
 	return l >= 3 && l <= 120 && strings.Contains(e, ".")
 }
 
-func DecodeMsgline(msg string, enc bool) *Msg {
+func DecodeMsgline(msg string, enc bool) (*Msg, error) {
 	var m Msg
 	var data []byte
 	var err error
 	if enc {
 		data, err = base64.StdEncoding.DecodeString(msg)
 		if err != nil {
-			return nil
+			return nil, err
 		}
 	} else {
 		data = []byte(msg)
 	}
 	text := strings.Split(string(data), "\n")
 	if len(text) <= 6 {
-		return nil
+		return nil, errors.New("Wrong message format")
 	}
 	if text[3] != "" {
-		return nil
+		return nil, errors.New("No body delimiter in message")
 	}
 	m.Echo = text[0]
+	if !IsEcho(m.Echo) {
+		return nil, errors.New("Wrong echoarea format")
+	}
 	m.To = text[1]
 	m.Subj = text[2]
 	m.Date = time.Now().Unix()
@@ -78,7 +81,7 @@ func DecodeMsgline(msg string, enc bool) *Msg {
 		m.Text += text[i] + "\n"
 	}
 	m.Text = strings.TrimSuffix(m.Text, "\n")
-	return &m
+	return &m, nil
 }
 
 func DecodeBundle(msg string) (*Msg, error) {
@@ -90,6 +93,9 @@ func DecodeBundle(msg string) (*Msg, error) {
 		}
 		msg = spl[1]
 		m.MsgId = spl[0]
+		if !IsMsgId(m.MsgId) {
+			return nil, errors.New("Wrong MsgId format")
+		}
 	}
 	data, err := base64.StdEncoding.DecodeString(msg)
 	if err != nil {
@@ -107,6 +113,9 @@ func DecodeBundle(msg string) (*Msg, error) {
 		return nil, err
 	}
 	m.Echo = text[1]
+	if !IsEcho(m.Echo) {
+		return nil, errors.New("Wrong echoarea format")
+	}
 	_, err = fmt.Sscanf(text[2], "%d", &m.Date)
 	if err != nil {
 		return nil, err
