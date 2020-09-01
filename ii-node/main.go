@@ -23,13 +23,21 @@ func main() {
 	ii.OpenLog(ioutil.Discard, os.Stdout, os.Stderr)
 
 	db_opt := flag.String("db", "./db", "II database path (directory)")
+	listen_opt := flag.String("L", ":8080", "Listen address")
 	db := open_db(*db_opt)
 	flag.Parse()
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "%s\n", r.URL.Path)
 	})
 	http.HandleFunc("/list.txt", func(w http.ResponseWriter, r *http.Request) {
-		echoes := db.Echoes()
+		echoes := db.Echoes(nil)
+		for _, v := range echoes {
+			fmt.Fprintf(w, "%s:%d:\n", v.Name, v.Count)
+		}
+	})
+	http.HandleFunc("/x/c/", func(w http.ResponseWriter, r *http.Request) {
+		enames := strings.Split(r.URL.Path[5:], "/")
+		echoes := db.Echoes(enames)
 		for _, v := range echoes {
 			fmt.Fprintf(w, "%s:%d:\n", v.Name, v.Count)
 		}
@@ -78,10 +86,21 @@ func main() {
 			fmt.Fprintf(w, m.String())
 		}
 	})
-	http.HandleFunc("/x/features", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "list.txt\nu/e\n")
+	http.HandleFunc("/e/", func(w http.ResponseWriter, r *http.Request) {
+		e := r.URL.Path[3:]
+		if !ii.IsEcho(e) {
+			return
+		}
+		ids := db.SelectIDS(ii.Query{Echo: e})
+		for _, id := range ids {
+			fmt.Fprintf(w, "%s\n", id)
+		}
 	})
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	http.HandleFunc("/x/features", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "list.txt\nu/e\nx/c\n")
+	})
+	ii.Info.Printf("Listening on %s", *listen_opt)
+	if err := http.ListenAndServe(*listen_opt, nil); err != nil {
 		ii.Error.Printf("Error running web server: %s", err)
 	}
 }

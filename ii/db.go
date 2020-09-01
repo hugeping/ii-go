@@ -328,12 +328,17 @@ type Echo struct {
 	Count int
 }
 
-func (db *DB) Echoes() []Echo {
+func (db *DB) Echoes(names []string) []Echo {
 	db.Sync.Lock()
 	defer db.Sync.Unlock()
 	db.Lock()
 	defer db.Unlock()
 	var list []Echo
+
+	filter := make(map[string]bool)
+	for _, n := range(names) {
+		filter[n] = true
+	}
 
 	if err := db.LoadIndex(); err != nil {
 		return list
@@ -345,6 +350,11 @@ func (db *DB) Echoes() []Echo {
 		id := db.Idx.List[i]
 		info := db.Idx.Hash[id]
 		e := info.Echo
+		if names != nil { // filter?
+			if _, ok := filter[e]; !ok {
+				continue
+			}
+		}
 		if v, ok := hash[e]; ok {
 			v.Count++
 			hash[e] = v
@@ -352,12 +362,18 @@ func (db *DB) Echoes() []Echo {
 			hash[e] = Echo{Name: e, Count: 1}
 		}
 	}
-	for _, v := range hash {
-		list = append(list, v)
+	if names != nil {
+		for _, v := range names {
+			list = append(list, hash[v])
+		}
+	} else {
+		for _, v := range hash {
+			list = append(list, v)
+		}
+		sort.Slice(list, func(i, j int) bool {
+			return list[i].Name < list[j].Name
+		})
 	}
-	sort.Slice(list, func(i, j int) bool {
-		return list[i].Name < list[j].Name
-	})
 	return list
 }
 
