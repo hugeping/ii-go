@@ -68,15 +68,16 @@ func main() {
 		fmt.Printf(`Help: %s [options] command [arguments]
 Commands:
 	send <server> <pauth> <msg|-> - send message
-	fetch <url>      - fetch
-	store <bundle|-> - import bundle to database
-        get <msgid>      - show message from database
-        select <echo> [[start]:lim] - get slice from echo
-        index            - recreate index
+	fetch <url> [echofile|-]      - fetch
+	store <bundle|->              - import bundle to database
+        get <msgid>                   - show message from database
+        select <echo> [[start]:lim]   - get slice from echo
+        index                         - recreate index
 	useradd <name> <e-mail> <password> - adduser
 Options:
-        -db=<path>       - database path
-        -lim=<lim>       - fetch lim last messages
+        -db=<path>                    - database path
+        -lim=<lim>                    - fetch lim last messages
+        -u=<path>                     - points account file
 `, os.Args[0])
 		os.Exit(1)
 	}
@@ -111,6 +112,7 @@ Options:
 			os.Exit(1)
 		}
 	case "fetch":
+		var echolist []string
 		if len(args) < 2 {
 			fmt.Printf("No url supplied\n")
 			os.Exit(1)
@@ -121,7 +123,13 @@ Options:
 			fmt.Printf("Can not connect to %s: %s\n", args[1], err)
 			os.Exit(1)
 		}
-		err = n.Fetch(db, nil, *lim_opt)
+		if len(args) > 2 {
+			str := GetFile(args[2])
+			for _, v := range strings.Split(str, "\n") {
+				echolist = append(echolist, v)
+			}
+		}
+		err = n.Fetch(db, echolist, *lim_opt)
 		if err != nil {
 			fmt.Printf("Can not fetch from %s: %s\n", args[1], err)
 			os.Exit(1)
