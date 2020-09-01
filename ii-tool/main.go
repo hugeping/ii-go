@@ -67,6 +67,7 @@ func main() {
 
 	args := flag.Args()
 	if len(args) < 1 {
+		fmt.Printf("%s\n", err)
 		fmt.Printf(`Help: %s [options] command [arguments]
 Commands:
 	send <server> <pauth> <msg|-> - send message

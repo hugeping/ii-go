@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -536,6 +537,8 @@ func (db *UDB) Id(Secret string) int32 {
 	return -1
 }
 
+var emailRegex = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
+
 func (db *UDB) Add(Name string, Mail string, Passwd string) error {
 	db.Sync.Lock()
 	defer db.Sync.Unlock()
@@ -545,6 +548,9 @@ func (db *UDB) Add(Name string, Mail string, Passwd string) error {
 	}
 	if !IsUsername(Name) {
 		return errors.New("Wrong username")
+	}
+	if ! emailRegex.MatchString(Mail) {
+		return errors.New("Wrong email")
 	}
 	var id int32 = 0
 	for _, v := range db.Names {

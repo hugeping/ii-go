@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	//	"net/smtp"
 	"net/url"
 	"strings"
 	"sync"
@@ -252,3 +253,21 @@ func Connect(addr string) (*Node, error) {
 	}
 	return &n, nil
 }
+/*
+func SendMail(email string, login string, passwd string, server string) error {
+	aserv := strings.Split(server, ":")[0]
+	auth := smtp.PlainAuth("", login, passwd, aserv)
+	msg := "Hello!"
+	msg = "From: noreply@ii-go\n" +
+		"To: " + email + "\n" +
+		"Subject: Hello there\n\n" +
+		msg
+	err := smtp.SendMail(server, auth, "noreply@ii-go",[]string{email}, []byte(msg))
+	if err != nil {
+		Error.Printf("Can't send message to: %s", email)
+		return err
+	}
+	Info.Printf("Sent message to: %s", email)
+	return nil
+}
+*/
