@@ -3,12 +3,12 @@ package main
 import (
 	"../ii"
 	"bufio"
-	"io/ioutil"
-	"fmt"
-	"os"
-	"io"
-	"strings"
 	"flag"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
+	"strings"
 )
 
 func open_db(path string) *ii.DB {
@@ -27,6 +27,9 @@ func main() {
 	lim_opt := flag.Int("lim", 0, "Fetch last N messages")
 	verbose_opt := flag.Bool("v", false, "Verbose")
 	flag.Parse()
+	if *verbose_opt {
+		ii.OpenLog(os.Stdout, os.Stdout, os.Stderr)
+	}
 
 	args := flag.Args()
 	if len(args) < 1 {
@@ -117,12 +120,12 @@ Options:
 			os.Exit(1)
 		}
 		db := open_db(*db_opt)
-		req := ii.Query { Echo: args[1] }
+		req := ii.Query{Echo: args[1]}
 		if len(args) > 2 {
 			fmt.Sscanf(args[2], "%d:%d", &req.Start, &req.Lim)
 		}
 		resp := db.SelectIDS(req)
-		for _, v := range(resp)  {
+		for _, v := range resp {
 			if *verbose_opt {
 				fmt.Println(db.Get(v))
 			} else {
@@ -131,7 +134,7 @@ Options:
 		}
 	case "index":
 		db := open_db(*db_opt)
-		if err:= db.CreateIndex(); err != nil {
+		if err := db.CreateIndex(); err != nil {
 			fmt.Printf("Can not rebuild index: %s\n", err)
 			os.Exit(1)
 		}

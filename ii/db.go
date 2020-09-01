@@ -2,11 +2,12 @@ package ii
 
 import (
 	"bufio"
-	"path/filepath"
 	"errors"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -20,8 +21,9 @@ type MsgInfo struct {
 }
 
 type Index struct {
-	Hash map[string]MsgInfo
-	List []string
+	Hash     map[string]MsgInfo
+	List     []string
+	FileSize int64
 }
 
 type DB struct {
@@ -132,7 +134,7 @@ func (db *DB) _CreateIndex() error {
 	}
 	defer fidx.Close()
 	var off int64
-	return file_lines(db.BundlePath(), func (line string) bool {
+	return file_lines(db.BundlePath(), func(line string) bool {
 		msg, _ := DecodeBundle(line)
 		if msg == nil {
 			off += int64(len(line) + 1)
@@ -147,20 +149,24 @@ func (db *DB) _CreateIndex() error {
 		return true
 	})
 }
-
-func (db *DB) LoadIndex() error {
-	if db.Idx.Hash != nil { // already loaded
-		return nil
+func (db *DB) _ReopenIndex() (*os.File, error) {
+	err := db._CreateIndex()
+	if err != nil {
+		return nil, err
 	}
-
 	file, err := os.Open(db.IndexPath())
 	if err != nil {
+		return nil, err
+	}
+	return file, nil
+}
+func (db *DB) LoadIndex() error {
+	var Idx Index
+	file, err := os.Open(db.IndexPath())
+	if err != nil {
+		db.Idx = Idx
 		if os.IsNotExist(err) {
-			err = db._CreateIndex()
-			if err != nil {
-				return err
-			}
-			file, err = os.Open(db.IndexPath())
+			file, err = db._ReopenIndex()
 			if err != nil {
 				return err
 			}
@@ -170,11 +176,33 @@ func (db *DB) LoadIndex() error {
 	}
 	defer file.Close()
 
-	var Idx Index
-	Idx.Hash = make(map[string]MsgInfo)
-	//	Idx.List = make([]string)
+	info, err := file.Stat()
+	if err != nil {
+		return err
+	}
+	fsize := info.Size()
+
+	if db.Idx.Hash != nil { // already loaded
+		if fsize > db.Idx.FileSize {
+			Trace.Printf("Refreshing index file...")
+			if _, err := file.Seek(0, 2); err != nil {
+				return err
+			}
+			Idx = db.Idx
+		} else if info.Size() < db.Idx.FileSize {
+			Info.Printf("Index file truncated, rebuild inndex...")
+			file, err = db._ReopenIndex()
+			if err != nil {
+				return err
+			}
+			defer file.Close()
+		}
+		return nil
+	} else {
+		Idx.Hash = make(map[string]MsgInfo)
+	}
 	var err2 error
-	err = f_lines(file, func (line string) bool {
+	err = f_lines(file, func(line string) bool {
 		info := strings.Split(line, ":")
 		if len(info) < 3 {
 			err2 = errors.New("Wrong format")
@@ -200,6 +228,7 @@ func (db *DB) LoadIndex() error {
 	if err2 != nil {
 		return err2
 	}
+	Idx.FileSize = fsize
 	db.Idx = Idx
 	return nil
 }
@@ -224,7 +253,7 @@ func (db *DB) Lookup(Id string) *MsgInfo {
 	return db._Lookup(Id)
 }
 
-func (db *DB) Get(Id string) *Msg {
+func (db *DB) GetBundle(Id string) string {
 	db.Sync.RLock()
 	defer db.Sync.RUnlock()
 	db.Lock()
@@ -232,29 +261,46 @@ func (db *DB) Get(Id string) *Msg {
 
 	info := db._Lookup(Id)
 	if info == nil {
-		return nil
+		Info.Printf("Can not find bundle: %s\n", Id)
+		return ""
 	}
 	f, err := os.Open(db.BundlePath())
 	if err != nil {
-		return nil
+		Error.Printf("Can not open DB: %s\n", err)
+		return ""
 	}
+	defer f.Close()
 	_, err = f.Seek(info.Off, 0)
 	if err != nil {
-		return nil
+		Error.Printf("Can not seek DB: %s\n", err)
+		return ""
 	}
-	var m *Msg;
-	err = f_lines(f, func (line string)bool {
-		m, _ = DecodeBundle(line)
+	var bundle string
+	err = f_lines(f, func(line string) bool {
+		bundle = line
 		return false
 	})
 	if err != nil {
+		Error.Printf("Can not get %s from DB: %s\n", Id, err)
+		return ""
+	}
+	return bundle
+}
+
+func (db *DB) Get(Id string) *Msg {
+	bundle := db.GetBundle(Id)
+	if bundle == "" {
 		return nil
+	}
+	m, err := DecodeBundle(bundle)
+	if err != nil {
+		Error.Printf("Can not decode bundle on get: %s\n", Id)
 	}
 	return m
 }
 
 type Query struct {
-	Echo string
+	Echo  string
 	Repto string
 	Start int
 	Lim   int
@@ -267,7 +313,7 @@ func prependStr(x []string, y string) []string {
 	return x
 }
 
-func (db *DB)Match(info MsgInfo, r Query) bool {
+func (db *DB) Match(info MsgInfo, r Query) bool {
 	if r.Echo != "" && r.Echo != info.Echo {
 		return false
 	}
@@ -277,8 +323,46 @@ func (db *DB)Match(info MsgInfo, r Query) bool {
 	return true
 }
 
-func (db *DB)SelectIDS(r Query) []string {
-	var Resp []string;
+type Echo struct {
+	Name  string
+	Count int
+}
+
+func (db *DB) Echoes() []Echo {
+	db.Sync.Lock()
+	defer db.Sync.Unlock()
+	db.Lock()
+	defer db.Unlock()
+	var list []Echo
+
+	if err := db.LoadIndex(); err != nil {
+		return list
+	}
+
+	hash := make(map[string]Echo)
+	size := len(db.Idx.List)
+	for i := 0; i < size; i++ {
+		id := db.Idx.List[i]
+		info := db.Idx.Hash[id]
+		e := info.Echo
+		if v, ok := hash[e]; ok {
+			v.Count++
+			hash[e] = v
+		} else {
+			hash[e] = Echo{Name: e, Count: 1}
+		}
+	}
+	for _, v := range hash {
+		list = append(list, v)
+	}
+	sort.Slice(list, func(i, j int) bool {
+		return list[i].Name < list[j].Name
+	})
+	return list
+}
+
+func (db *DB) SelectIDS(r Query) []string {
+	var Resp []string
 	db.Sync.Lock()
 	defer db.Sync.Unlock()
 	db.Lock()
@@ -322,11 +406,11 @@ func (db *DB)SelectIDS(r Query) []string {
 	return Resp
 }
 
-func (db *DB)Store(m *Msg) error {
+func (db *DB) Store(m *Msg) error {
 	return db._Store(m, false)
 }
 
-func (db *DB)Edit(m *Msg) error {
+func (db *DB) Edit(m *Msg) error {
 	return db._Store(m, true)
 }
 
@@ -351,19 +435,19 @@ func (db *DB) _Store(m *Msg, edit bool) error {
 		return err
 	}
 
-	mi := MsgInfo{Id: m.MsgId, Echo: m.Echo, Off: off, Repto: repto}
-
 	if repto != "" {
 		repto = ":" + repto
 	}
-	if err := append_file(db.IndexPath(),
-		fmt.Sprintf("%s:%s:%d%s", m.MsgId, m.Echo, off, repto)); err != nil {
+	rec := fmt.Sprintf("%s:%s:%d%s", m.MsgId, m.Echo, off, repto)
+	if err := append_file(db.IndexPath(), rec); err != nil {
 		return err
 	}
-	if _, ok := db.Idx.Hash[m.MsgId]; !ok { // new msg
-		db.Idx.List = append(db.Idx.List, m.MsgId)
-	}
-	db.Idx.Hash[m.MsgId] = mi
+	// if _, ok := db.Idx.Hash[m.MsgId]; !ok { // new msg
+	//  	db.Idx.List = append(db.Idx.List, m.MsgId)
+	// }
+	// mi := MsgInfo{Id: m.MsgId, Echo: m.Echo, Off: off, Repto: repto}
+	// db.Idx.Hash[m.MsgId] = mi
+	// db.Idx.FileSize += (int64(len(rec) + 1))
 	return nil
 }
 

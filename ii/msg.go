@@ -34,6 +34,15 @@ func MsgId(msg string) string {
 	return id[0:20]
 }
 
+func IsMsgId(id string) bool {
+	return len(id) == 20 && !strings.Contains(id, ".")
+}
+
+func IsEcho(e string) bool {
+	l := len(e)
+	return l >= 3 && l <= 120 && strings.Contains(e, ".")
+}
+
 func DecodeMsgline(msg string, enc bool) *Msg {
 	var m Msg
 	var data []byte

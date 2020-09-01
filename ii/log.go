@@ -1,14 +1,14 @@
 package ii
 
 import (
-	"log"
 	"io"
+	"log"
 )
 
 var (
-	Trace   *log.Logger
-	Info    *log.Logger
-	Error   *log.Logger
+	Trace *log.Logger
+	Info  *log.Logger
+	Error *log.Logger
 )
 
 func OpenLog(trace io.Writer, info io.Writer, error io.Writer) {

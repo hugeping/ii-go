@@ -3,14 +3,14 @@ package ii
 import (
 	"bufio"
 	"fmt"
-	"sync"
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 )
 
 type Node struct {
-	Host string
+	Host     string
 	Features map[string]bool
 }
 
@@ -50,15 +50,15 @@ func http_get_id(url string) (string, error) {
 	return res, nil
 }
 
-func (n *Node)Fetcher(db *DB, Echo string, limit int, wait *sync.WaitGroup, cond *sync.Cond) {
-	defer func () {
+func (n *Node) Fetcher(db *DB, Echo string, limit int, wait *sync.WaitGroup, cond *sync.Cond) {
+	defer func() {
 		cond.L.Lock()
 		cond.Broadcast()
 		cond.L.Unlock()
 	}()
 	defer wait.Done()
 	if n.IsFeature("u/e") { /* fast path */
-		id, err := http_get_id(n.Host + "/u/e/" + Echo +"/-1:1")
+		id, err := http_get_id(n.Host + "/u/e/" + Echo + "/-1:1")
 		if err == nil && db.Lookup(id) != nil { /* no sync needed */
 			Info.Printf("%s: no sync needed", Echo)
 			return
@@ -80,7 +80,7 @@ func (n *Node)Fetcher(db *DB, Echo string, limit int, wait *sync.WaitGroup, cond
 				if db.Lookup(id) != nil {
 					break
 				}
-				try ++
+				try++
 				limit *= 2
 			}
 		}
@@ -109,12 +109,12 @@ func (n *Node)Fetcher(db *DB, Echo string, limit int, wait *sync.WaitGroup, cond
 
 var MaxConnections = 6
 
-func (n *Node)List() ([]string, error) {
+func (n *Node) List() ([]string, error) {
 	var list []string
 	if !n.IsFeature("list.txt") {
 		return list, nil
 	}
-	if err := http_req_lines(n.Host + "/list.txt", func(line string) bool {
+	if err := http_req_lines(n.Host+"/list.txt", func(line string) bool {
 		list = append(list, strings.Split(line, ":")[0])
 		return true
 	}); err != nil {
@@ -123,17 +123,18 @@ func (n *Node)List() ([]string, error) {
 	return list, nil
 }
 
-func (n *Node)Store(db *DB, ids []string) error {
+func (n *Node) Store(db *DB, ids []string) error {
 	req := ""
 	var nreq int
 	count := len(ids)
+	Trace.Printf("Get and store messages")
 	for i := 0; i < count; i++ {
 		req = req + "/" + string(ids[i])
-		nreq ++
-		if nreq < 8 && i < count - 1 {
+		nreq++
+		if nreq < 8 && i < count-1 {
 			continue
 		}
-		if err := http_req_lines(n.Host + "/u/m" + req, func(b string) bool {
+		if err := http_req_lines(n.Host+"/u/m"+req, func(b string) bool {
 			m, e := DecodeBundle(b)
 			if e != nil {
 				Error.Printf("Can not decode message %s (%s)\n", b, e)
@@ -152,7 +153,7 @@ func (n *Node)Store(db *DB, ids []string) error {
 	return nil
 }
 
-func (n *Node)Fetch(db *DB, Echolist []string, limit int) error {
+func (n *Node) Fetch(db *DB, Echolist []string, limit int) error {
 	if len(Echolist) == 0 {
 		Echolist, _ = n.List()
 	}
@@ -163,7 +164,7 @@ func (n *Node)Fetch(db *DB, Echolist []string, limit int) error {
 	cond := sync.NewCond(&sync.Mutex{})
 	num := 0
 	Info.Printf("Start fetcher(s) for %s", n.Host)
-	for _, v := range(Echolist) {
+	for _, v := range Echolist {
 		wait.Add(1)
 		num += 1
 		if num >= MaxConnections { /* add per one */
@@ -183,7 +184,7 @@ func (n *Node)Fetch(db *DB, Echolist []string, limit int) error {
 	return nil
 }
 
-func (n *Node)IsFeature(f string) bool {
+func (n *Node) IsFeature(f string) bool {
 	_, ok := n.Features[f]
 	return ok
 }
@@ -192,7 +193,7 @@ func Connect(addr string) (*Node, error) {
 	var n Node
 	n.Host = strings.TrimSuffix(addr, "/")
 	n.Features = make(map[string]bool)
-	if err := http_req_lines(n.Host + "/x/features", func(line string) bool {
+	if err := http_req_lines(n.Host+"/x/features", func(line string) bool {
 		n.Features[line] = true
 		Trace.Printf("%s supports %s", n.Host, line)
 		return true
