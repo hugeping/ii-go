@@ -20,7 +20,7 @@ func open_db(path string) *ii.DB {
 }
 
 func PointMsg(db *ii.DB, pauth string, tmsg string) string {
-	udb := ii.LoadUsers(db.BundlePath() + ".usr")
+	udb := ii.LoadUsers(*users_opt)
 	if !udb.Access(pauth) {
 		ii.Info.Printf("Access denied for pauth: %s", pauth)
 		return "Access denied"
@@ -39,15 +39,26 @@ func PointMsg(db *ii.DB, pauth string, tmsg string) string {
 	return "msg ok"
 }
 
+var users_opt *string = flag.String("u", "points.txt", "Users database")
+var db_opt *string= flag.String("db", "./db", "II database path (directory)")
+var listen_opt *string = flag.String("L", ":8080", "Listen address")
+var sysname_opt *string = flag.String("sys", "ii-go", "Node name")
+var verbose_opt *bool = flag.Bool("v", false, "Verbose")
+
 func main() {
 	ii.OpenLog(ioutil.Discard, os.Stdout, os.Stderr)
 
-	db_opt := flag.String("db", "./db", "II database path (directory)")
-	listen_opt := flag.String("L", ":8080", "Listen address")
 	db := open_db(*db_opt)
+
 	flag.Parse()
+	if *verbose_opt {
+		ii.OpenLog(os.Stdout, os.Stdout, os.Stderr)
+	}
+
+	db.Name = *sysname_opt
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "%s\n", r.URL.Path)
+		fmt.Fprintf(w, "ii-go node\n", r.URL.Path)
 	})
 	http.HandleFunc("/list.txt", func(w http.ResponseWriter, r *http.Request) {
 		echoes := db.Echoes(nil)

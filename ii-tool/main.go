@@ -56,6 +56,8 @@ func main() {
 	db_opt := flag.String("db", "./db", "II database path (directory)")
 	lim_opt := flag.Int("lim", 0, "Fetch last N messages")
 	verbose_opt := flag.Bool("v", false, "Verbose")
+	users_opt := flag.String("u", "points.txt", "Users database")
+
 	flag.Parse()
 	if *verbose_opt {
 		ii.OpenLog(os.Stdout, os.Stdout, os.Stderr)
@@ -103,7 +105,7 @@ Options:
 			fmt.Printf("No argumnet(s) supplied\nShould be: name, e-mail and password.\n")
 			os.Exit(1)
 		}
-		db := open_users_db(*db_opt + ".usr")
+		db := open_users_db(*users_opt)
 		if err := db.Add(args[1], args[2], args[3]); err != nil {
 			fmt.Printf("Can not add user: %s\n", err)
 			os.Exit(1)
