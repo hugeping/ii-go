@@ -2,6 +2,8 @@ package ii
 
 import (
 	"bufio"
+	"crypto/sha256"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -30,6 +32,7 @@ type DB struct {
 	Path string
 	Idx  Index
 	Sync sync.RWMutex
+	Name string
 }
 
 func mkdir(path string) {
@@ -58,6 +61,7 @@ func (db *DB) Lock() bool {
 		time.Sleep(time.Second)
 		try -= 1
 	}
+	Error.Printf("Can not acquire lock for 16 seconds")
 	return false
 }
 
@@ -435,12 +439,12 @@ func (db *DB) _Store(m *Msg, edit bool) error {
 	defer db.Sync.Unlock()
 	db.Lock()
 	defer db.Unlock()
-	if _, ok := db.Idx.Hash[m.MsgId]; ok && !edit { // exist and not edit
-		return errors.New("Already exists")
-	}
 	repto, _ := m.Tag("repto")
 	if err := db.LoadIndex(); err != nil {
 		return err
+	}
+	if _, ok := db.Idx.Hash[m.MsgId]; ok && !edit { // exist and not edit
+		return errors.New("Already exists")
 	}
 	fi, err := os.Stat(db.BundlePath())
 	var off int64
@@ -474,6 +478,123 @@ func OpenDB(path string) *DB {
 	if err != nil || !info.IsDir() {
 		return nil
 	}
+	db.Name = "node"
 	//	db.Idx = make(map[string]Index)
+	return &db
+}
+
+type User struct {
+	Id     int32
+	Name   string
+	Mail   string
+	Secret string
+	Tags   Tags
+}
+
+type UDB struct {
+	Path    string
+	Names   map[string]User
+	Secrets map[string]string
+	List    []string
+	Sync    sync.Mutex
+}
+
+func IsUsername(u string) bool {
+	return !strings.ContainsAny(u, ":\n\r\t") && len(u) <= 16
+}
+
+func MakeSecret(msg string) string {
+	h := sha256.Sum256([]byte(msg))
+	s := base64.URLEncoding.EncodeToString(h[:])
+	return s[0:10]
+}
+
+func (db *UDB) Access(Secret string) bool {
+	_, ok := db.Secrets[Secret]
+	return ok
+}
+
+func (db *UDB) Name(Secret string) string {
+	name, ok := db.Secrets[Secret]
+	if ok {
+		return name
+	}
+	Error.Printf("No user for secret: %s", Secret)
+	return ""
+}
+
+func (db *UDB) Id(Secret string) int32 {
+	name, ok := db.Secrets[Secret]
+	if ok {
+		v, ok := db.Names[name]
+		if !ok {
+			return -1
+		}
+		return v.Id
+	}
+	Error.Printf("No user for secret: %s", Secret)
+	return -1
+}
+
+func (db *UDB) Add(Name string, Mail string, Passwd string) error {
+	db.Sync.Lock()
+	defer db.Sync.Unlock()
+
+	if _, ok := db.Names[Name]; ok {
+		return errors.New("Already exists")
+	}
+	if !IsUsername(Name) {
+		return errors.New("Wrong username")
+	}
+	var id int32 = 0
+	for _, v := range db.Names {
+		if v.Id > id {
+			id = v.Id
+		}
+	}
+	id++
+	var u User
+	u.Name = Name
+	u.Mail = Mail
+	u.Secret = MakeSecret(string(id) + Name + Passwd)
+	u.Tags = NewTags("")
+	db.List = append(db.List, u.Name)
+	if err := append_file(db.Path, fmt.Sprintf("%d:%s:%s:%s:%s",
+		id, Name, Mail, u.Secret, u.Tags.String())); err != nil {
+		return err
+	}
+	return nil
+}
+
+func LoadUsers(path string) *UDB {
+	var db UDB
+	db.Path = path
+	db.Names = make(map[string]User)
+	db.Secrets = make(map[string]string)
+	err := file_lines(path, func(line string) bool {
+		a := strings.Split(line, ":")
+		if len(a) < 4 {
+			Error.Printf("Wrong entry in user DB: %s", line)
+			return true
+		}
+		var u User
+		var err error
+		_, err = fmt.Sscanf(a[0], "%d", &u.Id)
+		if err != nil {
+			Error.Printf("Wrong ID in user DB: %s", a[0])
+			return true
+		}
+		u.Name = a[1]
+		u.Mail = a[2]
+		u.Secret = a[3]
+		u.Tags = NewTags(a[4])
+		db.Names[u.Name] = u
+		db.Secrets[u.Secret] = u.Name
+		db.List = append(db.List, u.Name)
+		return true
+	})
+	if err != nil {
+		return nil
+	}
 	return &db
 }

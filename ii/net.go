@@ -2,9 +2,13 @@ package ii
 
 import (
 	"bufio"
+	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 )
@@ -108,6 +112,52 @@ func (n *Node) Fetcher(db *DB, Echo string, limit int, wait *sync.WaitGroup, con
 }
 
 var MaxConnections = 6
+
+func (n *Node) Send(pauth string, msg string) error {
+	msg = base64.StdEncoding.EncodeToString([]byte(msg))
+	req := fmt.Sprintf("%s/u/point/%s/%s", n.Host, pauth, msg)
+	resp, err := http.Get(req)
+	Trace.Printf("Get %s", req)
+	if err != nil {
+		return err
+	}
+	buf, err := ioutil.ReadAll(resp.Body)
+	if strings.HasPrefix(string(buf), "msg ok") {
+		Trace.Printf("Server responced msg ok")
+		return nil
+	} else if len(buf) > 0 {
+		err = errors.New(string(buf))
+	}
+	if err == nil {
+		err = errors.New("Server did not response with ok")
+	}
+	return err
+}
+
+func (n *Node) Post(pauth string, msg string) error {
+	msg = base64.StdEncoding.EncodeToString([]byte(msg))
+	msg = url.QueryEscape(msg)
+	postData := url.Values{
+		"pauth": {pauth},
+		"tmsg":  {msg},
+	}
+	resp, err := http.PostForm(n.Host+"/u/point", postData)
+	Trace.Printf("Post %s/u/point", n.Host)
+	if err != nil {
+		return err
+	}
+	buf, err := ioutil.ReadAll(resp.Body)
+	if strings.HasPrefix(string(buf), "msg ok") {
+		Trace.Printf("Server responced msg ok")
+		return nil
+	} else if len(buf) > 0 {
+		err = errors.New(string(buf))
+	}
+	if err == nil {
+		err = errors.New("Server did not response with ok")
+	}
+	return err
+}
 
 func (n *Node) List() ([]string, error) {
 	var list []string

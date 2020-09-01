@@ -19,6 +19,26 @@ func open_db(path string) *ii.DB {
 	return db
 }
 
+func PointMsg(db *ii.DB, pauth string, tmsg string) string {
+	udb := ii.LoadUsers(db.BundlePath() + ".usr")
+	if !udb.Access(pauth) {
+		ii.Info.Printf("Access denied for pauth: %s", pauth)
+		return "Access denied"
+	}
+	m, err := ii.DecodeMsgline(tmsg, true)
+	if err != nil {
+		ii.Error.Printf("Receive point msg: %s", err)
+		return fmt.Sprintf("%s", err)
+	}
+	m.From = udb.Name(pauth)
+	m.Addr = fmt.Sprintf("%s,%d", db.Name, udb.Id(pauth))
+	if err := db.Store(m); err != nil {
+		ii.Error.Printf("Store point msg: %s", err)
+		return fmt.Sprintf("%s", err)
+	}
+	return "msg ok"
+}
+
 func main() {
 	ii.OpenLog(ioutil.Discard, os.Stdout, os.Stderr)
 
@@ -34,6 +54,38 @@ func main() {
 		for _, v := range echoes {
 			fmt.Fprintf(w, "%s:%d:\n", v.Name, v.Count)
 		}
+	})
+	http.HandleFunc("/u/point/", func(w http.ResponseWriter, r *http.Request) {
+		var pauth, tmsg string
+		switch r.Method {
+		case "GET":
+			args := strings.Split(r.URL.Path[9:], "/")
+			if len(args) != 2 {
+				ii.Error.Printf("Wrong /u/point/ get request")
+				return
+			}
+			pauth, tmsg = args[0], args[1]
+		default:
+			return
+		}
+		ii.Info.Printf("/u/point/%s/%s GET request", pauth, tmsg)
+		fmt.Fprintf(w, PointMsg(db, pauth, tmsg))
+	})
+	http.HandleFunc("/u/point", func(w http.ResponseWriter, r *http.Request) {
+		var pauth, tmsg string
+		switch r.Method {
+		case "POST":
+			if err := r.ParseForm(); err != nil {
+				ii.Error.Printf("Error in POST request: %s", err)
+				return
+			}
+			pauth = r.FormValue("pauth")
+			tmsg = r.FormValue("tmsg")
+		default:
+			return
+		}
+		ii.Info.Printf("/u/point/%s/%s POST request", pauth, tmsg)
+		fmt.Fprintf(w, PointMsg(db, pauth, tmsg))
 	})
 	http.HandleFunc("/x/c/", func(w http.ResponseWriter, r *http.Request) {
 		enames := strings.Split(r.URL.Path[5:], "/")

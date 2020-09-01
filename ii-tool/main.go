@@ -20,6 +20,36 @@ func open_db(path string) *ii.DB {
 	return db
 }
 
+func open_users_db(path string) *ii.UDB {
+	db := ii.LoadUsers(path)
+	if db == nil {
+		fmt.Printf("Can no open db: %s\n", path)
+		os.Exit(1)
+	}
+	return db
+}
+
+func GetFile(path string) string {
+	var file *os.File
+	var err error
+	if path == "-" {
+		file = os.Stdin
+	} else {
+		file, err = os.Open(path)
+		if err != nil {
+			fmt.Printf("Can not open file %s: %s\n", path, err)
+			os.Exit(1)
+		}
+		defer file.Close()
+	}
+	b, err := ioutil.ReadAll(file)
+	if err != nil {
+		fmt.Printf("Can not read file %s: %s\n", path, err)
+		os.Exit(1)
+	}
+	return string(b)
+}
+
 func main() {
 	ii.OpenLog(ioutil.Discard, os.Stdout, os.Stderr)
 
@@ -35,11 +65,13 @@ func main() {
 	if len(args) < 1 {
 		fmt.Printf(`Help: %s [options] command [arguments]
 Commands:
+	send <server> <pauth> <msg|-> - send message
 	fetch <url>      - fetch
 	store <bundle|-> - import bundle to database
         get <msgid>      - show message from database
         select <echo> [[start]:lim] - get slice from echo
         index            - recreate index
+	useradd <name> <e-mail> <password> - adduser
 Options:
         -db=<path>       - database path
         -lim=<lim>       - fetch lim last messages
@@ -47,6 +79,35 @@ Options:
 		os.Exit(1)
 	}
 	switch cmd := args[0]; cmd {
+	case "send":
+		if len(args) < 4 {
+			fmt.Printf("No argumnet(s) supplied\nShould be: <server> <pauth> and <file|->.\n")
+			os.Exit(1)
+		}
+		msg := GetFile(args[3])
+		if _, err := ii.DecodeMsgline(string(msg), false); err != nil {
+			fmt.Printf("Wrong message format\n")
+			os.Exit(1)
+		}
+		n, err := ii.Connect(args[1])
+		if err != nil {
+			fmt.Printf("Can not connect to %s: %s\n", args[1], err)
+			os.Exit(1)
+		}
+		if err := n.Post(args[2], msg); err != nil {
+			fmt.Printf("Can not send message: %s\n", err)
+			os.Exit(1)
+		}
+	case "useradd":
+		if len(args) < 4 {
+			fmt.Printf("No argumnet(s) supplied\nShould be: name, e-mail and password.\n")
+			os.Exit(1)
+		}
+		db := open_users_db(*db_opt + ".usr")
+		if err := db.Add(args[1], args[2], args[3]); err != nil {
+			fmt.Printf("Can not add user: %s\n", err)
+			os.Exit(1)
+		}
 	case "fetch":
 		if len(args) < 2 {
 			fmt.Printf("No url supplied\n")
