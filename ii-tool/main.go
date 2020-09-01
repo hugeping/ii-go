@@ -57,8 +57,10 @@ func main() {
 	lim_opt := flag.Int("lim", 0, "Fetch last N messages")
 	verbose_opt := flag.Bool("v", false, "Verbose")
 	users_opt := flag.String("u", "points.txt", "Users database")
+	conns_opt := flag.Int("j", 6, "Maximum parallel jobs")
 
 	flag.Parse()
+	ii.MaxConnections = *conns_opt
 	if *verbose_opt {
 		ii.OpenLog(os.Stdout, os.Stdout, os.Stderr)
 	}
