@@ -193,7 +193,7 @@ func (db *DB) LoadIndex() error {
 	if db.Idx.Hash != nil { // already loaded
 		if fsize > db.Idx.FileSize {
 			Trace.Printf("Refreshing index file...%d>%d", fsize, db.Idx.FileSize)
-			if _, err := file.Seek(0, 2); err != nil {
+			if _, err := file.Seek(db.Idx.FileSize, 0); err != nil {
 				Error.Printf("Can not seek index: %s", err)
 				return err
 			}
@@ -233,6 +233,7 @@ func (db *DB) LoadIndex() error {
 			Idx.List = append(Idx.List, mi.Id)
 		}
 		Idx.Hash[mi.Id] = mi
+		Trace.Printf("Adding %s to index", mi.Id)
 		return true
 	})
 	if err != nil {

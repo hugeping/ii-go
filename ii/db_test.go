@@ -8,6 +8,7 @@ import (
 
 func TestOpenDB(t *testing.T) {
 	var db *DB
+	InitLog()
 	dir, err := ioutil.TempDir(os.TempDir(), "ii.test.*")
 	if err != nil {
 		t.Error("Can not create temp dir")
@@ -34,7 +35,6 @@ func TestOpenDB(t *testing.T) {
 		t.Error("Can not lookup msg")
 		return
 	}
-
 	os.Remove(db.IndexPath())
 
 	db = OpenDB(path) // reopen

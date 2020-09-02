@@ -34,7 +34,7 @@ func TestParse(t *testing.T) {
 
 func TestMsgline(t *testing.T) {
 	var m *Msg
-	m = DecodeMsgline(`test.area
+	m, _ = DecodeMsgline(`test.area
 All
 hello world!
 
