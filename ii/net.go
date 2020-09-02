@@ -115,7 +115,8 @@ func (n *Node) Fetcher(db *DB, Echo string, limit int, wait *sync.WaitGroup, con
 var MaxConnections = 6
 
 func (n *Node) Send(pauth string, msg string) error {
-	msg = base64.StdEncoding.EncodeToString([]byte(msg))
+	msg = base64.URLEncoding.EncodeToString([]byte(msg))
+	//	msg = url.QueryEscape(msg)
 	req := fmt.Sprintf("%s/u/point/%s/%s", n.Host, pauth, msg)
 	resp, err := http.Get(req)
 	Trace.Printf("Get %s", req)
@@ -137,7 +138,7 @@ func (n *Node) Send(pauth string, msg string) error {
 
 func (n *Node) Post(pauth string, msg string) error {
 	msg = base64.StdEncoding.EncodeToString([]byte(msg))
-	msg = url.QueryEscape(msg)
+	// msg = url.QueryEscape(msg)
 	postData := url.Values{
 		"pauth": {pauth},
 		"tmsg":  {msg},

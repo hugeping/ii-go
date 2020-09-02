@@ -72,7 +72,7 @@ func main() {
 		case "GET":
 			args := strings.Split(r.URL.Path[9:], "/")
 			if len(args) != 2 {
-				ii.Error.Printf("Wrong /u/point/ get request")
+				ii.Error.Printf("Wrong /u/point/ get request: %s", r.URL.Path[9:])
 				return
 			}
 			pauth, tmsg = args[0], args[1]

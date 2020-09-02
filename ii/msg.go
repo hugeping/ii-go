@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"net/url"
 	"strings"
 	"time"
 )
@@ -49,11 +48,13 @@ func DecodeMsgline(msg string, enc bool) (*Msg, error) {
 	var data []byte
 	var err error
 	if enc {
-		if msg, err = url.QueryUnescape(msg); err != nil {
-			return nil, err
-		}
+		//		if msg, err = url.QueryUnescape(msg); err != nil {
+		//	return nil, err
+		// }
 		if data, err = base64.StdEncoding.DecodeString(msg); err != nil {
-			return nil, err
+			if data, err = base64.URLEncoding.DecodeString(msg); err != nil {
+				return nil, err
+			}
 		}
 	} else {
 		data = []byte(msg)
