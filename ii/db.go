@@ -374,7 +374,7 @@ type Echo struct {
 	Name   string
 	Count  int
 	Topics int
-	Last   string
+	Last   MsgInfo
 }
 
 func (db *DB) Echoes(names []string) []Echo {
@@ -412,10 +412,10 @@ func (db *DB) Echoes(names []string) []Echo {
 				v.Topics++
 			}
 			v.Count++
-			v.Last = id
+			v.Last = info
 			hash[e] = v
 		} else {
-			v := Echo{Name: e, Count: 1, Last: id}
+			v := Echo{Name: e, Count: 1, Last: info}
 			if info.Repto == "" {
 				v.Topics = 1
 			}
@@ -430,8 +430,9 @@ func (db *DB) Echoes(names []string) []Echo {
 		for _, v := range hash {
 			list = append(list, v)
 		}
-		sort.Slice(list, func(i, j int) bool {
-			return list[i].Name < list[j].Name
+		sort.SliceStable(list, func(i, j int) bool {
+			return list[i].Last.Off > list[j].Last.Off
+			// return list[i].Name < list[j].Name
 		})
 	}
 	return list
