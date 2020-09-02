@@ -52,7 +52,15 @@ var listen_opt *string = flag.String("L", ":8080", "Listen address")
 var sysname_opt *string = flag.String("sys", "ii-go", "Node name")
 var verbose_opt *bool = flag.Bool("v", false, "Verbose")
 
+type WWW struct {
+	tpl *template.Template
+	db *ii.DB
+	w http.ResponseWriter
+	r *http.Request
+}
+
 func main() {
+	var www WWW
 	ii.OpenLog(ioutil.Discard, os.Stdout, os.Stderr)
 
 	db := open_db(*db_opt)
@@ -64,10 +72,10 @@ func main() {
 
 	db.Name = *sysname_opt
 
-	t := template.Must(template.ParseGlob("tpl/*.tpl"))
-
+	www.tpl = template.Must(template.ParseGlob("tpl/*.tpl"))
+	www.db = db
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		err := Web(db, t, w, r)
+		err := Web(www, w, r)
 		if err != nil {
 			fmt.Fprintf(w, "%s\n", err)
 		}

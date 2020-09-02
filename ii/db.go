@@ -233,7 +233,7 @@ func (db *DB) LoadIndex() error {
 			Idx.List = append(Idx.List, mi.Id)
 		}
 		Idx.Hash[mi.Id] = mi
-		Trace.Printf("Adding %s to index", mi.Id)
+		// Trace.Printf("Adding %s to index", mi.Id)
 		return true
 	})
 	if err != nil {
