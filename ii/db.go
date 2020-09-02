@@ -173,9 +173,11 @@ func (db *DB) LoadIndex() error {
 		if os.IsNotExist(err) {
 			file, err = db._ReopenIndex()
 			if err != nil {
+				Error.Printf("Can not seek to end of index")
 				return err
 			}
 		} else {
+			Error.Printf("Can not open index: %s", err)
 			return err
 		}
 	}
@@ -183,14 +185,16 @@ func (db *DB) LoadIndex() error {
 
 	info, err := file.Stat()
 	if err != nil {
+		Error.Printf("Can not stat index: %s", err)
 		return err
 	}
 	fsize := info.Size()
 
 	if db.Idx.Hash != nil { // already loaded
 		if fsize > db.Idx.FileSize {
-			Trace.Printf("Refreshing index file...")
+			Trace.Printf("Refreshing index file...%d>%d", fsize, db.Idx.FileSize)
 			if _, err := file.Seek(0, 2); err != nil {
+				Error.Printf("Can not seek index: %s", err)
 				return err
 			}
 			Idx = db.Idx
@@ -198,24 +202,28 @@ func (db *DB) LoadIndex() error {
 			Info.Printf("Index file truncated, rebuild inndex...")
 			file, err = db._ReopenIndex()
 			if err != nil {
+				Error.Printf("Can not reopen index: %s", err)
 				return err
 			}
 			defer file.Close()
+		} else {
+			return nil
 		}
-		return nil
 	} else {
 		Idx.Hash = make(map[string]MsgInfo)
 	}
 	var err2 error
+	linenr := 0
 	err = f_lines(file, func(line string) bool {
+		linenr ++
 		info := strings.Split(line, ":")
 		if len(info) < 3 {
-			err2 = errors.New("Wrong format")
+			err2 = errors.New("Wrong format on line:" + fmt.Sprintf("%d", linenr))
 			return false
 		}
 		mi := MsgInfo{Id: info[0], Echo: info[1]}
 		if _, err := fmt.Sscanf(info[2], "%d", &mi.Off); err != nil {
-			err2 = errors.New("Wrong offset")
+			err2 = errors.New("Wrong offset on line: " + fmt.Sprintf("%d", linenr))
 			return false
 		}
 		if len(info) > 3 {
@@ -228,9 +236,11 @@ func (db *DB) LoadIndex() error {
 		return true
 	})
 	if err != nil {
+		Error.Printf("Can not parse index: %s", err)
 		return err
 	}
 	if err2 != nil {
+		Error.Printf("Can not parse index: %s", err2)
 		return err2
 	}
 	Idx.FileSize = fsize
@@ -238,12 +248,12 @@ func (db *DB) LoadIndex() error {
 	return nil
 }
 
-func (db *DB) _Lookup(Id string) *MsgInfo {
+func (db *DB) _Lookup(Id string, bl bool) *MsgInfo {
 	if err := db.LoadIndex(); err != nil {
 		return nil
 	}
 	info, ok := db.Idx.Hash[Id]
-	if !ok {
+	if !ok || (!bl && info.Off < 0) {
 		return nil
 	}
 	return &info
@@ -255,7 +265,16 @@ func (db *DB) Lookup(Id string) *MsgInfo {
 	db.Lock()
 	defer db.Unlock()
 
-	return db._Lookup(Id)
+	return db._Lookup(Id, false)
+}
+
+func (db *DB) Exists(Id string) *MsgInfo {
+	db.Sync.RLock()
+	defer db.Sync.RUnlock()
+	db.Lock()
+	defer db.Unlock()
+
+	return db._Lookup(Id, true)
 }
 
 func (db *DB) LookupIDS(Ids []string) []*MsgInfo {
@@ -265,7 +284,7 @@ func (db *DB) LookupIDS(Ids []string) []*MsgInfo {
 	db.Lock()
 	defer db.Unlock()
 	for _, id := range Ids {
-		i := db._Lookup(id)
+		i := db._Lookup(id, false)
 		if i != nil {
 			info = append(info, i)
 		}
@@ -279,7 +298,7 @@ func (db *DB) GetBundle(Id string) string {
 	db.Lock()
 	defer db.Unlock()
 
-	info := db._Lookup(Id)
+	info := db._Lookup(Id, false)
 	if info == nil {
 		Info.Printf("Can not find bundle: %s\n", Id)
 		return ""
@@ -324,6 +343,7 @@ type Query struct {
 	Repto string
 	Start int
 	Lim   int
+	Blacklisted bool
 }
 
 func prependStr(x []string, y string) []string {
@@ -334,6 +354,9 @@ func prependStr(x []string, y string) []string {
 }
 
 func (db *DB) Match(info MsgInfo, r Query) bool {
+	if r.Blacklisted {
+		return info.Off < 0
+	}
 	if r.Echo != "" && r.Echo != info.Echo {
 		return false
 	}
@@ -374,6 +397,9 @@ func (db *DB) Echoes(names []string) []Echo {
 	for i := 0; i < size; i++ {
 		id := db.Idx.List[i]
 		info := db.Idx.Hash[id]
+		if info.Off < 0 {
+			continue
+		}
 		e := info.Echo
 		if names != nil { // filter?
 			if _, ok := filter[e]; !ok {
@@ -461,6 +487,23 @@ func (db *DB) Store(m *Msg) error {
 
 func (db *DB) Edit(m *Msg) error {
 	return db._Store(m, true)
+}
+
+func (db *DB) Blacklist(m *Msg) error {
+	db.Sync.Lock()
+	defer db.Sync.Unlock()
+	db.Lock()
+	defer db.Unlock()
+
+	repto, _ := m.Tag("repto")
+	if repto != "" {
+		repto = ":" + repto
+	}
+	rec := fmt.Sprintf("%s:%s:%d%s", m.MsgId, m.Echo, -1, repto)
+	if err := append_file(db.IndexPath(), rec); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (db *DB) _Store(m *Msg, edit bool) error {

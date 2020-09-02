@@ -75,6 +75,7 @@ Commands:
         get <msgid>                   - show message from database
         select <echo> [[start]:lim]   - get slice from echo
         index                         - recreate index
+        blacklist <msgid>             - blacklist msg
 	useradd <name> <e-mail> <password> - adduser
 Options:
         -db=<path>                    - database path
@@ -84,6 +85,21 @@ Options:
 		os.Exit(1)
 	}
 	switch cmd := args[0]; cmd {
+	case "blacklist":
+		if len(args) < 2 {
+			fmt.Printf("No msgid supplied\n")
+			os.Exit(1)
+		}
+		db := open_db(*db_opt)
+		m := db.Get(args[1])
+		if m != nil {
+			if err := db.Blacklist(m); err != nil {
+				fmt.Printf("Can not blacklist: %s\n", err)
+				os.Exit(1)
+			}
+		} else {
+			fmt.Printf("No such msg")
+		}
 	case "send":
 		if len(args) < 4 {
 			fmt.Printf("No argumnet(s) supplied\nShould be: <server> <pauth> and <file|->.\n")

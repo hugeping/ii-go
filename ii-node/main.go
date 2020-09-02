@@ -78,6 +78,12 @@ func main() {
 			fmt.Fprintf(w, "%s:%d:\n", v.Name, v.Count)
 		}
 	})
+	http.HandleFunc("/blacklist.txt", func(w http.ResponseWriter, r *http.Request) {
+		ids := db.SelectIDS(ii.Query { Blacklisted: true } )
+		for _, v := range ids {
+			fmt.Fprintf(w, "%s\n", v)
+		}
+	})
 	http.HandleFunc("/u/point/", func(w http.ResponseWriter, r *http.Request) {
 		var pauth, tmsg string
 		switch r.Method {
@@ -172,7 +178,7 @@ func main() {
 		}
 	})
 	http.HandleFunc("/x/features", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "list.txt\nu/e\nx/c\n")
+		fmt.Fprintf(w, "list.txt\nblacklist.txt\nu/e\nx/c\n")
 	})
 	ii.Info.Printf("Listening on %s", *listen_opt)
 	if err := http.ListenAndServe(*listen_opt, nil); err != nil {

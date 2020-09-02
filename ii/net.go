@@ -64,7 +64,7 @@ func (n *Node) Fetcher(db *DB, Echo string, limit int, wait *sync.WaitGroup, con
 	defer wait.Done()
 	if n.IsFeature("u/e") { /* fast path */
 		id, err := http_get_id(n.Host + "/u/e/" + Echo + "/-1:1")
-		if err == nil && db.Lookup(id) != nil { /* no sync needed */
+		if err == nil && db.Exists(id) != nil { /* no sync needed */
 			Info.Printf("%s: no sync needed", Echo)
 			return
 		}
@@ -82,7 +82,7 @@ func (n *Node) Fetcher(db *DB, Echo string, limit int, wait *sync.WaitGroup, con
 					limit = 0
 					break
 				}
-				if db.Lookup(id) != nil {
+				if db.Exists(id) != nil {
 					break
 				}
 				try++
@@ -102,7 +102,7 @@ func (n *Node) Fetcher(db *DB, Echo string, limit int, wait *sync.WaitGroup, con
 		if strings.Contains(line, ".") {
 			return true
 		}
-		if db.Lookup(line) == nil {
+		if db.Exists(line) == nil {
 			res = append(res, line)
 		}
 		return true
