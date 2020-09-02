@@ -4,6 +4,7 @@ import (
 	"../ii"
 	"flag"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -30,6 +31,12 @@ func PointMsg(db *ii.DB, pauth string, tmsg string) string {
 		ii.Error.Printf("Receive point msg: %s", err)
 		return fmt.Sprintf("%s", err)
 	}
+	if r, _ := m.Tag("repto"); r != "" {
+		if db.Lookup(r) == nil {
+			ii.Error.Printf("Receive point msg with wrong repto.")
+			return fmt.Sprintf("Receive point msg with wrong repto.")
+		}
+	}
 	m.From = udb.Name(pauth)
 	m.Addr = fmt.Sprintf("%s,%d", db.Name, udb.Id(pauth))
 	if err := db.Store(m); err != nil {
@@ -40,7 +47,7 @@ func PointMsg(db *ii.DB, pauth string, tmsg string) string {
 }
 
 var users_opt *string = flag.String("u", "points.txt", "Users database")
-var db_opt *string= flag.String("db", "./db", "II database path (directory)")
+var db_opt *string = flag.String("db", "./db", "II database path (directory)")
 var listen_opt *string = flag.String("L", ":8080", "Listen address")
 var sysname_opt *string = flag.String("sys", "ii-go", "Node name")
 var verbose_opt *bool = flag.Bool("v", false, "Verbose")
@@ -57,8 +64,13 @@ func main() {
 
 	db.Name = *sysname_opt
 
+	t := template.Must(template.ParseGlob("tpl/*.tpl"))
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "ii-go node\n", r.URL.Path)
+		err := Web(db, t, w, r)
+		if err != nil {
+			fmt.Fprintf(w, "%s\n", err)
+		}
 	})
 	http.HandleFunc("/list.txt", func(w http.ResponseWriter, r *http.Request) {
 		echoes := db.Echoes(nil)

@@ -258,6 +258,21 @@ func (db *DB) Lookup(Id string) *MsgInfo {
 	return db._Lookup(Id)
 }
 
+func (db *DB) LookupIDS(Ids []string) []*MsgInfo {
+	var info []*MsgInfo
+	db.Sync.RLock()
+	defer db.Sync.RUnlock()
+	db.Lock()
+	defer db.Unlock()
+	for _, id := range Ids {
+		i := db._Lookup(id)
+		if i != nil {
+			info = append(info, i)
+		}
+	}
+	return info
+}
+
 func (db *DB) GetBundle(Id string) string {
 	db.Sync.RLock()
 	defer db.Sync.RUnlock()
@@ -322,15 +337,20 @@ func (db *DB) Match(info MsgInfo, r Query) bool {
 	if r.Echo != "" && r.Echo != info.Echo {
 		return false
 	}
-	if r.Repto != "" && r.Repto != info.Repto {
+	if r.Repto != "" && r.Repto != "." && r.Repto != info.Repto {
+		return false
+	}
+	if r.Repto == "." && info.Repto != "" {
 		return false
 	}
 	return true
 }
 
 type Echo struct {
-	Name  string
-	Count int
+	Name   string
+	Count  int
+	Topics int
+	Last   string
 }
 
 func (db *DB) Echoes(names []string) []Echo {
@@ -361,10 +381,18 @@ func (db *DB) Echoes(names []string) []Echo {
 			}
 		}
 		if v, ok := hash[e]; ok {
+			if info.Repto == "" {
+				v.Topics++
+			}
 			v.Count++
+			v.Last = id
 			hash[e] = v
 		} else {
-			hash[e] = Echo{Name: e, Count: 1}
+			v := Echo{Name: e, Count: 1, Last: id}
+			if info.Repto == "" {
+				v.Topics = 1
+			}
+			hash[e] = v
 		}
 	}
 	if names != nil {
@@ -549,7 +577,7 @@ func (db *UDB) Add(Name string, Mail string, Passwd string) error {
 	if !IsUsername(Name) {
 		return errors.New("Wrong username")
 	}
-	if ! emailRegex.MatchString(Mail) {
+	if !emailRegex.MatchString(Mail) {
 		return errors.New("Wrong email")
 	}
 	var id int32 = 0

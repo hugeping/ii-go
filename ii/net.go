@@ -254,6 +254,7 @@ func Connect(addr string) (*Node, error) {
 	}
 	return &n, nil
 }
+
 /*
 func SendMail(email string, login string, passwd string, server string) error {
 	aserv := strings.Split(server, ":")[0]
