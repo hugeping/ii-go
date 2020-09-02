@@ -562,7 +562,7 @@ func (db *UDB) Add(Name string, Mail string, Passwd string) error {
 	var u User
 	u.Name = Name
 	u.Mail = Mail
-	u.Secret = MakeSecret(string(id) + Name + Passwd)
+	u.Secret = MakeSecret(Name + Passwd)
 	u.Tags = NewTags("")
 	db.List = append(db.List, u.Name)
 	if err := append_file(db.Path, fmt.Sprintf("%d:%s:%s:%s:%s",
