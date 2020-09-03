@@ -249,9 +249,11 @@ func (db *DB) LoadIndex() error {
 	return nil
 }
 
-func (db *DB) _Lookup(Id string, bl bool) *MsgInfo {
-	if err := db.LoadIndex(); err != nil {
-		return nil
+func (db *DB) _Lookup(Id string, bl bool, idx bool) *MsgInfo {
+	if idx {
+		if err := db.LoadIndex(); err != nil {
+			return nil
+		}
 	}
 	info, ok := db.Idx.Hash[Id]
 	if !ok || (!bl && info.Off < 0) {
@@ -260,13 +262,17 @@ func (db *DB) _Lookup(Id string, bl bool) *MsgInfo {
 	return &info
 }
 
+func (db *DB) LookupFast(Id string, bl bool) *MsgInfo {
+	return db._Lookup(Id, bl, false)
+}
+
 func (db *DB) Lookup(Id string) *MsgInfo {
 	db.Sync.RLock()
 	defer db.Sync.RUnlock()
 	db.Lock()
 	defer db.Unlock()
 
-	return db._Lookup(Id, false)
+	return db._Lookup(Id, false, true)
 }
 
 func (db *DB) Exists(Id string) *MsgInfo {
@@ -275,7 +281,7 @@ func (db *DB) Exists(Id string) *MsgInfo {
 	db.Lock()
 	defer db.Unlock()
 
-	return db._Lookup(Id, true)
+	return db._Lookup(Id, true, true)
 }
 
 func (db *DB) LookupIDS(Ids []string) []*MsgInfo {
@@ -285,7 +291,7 @@ func (db *DB) LookupIDS(Ids []string) []*MsgInfo {
 	db.Lock()
 	defer db.Unlock()
 	for _, id := range Ids {
-		i := db._Lookup(id, false)
+		i := db._Lookup(id, false, true)
 		if i != nil {
 			info = append(info, i)
 		}
@@ -293,13 +299,8 @@ func (db *DB) LookupIDS(Ids []string) []*MsgInfo {
 	return info
 }
 
-func (db *DB) GetBundle(Id string) string {
-	db.Sync.RLock()
-	defer db.Sync.RUnlock()
-	db.Lock()
-	defer db.Unlock()
-
-	info := db._Lookup(Id, false)
+func (db *DB) _GetBundle(Id string, idx bool) string {
+	info := db._Lookup(Id, false, idx)
 	if info == nil {
 		Info.Printf("Can not find bundle: %s\n", Id)
 		return ""
@@ -327,8 +328,29 @@ func (db *DB) GetBundle(Id string) string {
 	return bundle
 }
 
+func (db *DB) GetBundle(Id string) string {
+	db.Sync.RLock()
+	defer db.Sync.RUnlock()
+	db.Lock()
+	defer db.Unlock()
+
+	return db._GetBundle(Id, true)
+}
+
 func (db *DB) Get(Id string) *Msg {
 	bundle := db.GetBundle(Id)
+	if bundle == "" {
+		return nil
+	}
+	m, err := DecodeBundle(bundle)
+	if err != nil {
+		Error.Printf("Can not decode bundle on get: %s\n", Id)
+	}
+	return m
+}
+
+func (db *DB) GetFast(Id string) *Msg {
+	bundle := db._GetBundle(Id, false)
 	if bundle == "" {
 		return nil
 	}

@@ -3,6 +3,7 @@ package main
 import (
 	"../ii"
 	"errors"
+	"fmt"
 	"html/template"
 	"net/http"
 	"sort"
@@ -15,6 +16,8 @@ type WebContext struct {
 	Topics []Topic
 	Msg    []ii.Msg
 	Render func(string) template.HTML
+	Page int
+	Pages int
 }
 
 func www_index(www WWW, w http.ResponseWriter, r *http.Request) error {
@@ -30,12 +33,17 @@ func www_index(www WWW, w http.ResponseWriter, r *http.Request) error {
 }
 
 func getParent(db *ii.DB, i *ii.MsgInfo) *ii.MsgInfo {
-	return db.Lookup(i.Repto)
+	return db.LookupFast(i.Repto, false)
 }
 
 func getTopics(db *ii.DB, mi []*ii.MsgInfo) map[string][]string {
+	db.Sync.RLock()
+	defer db.Sync.RUnlock()
+
 	intopic := make(map[string]string)
 	topics := make(map[string][]string)
+
+	db.LoadIndex()
 	for _, m := range mi {
 		if _, ok := intopic[m.Id]; ok {
 			continue
@@ -60,40 +68,61 @@ type Topic struct {
 	Ids     []string
 	Count   int
 	Date    string
-	LastUpd string
+	Last    *ii.MsgInfo
 	Head    *ii.Msg
-	Last    *ii.Msg
+	Tail    *ii.Msg
 }
 
-func www_topics(www WWW, w http.ResponseWriter, r *http.Request, echo string) error {
+const PAGE_SIZE = 100
+
+func www_topics(www WWW, w http.ResponseWriter, r *http.Request, echo string, page int) error {
 	db := www.db
 	var ctx WebContext
 	mis := db.LookupIDS(db.SelectIDS(ii.Query{Echo: echo}))
 	ii.Trace.Printf("www topics: %s", echo)
-	topics := getTopics(db, mis)
+	topicsIds := getTopics(db, mis)
+	var topics []*Topic
 	ii.Trace.Printf("Start to generate topics")
-	for _, t := range topics {
+
+	db.Sync.RLock()
+	defer db.Sync.RUnlock()
+	db.LoadIndex()
+	for _, t := range topicsIds {
 		topic := Topic{}
 		topic.Ids = t
-		m := db.Get(t[0])
-		if m == nil {
-			ii.Error.Printf("Skip wrong message: %s\n", t[0])
-			continue
-		}
 		topic.Count = len(topic.Ids) - 1
-		topic.Head = m
-		topic.Last = db.Get(topic.Ids[topic.Count])
+		topic.Last = db.LookupFast(topic.Ids[topic.Count], false)
 		if topic.Last == nil {
 			ii.Error.Printf("Skip wrong message: %s\n", t[0])
 			continue
 		}
-		topic.Date = time.Unix(topic.Last.Date, 0).Format("2006-01-02 15:04:05")
-		ctx.Topics = append(ctx.Topics, topic)
+		topics = append(topics, &topic)
 	}
-	sort.SliceStable(ctx.Topics, func(i, j int) bool {
-		return ctx.Topics[i].Last.Date > ctx.Topics[j].Last.Date
+
+	sort.SliceStable(topics, func(i, j int) bool {
+		return topics[i].Last.Off > topics[j].Last.Off
 	})
+	tcount := len(topics)
+	start := page * tcount / PAGE_SIZE
+	nr := PAGE_SIZE
+	for i := start; i < tcount && nr > 0; i ++ {
+		t := topics[i]
+		t.Head = db.GetFast(t.Ids[0])
+		t.Tail = db.GetFast(t.Ids[t.Count])
+		if t.Head == nil || t.Tail == nil {
+			ii.Error.Printf("Skip wrong message: %s\n", t.Ids[0])
+			continue
+		}
+		t.Date = time.Unix(t.Tail.Date, 0).Format("2006-01-02 15:04:05")
+		ctx.Topics = append(ctx.Topics, *topics[i])
+		nr --
+	}
 	ii.Trace.Printf("Stop to generate topics")
+	ctx.Page = start
+	ctx.Pages = tcount / PAGE_SIZE
+	if tcount % PAGE_SIZE != 0 {
+		ctx.Pages ++
+	}
 	err := www.tpl.ExecuteTemplate(w, "topics.tpl", ctx)
 	return err
 }
@@ -128,11 +157,16 @@ func www_topic(www WWW, w http.ResponseWriter, r *http.Request, id string) error
 
 func Web(www WWW, w http.ResponseWriter, r *http.Request) error {
 	path := strings.TrimPrefix(r.URL.Path, "/")
+	args := strings.Split(path, "/")
 	if path == "" {
 		return www_index(www, w, r)
 	}
-	if ii.IsEcho(path) {
-		return www_topics(www, w, r, path)
+	if ii.IsEcho(args[0]) {
+		var page int
+		if len(args) > 1 {
+			fmt.Sscanf(args[1], "%d", &page)
+		}
+		return www_topics(www, w, r, args[0], page)
 	}
 	if ii.IsMsgId(path) {
 		return www_topic(www, w, r, path)
