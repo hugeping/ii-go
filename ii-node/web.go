@@ -190,7 +190,9 @@ func www_topic(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, i
 	}
 	mis := db.LookupIDS(db.SelectIDS(ii.Query{Echo: mi.Echo}))
 	ids := getTopics(db, mis)[id]
-	fmt.Printf("%d\n", len(ids))
+	if len(ids) == 0 {
+		ids = append(ids, id)
+	}
 	ii.Trace.Printf("www topic: %s", id)
 	start := makePager(&ctx, len(ids), page)
 	nr := PAGE_SIZE
