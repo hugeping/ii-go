@@ -16,6 +16,7 @@ type WebContext struct {
 	Topics []Topic
 	Msg    []ii.Msg
 	Render func(string) template.HTML
+	Echo string
 	Page int
 	Pages int
 }
@@ -103,7 +104,7 @@ func www_topics(www WWW, w http.ResponseWriter, r *http.Request, echo string, pa
 		return topics[i].Last.Off > topics[j].Last.Off
 	})
 	tcount := len(topics)
-	start := page * tcount / PAGE_SIZE
+	start := (page - 1)* PAGE_SIZE
 	nr := PAGE_SIZE
 	for i := start; i < tcount && nr > 0; i ++ {
 		t := topics[i]
@@ -118,8 +119,9 @@ func www_topics(www WWW, w http.ResponseWriter, r *http.Request, echo string, pa
 		nr --
 	}
 	ii.Trace.Printf("Stop to generate topics")
-	ctx.Page = start
+	ctx.Page = page
 	ctx.Pages = tcount / PAGE_SIZE
+	ctx.Echo = echo
 	if tcount % PAGE_SIZE != 0 {
 		ctx.Pages ++
 	}
@@ -161,15 +163,18 @@ func Web(www WWW, w http.ResponseWriter, r *http.Request) error {
 	if path == "" {
 		return www_index(www, w, r)
 	}
+	if ii.IsMsgId(path) {
+		return www_topic(www, w, r, path)
+	}
 	if ii.IsEcho(args[0]) {
-		var page int
+		page := 1
 		if len(args) > 1 {
 			fmt.Sscanf(args[1], "%d", &page)
 		}
+		if page <= 0 {
+			page = 1
+		}
 		return www_topics(www, w, r, args[0], page)
-	}
-	if ii.IsMsgId(path) {
-		return www_topic(www, w, r, path)
 	}
 	return nil
 }
