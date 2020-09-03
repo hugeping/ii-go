@@ -10,7 +10,7 @@
 <br/>
 <span class="msgtext">
 {{with .Text}}
-{{call $.Render .}}
+{{. | msg_format}}
 {{end}}
 </span>
 </div>

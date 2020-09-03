@@ -454,7 +454,6 @@ func (db *DB) Echoes(names []string) []Echo {
 		}
 		sort.SliceStable(list, func(i, j int) bool {
 			return list[i].Last.Off > list[j].Last.Off
-			// return list[i].Name < list[j].Name
 		})
 	}
 	return list

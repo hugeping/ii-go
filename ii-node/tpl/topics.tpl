@@ -10,7 +10,7 @@
 <tr>
 <td><a href="/{{.Head.MsgId}}">{{.Head.Subj}}</a></td>
 <td>{{.Count}}</td>
-<td>{{.Date}}</td>
+<td>{{.Tail.Date | fdate}} {{.Tail.From}}</td>
 </tr>
 {{ end }}
 </table>

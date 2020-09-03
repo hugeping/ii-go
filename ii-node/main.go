@@ -72,10 +72,10 @@ func main() {
 
 	db.Name = *sysname_opt
 
-	www.tpl = template.Must(template.ParseGlob("tpl/*.tpl"))
-	www.db = db
+	WebInit(&www, db)
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		err := Web(www, w, r)
+		err := handleWWW(www, w, r)
 		if err != nil {
 			fmt.Fprintf(w, "%s\n", err)
 		}

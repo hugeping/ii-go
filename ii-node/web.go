@@ -15,7 +15,6 @@ type WebContext struct {
 	Echoes []ii.Echo
 	Topics []Topic
 	Msg    []ii.Msg
-	Render func(string) template.HTML
 	Echo string
 	Page int
 	Pages int
@@ -26,11 +25,17 @@ type WebContext struct {
 func www_index(www WWW, w http.ResponseWriter, r *http.Request) error {
 	var ctx WebContext
 	ii.Trace.Printf("www index")
+
 	ctx.Echoes = www.db.Echoes(nil)
-	//	ctx.Msg = make([]*ii.Msg, len(ctx.Echoes))
-	// for k, e := range ctx.Echoes {
-	// 	ctx.Msg[k] = db.Get(e.Last.Id)
-	// }
+	ctx.Msg = make([]ii.Msg, len(ctx.Echoes))
+	www.db.LoadIndex()
+	www.db.Sync.RLock()
+	defer www.db.Sync.RUnlock()
+	for k, e := range ctx.Echoes {
+		if m := www.db.GetFast(e.Last.Id); m != nil {
+			ctx.Msg[k] = *m
+		}
+	}
 	err := www.tpl.ExecuteTemplate(w, "index.tpl", ctx)
 	return err
 }
@@ -70,7 +75,6 @@ func getTopics(db *ii.DB, mi []*ii.MsgInfo) map[string][]string {
 type Topic struct {
 	Ids     []string
 	Count   int
-	Date    string
 	Last    *ii.MsgInfo
 	Head    *ii.Msg
 	Tail    *ii.Msg
@@ -104,6 +108,7 @@ func makePager(ctx *WebContext, count int, page int) int {
 func www_topics(www WWW, w http.ResponseWriter, r *http.Request, echo string, page int) error {
 	db := www.db
 	var ctx WebContext
+
 	mis := db.LookupIDS(db.SelectIDS(ii.Query{Echo: echo}))
 	ii.Trace.Printf("www topics: %s", echo)
 	topicsIds := getTopics(db, mis)
@@ -140,7 +145,6 @@ func www_topics(www WWW, w http.ResponseWriter, r *http.Request, echo string, pa
 			ii.Error.Printf("Skip wrong message: %s\n", t.Ids[0])
 			continue
 		}
-		t.Date = time.Unix(t.Tail.Date, 0).Format("2006-01-02 15:04:05")
 		ctx.Topics = append(ctx.Topics, *topics[i])
 		nr --
 	}
@@ -148,16 +152,19 @@ func www_topics(www WWW, w http.ResponseWriter, r *http.Request, echo string, pa
 	err := www.tpl.ExecuteTemplate(w, "topics.tpl", ctx)
 	return err
 }
+
 func msg_format(txt string) template.HTML {
 	txt = strings.Replace(txt, "&", "&amp;", -1)
 	txt = strings.Replace(txt, "<", "&lt;", -1)
 	txt = strings.Replace(txt, ">", "&gt;", -1)
 	return template.HTML(strings.Replace(txt, "\n", "<br/>", -1))
 }
+
 func www_topic(www WWW, w http.ResponseWriter, r *http.Request, id string, page int) error {
 	db := www.db
+
 	var ctx WebContext
-	ctx.Render = msg_format
+
 	mi := db.Lookup(id)
 	if mi == nil {
 		return errors.New("No such message")
@@ -182,25 +189,36 @@ func www_topic(www WWW, w http.ResponseWriter, r *http.Request, id string, page 
 	return err
 }
 
-func Web(www WWW, w http.ResponseWriter, r *http.Request) error {
+func WebInit(www *WWW, db *ii.DB) {
+	funcMap := template.FuncMap{
+		"fdate": func (date int64) string {
+			return time.Unix(date, 0).Format("2006-01-02 15:04:05")
+		},
+		"msg_format": msg_format,
+	}
+	www.db = db
+	www.tpl = template.Must(template.New("main").Funcs(funcMap).ParseGlob("tpl/*.tpl"))
+}
+
+func handleWWW(www WWW, w http.ResponseWriter, r *http.Request) error {
 	path := strings.TrimPrefix(r.URL.Path, "/")
 	args := strings.Split(path, "/")
 	if path == "" {
 		return www_index(www, w, r)
-	}
-	if ii.IsMsgId(args[0]) {
+	} else if ii.IsMsgId(args[0]) {
 		page := 1
 		if len(args) > 1 {
 			fmt.Sscanf(args[1], "%d", &page)
 		}
 		return www_topic(www, w, r, args[0], page)
-	}
-	if ii.IsEcho(args[0]) {
+	} else if ii.IsEcho(args[0]) {
 		page := 1
 		if len(args) > 1 {
 			fmt.Sscanf(args[1], "%d", &page)
 		}
 		return www_topics(www, w, r, args[0], page)
+	} else {
+		w.WriteHeader(http.StatusNotFound)
 	}
 	return nil
 }
