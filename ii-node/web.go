@@ -112,7 +112,7 @@ func getTopics(db *ii.DB, mi []*ii.MsgInfo) map[string][]string {
 		var l []string
 		for p := m; p != nil; p = getParent(db, p) {
 			if m.Echo != p.Echo {
-				break
+				continue
 			}
 			l = append(l, p.Id)
 		}
@@ -331,7 +331,7 @@ func www_reply(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, i
 			ii.Error.Printf("Error while store reply msg %s: %s", m.MsgId, err)
 			return err
 		}
-		var topic string
+		topic := m.MsgId
 		mi := www.db.Lookup(m.MsgId)
 		if mi == nil {
 			http.Redirect(w, r, "/" + m.MsgId + "/1", http.StatusSeeOther)
@@ -339,7 +339,7 @@ func www_reply(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, i
 		}
 		for p := mi; p != nil; p = getParent(www.db, p) {
 			if p.Echo != mi.Echo {
-				break
+				continue
 			}
 			topic = p.Id
 		}
