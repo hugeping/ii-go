@@ -669,7 +669,7 @@ func (db *UDB) Add(Name string, Mail string, Passwd string) error {
 	defer db.Sync.Unlock()
 
 	if _, ok := db.Names[Name]; ok {
-		return errors.New("Already exists")
+		return errors.New("User already exists")
 	}
 	if !IsUsername(Name) {
 		return errors.New("Wrong username")
