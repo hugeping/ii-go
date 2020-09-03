@@ -111,6 +111,9 @@ func getTopics(db *ii.DB, mi []*ii.MsgInfo) map[string][]string {
 		}
 		var l []string
 		for p := m; p != nil; p = getParent(db, p) {
+			if m.Echo != p.Echo {
+				break
+			}
 			l = append(l, p.Id)
 		}
 		if len(l) == 0 {
@@ -315,7 +318,7 @@ func www_reply(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, i
 		subj := r.FormValue("subj")
 		to := r.FormValue("to")
 		msg := r.FormValue("msg")
-		text := fmt.Sprintf("%s\n%s\n%s\n\n@repto:%s\n%s", m.Echo, to, subj, m.MsgId,  msg)
+		text := fmt.Sprintf("%s\n%s\n%s\n\n@repto:%s\n%s", m.Echo+"2", to, subj, m.MsgId,  msg)
 		ii.Trace.Printf("Reply msg: %s\n", text)
 		m, err := ii.DecodeMsgline(text, false)
 		if err != nil {
@@ -335,6 +338,9 @@ func www_reply(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, i
 			return nil
 		}
 		for p := mi; p != nil; p = getParent(www.db, p) {
+			if p.Echo != mi.Echo {
+				break
+			}
 			topic = p.Id
 		}
 		http.Redirect(w, r, "/" + topic + "/-1", http.StatusSeeOther)
