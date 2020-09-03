@@ -328,7 +328,16 @@ func www_reply(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, i
 			ii.Error.Printf("Error while store reply msg %s: %s", m.MsgId, err)
 			return err
 		}
-		http.Redirect(w, r, "/" + m.Echo + "/1", http.StatusSeeOther)
+		var topic string
+		mi := www.db.Lookup(m.MsgId)
+		if mi == nil {
+			http.Redirect(w, r, "/" + m.MsgId + "/1", http.StatusSeeOther)
+			return nil
+		}
+		for p := mi; p != nil; p = getParent(www.db, p) {
+			topic = p.Id
+		}
+		http.Redirect(w, r, "/" + topic + "/-1", http.StatusSeeOther)
 		return nil
 	}
 	return nil
