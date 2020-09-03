@@ -73,7 +73,6 @@ func DecodeMsgline(msg string, enc bool) (*Msg, error) {
 	start := 4
 	repto := text[4]
 	m.Tags, _ = MakeTags("ii/ok")
-
 	if strings.HasPrefix(repto, "@repto:") {
 		start += 1
 		m.Tags.Add("repto/" + strings.Trim(strings.Split(repto, ":")[1], " "))

@@ -117,7 +117,9 @@ func getTopics(db *ii.DB, mi []*ii.MsgInfo) map[string][]string {
 			continue
 		}
 		t := l[len(l) - 1]
-		topics[t] = append(topics[t], t)
+		if len(topics[t]) == 0 {
+			topics[t] = append(topics[t], t)
+		}
 		for _, id := range l {
 			if id == t {
 				continue
@@ -264,7 +266,6 @@ func www_new(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, ech
 		to := r.FormValue("to")
 		msg := r.FormValue("msg")
 		text := fmt.Sprintf("%s\n%s\n%s\n\n%s", echo, to, subj, msg)
-		fmt.Printf("%s\n", text)
 		m, err := ii.DecodeMsgline(text, false)
 		if err != nil {
 			ii.Error.Printf("Error while posting new topic: %s", err)
@@ -277,6 +278,57 @@ func www_new(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, ech
 			return err
 		}
 		http.Redirect(w, r, "/"+echo+"/1", http.StatusSeeOther)
+		return nil
+	}
+	return nil
+}
+
+func www_reply(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, id string) error {
+	ctx := WebContext{ User: user }
+	ctx.BasePath = id
+
+	switch r.Method {
+	case "GET":
+		m := www.db.Get(id)
+		if m == nil {
+			ii.Error.Printf("No such msg: %s", id)
+			return  errors.New("No such msg")
+		}
+		ctx.Msg = append(ctx.Msg, m)
+		err := www.tpl.ExecuteTemplate(w, "reply.tpl", ctx)
+		return err
+	case "POST":
+		ii.Trace.Printf("www reply on %s", id)
+		if err := r.ParseForm(); err != nil {
+			ii.Error.Printf("Error in POST request: %s", err)
+			return  err
+		}
+		if user.Name == "" {
+			ii.Error.Printf("Access denied")
+			return  errors.New("Access denied")
+		}
+		m := www.db.Get(id)
+		if m == nil {
+			ii.Error.Printf("No such msg: %s", id)
+			return  errors.New("No such msg")
+		}
+		subj := r.FormValue("subj")
+		to := r.FormValue("to")
+		msg := r.FormValue("msg")
+		text := fmt.Sprintf("%s\n%s\n%s\n\n@repto:%s\n%s", m.Echo, to, subj, m.MsgId,  msg)
+		ii.Trace.Printf("Reply msg: %s\n", text)
+		m, err := ii.DecodeMsgline(text, false)
+		if err != nil {
+			ii.Error.Printf("Error while reply to %s: %s", id, err)
+			return err
+		}
+		m.From = user.Name
+		m.Addr = fmt.Sprintf("%s,%d", www.db.Name, user.Id)
+		if err = www.db.Store(m); err != nil {
+			ii.Error.Printf("Error while store reply msg %s: %s", m.MsgId, err)
+			return err
+		}
+		http.Redirect(w, r, "/" + m.Echo + "/1", http.StatusSeeOther)
 		return nil
 	}
 	return nil
@@ -325,6 +377,9 @@ func handleWWW(www WWW, w http.ResponseWriter, r *http.Request) error {
 	} else if ii.IsMsgId(args[0]) {
 		page := 1
 		if len(args) > 1 {
+			if args[1] == "reply" {
+				return www_reply(user, www, w, r, args[0])
+			}
 			fmt.Sscanf(args[1], "%d", &page)
 		}
 		return www_topic(user, www, w, r, args[0], page)

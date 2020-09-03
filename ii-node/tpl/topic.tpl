@@ -4,6 +4,7 @@
 <div class="topic">
 {{ range .Msg }}
 <div class="msg">
+<span class="msgid"><a href="/{{$.BasePath}}/reply">{{.MsgId}}</a></span><br>
 <span class="msgsubj">{{.Subj}}</span>
 <br/>
 <span class="msginfo">{{.From}}({{.Addr}}) -> {{.To}}</span>
