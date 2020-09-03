@@ -6,3 +6,4 @@
 <title>go-ii</title>
 </head>
 <body>
+{{ with .User }}{{.Name}}{{end}}

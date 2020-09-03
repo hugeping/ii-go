@@ -20,10 +20,11 @@ type WebContext struct {
 	Pages int
 	Pager []int
 	BasePath string
+	User *ii.User
 }
 
 func www_login(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) error {
-	var ctx WebContext
+	ctx := WebContext{ User: user }
 	ii.Trace.Printf("www login")
 	switch r.Method {
 	case "GET":
@@ -53,7 +54,8 @@ func www_login(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) e
 }
 
 func www_index(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) error {
-	var ctx WebContext
+	ctx := WebContext{ User: user }
+
 	ii.Trace.Printf("www index")
 
 	ctx.Echoes = www.db.Echoes(nil)
@@ -137,7 +139,7 @@ func makePager(ctx *WebContext, count int, page int) int {
 
 func www_topics(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, echo string, page int) error {
 	db := www.db
-	var ctx WebContext
+	ctx := WebContext{ User: user }
 
 	mis := db.LookupIDS(db.SelectIDS(ii.Query{Echo: echo}))
 	ii.Trace.Printf("www topics: %s", echo)
@@ -185,8 +187,7 @@ func www_topics(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, 
 
 func www_topic(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, id string, page int) error {
 	db := www.db
-
-	var ctx WebContext
+	ctx := WebContext{ User: user }
 
 	mi := db.Lookup(id)
 	if mi == nil {
@@ -231,14 +232,18 @@ func WebInit(www *WWW, db *ii.DB) {
 }
 
 func handleWWW(www WWW, w http.ResponseWriter, r *http.Request) error {
-	var user *ii.User
+	var user *ii.User = &ii.User {}
 	cookie, err := r.Cookie("pauth")
 	if err == nil {
 		udb := ii.LoadUsers(*users_opt) /* per each request */
 		if udb.Access(cookie.Value) {
 			user = udb.UserInfo(cookie.Value)
-			ii.Info.Printf("User: %s GET %s", user.Name, r.URL.Path)
 		}
+	}
+	if user != nil {
+		ii.Trace.Printf("[%s] GET %s", user.Name, r.URL.Path)
+	} else {
+		ii.Trace.Printf("GET %s", r.URL.Path)
 	}
 	path := strings.TrimPrefix(r.URL.Path, "/")
 	args := strings.Split(path, "/")

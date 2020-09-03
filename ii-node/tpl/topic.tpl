@@ -1,4 +1,4 @@
-{{template "header.tpl"}}
+{{template "header.tpl" $}}
 {{template "pager.tpl" $}}
 
 <div class="topic">

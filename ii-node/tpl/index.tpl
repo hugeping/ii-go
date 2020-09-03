@@ -1,4 +1,4 @@
-{{template "header.tpl"}}
+{{template "header.tpl" $}}
 
 <table class="echolist">
 <tr>
