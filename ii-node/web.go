@@ -318,7 +318,7 @@ func www_reply(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, i
 		subj := r.FormValue("subj")
 		to := r.FormValue("to")
 		msg := r.FormValue("msg")
-		text := fmt.Sprintf("%s\n%s\n%s\n\n@repto:%s\n%s", m.Echo+"2", to, subj, m.MsgId,  msg)
+		text := fmt.Sprintf("%s\n%s\n%s\n\n@repto:%s\n%s", m.Echo, to, subj, m.MsgId,  msg)
 		ii.Trace.Printf("Reply msg: %s\n", text)
 		m, err := ii.DecodeMsgline(text, false)
 		if err != nil {
