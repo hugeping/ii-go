@@ -20,6 +20,7 @@ type WebContext struct {
 	Page int
 	Pages int
 	Pager []int
+	BasePath string
 }
 
 func www_index(www WWW, w http.ResponseWriter, r *http.Request) error {
@@ -92,8 +93,14 @@ func makePager(ctx *WebContext, count int, page int) int {
 		page = 1
 	}
 	ctx.Page = page
+	if ctx.Pages > 1 {
+		for i := 1; i <= ctx.Pages; i++ {
+			ctx.Pager = append(ctx.Pager, i)
+		}
+	}
 	return start
 }
+
 func www_topics(www WWW, w http.ResponseWriter, r *http.Request, echo string, page int) error {
 	db := www.db
 	var ctx WebContext
@@ -121,7 +128,7 @@ func www_topics(www WWW, w http.ResponseWriter, r *http.Request, echo string, pa
 	sort.SliceStable(topics, func(i, j int) bool {
 		return topics[i].Last.Off > topics[j].Last.Off
 	})
-	ctx.Echo = echo
+	ctx.BasePath = echo
 	tcount := len(topics)
 	start := makePager(&ctx, tcount, page)
 	nr := PAGE_SIZE
@@ -138,9 +145,6 @@ func www_topics(www WWW, w http.ResponseWriter, r *http.Request, echo string, pa
 		nr --
 	}
 	ii.Trace.Printf("Stop to generate topics")
-	for i := 1; i <= ctx.Pages; i++ {
-		ctx.Pager = append(ctx.Pager, i)
-	}
 	err := www.tpl.ExecuteTemplate(w, "topics.tpl", ctx)
 	return err
 }
@@ -150,7 +154,7 @@ func msg_format(txt string) template.HTML {
 	txt = strings.Replace(txt, ">", "&gt;", -1)
 	return template.HTML(strings.Replace(txt, "\n", "<br/>", -1))
 }
-func www_topic(www WWW, w http.ResponseWriter, r *http.Request, id string) error {
+func www_topic(www WWW, w http.ResponseWriter, r *http.Request, id string, page int) error {
 	db := www.db
 	var ctx WebContext
 	ctx.Render = msg_format
@@ -161,14 +165,19 @@ func www_topic(www WWW, w http.ResponseWriter, r *http.Request, id string) error
 	mis := db.LookupIDS(db.SelectIDS(ii.Query{Echo: mi.Echo, Repto: ""}))
 	ids := getTopics(db, mis)[id]
 	ii.Trace.Printf("www topic: %s", id)
-	for _, i := range ids {
-		m := db.Get(i)
+	start := makePager(&ctx, len(ids), page)
+	nr := PAGE_SIZE
+	for i := start; i < len(ids) && nr > 0; i++ {
+		id := ids[i]
+		m := db.Get(id)
 		if m == nil {
-			ii.Error.Printf("Skip wrong message: %s", i)
+			ii.Error.Printf("Skip wrong message: %s", id)
 			continue
 		}
 		ctx.Msg = append(ctx.Msg, *m)
+		nr --
 	}
+	ctx.BasePath = id
 	err := www.tpl.ExecuteTemplate(w, "topic.tpl", ctx)
 	return err
 }
@@ -179,8 +188,12 @@ func Web(www WWW, w http.ResponseWriter, r *http.Request) error {
 	if path == "" {
 		return www_index(www, w, r)
 	}
-	if ii.IsMsgId(path) {
-		return www_topic(www, w, r, path)
+	if ii.IsMsgId(args[0]) {
+		page := 1
+		if len(args) > 1 {
+			fmt.Sscanf(args[1], "%d", &page)
+		}
+		return www_topic(www, w, r, args[0], page)
 	}
 	if ii.IsEcho(args[0]) {
 		page := 1

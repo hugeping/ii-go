@@ -1,11 +1,5 @@
 {{template "header.tpl"}}
-{{ range .Pager }}
-{{ if eq . $.Page }}
-<a href="/{{$.Echo}}/{{.}}">[{{.}}]</a>
-{{ else }}
-<a href="/{{$.Echo}}/{{.}}">{{.}}</a>
-{{ end }}
-{{ end }}
+{{template "pager.tpl" $}}
 <table class="topiclist">
 <tr>
 <th>Topics</th>

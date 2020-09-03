@@ -1,4 +1,5 @@
 {{template "header.tpl"}}
+{{template "pager.tpl" $}}
 
 <div class="topic">
 {{ range .Msg }}
