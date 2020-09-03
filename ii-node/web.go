@@ -23,6 +23,36 @@ type WebContext struct {
 	User *ii.User
 }
 
+func www_register(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) error {
+	ctx := WebContext{ User: user }
+	ii.Trace.Printf("www register")
+	switch r.Method {
+	case "GET":
+		err := www.tpl.ExecuteTemplate(w, "register.tpl", ctx)
+		return err
+	case "POST":
+		if err := r.ParseForm(); err != nil {
+			ii.Error.Printf("Error in POST request: %s", err)
+			return  err
+		}
+		user := r.FormValue("username")
+		password := r.FormValue("password")
+		email := r.FormValue("email")
+
+		udb := ii.LoadUsers(*users_opt)
+		err := udb.Add(user, email, password)
+		if err != nil {
+			ii.Info.Printf("Can not register user %s: %s", user, err)
+			return err
+		}
+		ii.Info.Printf("Registered user: %s", user)
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+	default:
+		return nil
+	}
+	return nil
+}
+
 func www_login(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) error {
 	ctx := WebContext{ User: user }
 	ii.Trace.Printf("www login")
@@ -45,7 +75,7 @@ func www_login(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) e
 		exp := time.Now().Add(10 * 365 * 24 * time.Hour)
 		cookie := http.Cookie{Name: "pauth", Value: udb.Secret(user), Expires: exp}
 		http.SetCookie(w, &cookie)
-		ii.Info.Printf("User logged in: %s:%s\n", user, password)
+		ii.Info.Printf("User logged in: %s\n", user)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	default:
 		return nil
@@ -290,6 +320,8 @@ func handleWWW(www WWW, w http.ResponseWriter, r *http.Request) error {
 		return www_index(user, www, w, r)
 	} else if path == "login" {
 		return www_login(user, www, w, r)
+	} else if path == "register" {
+		return www_register(user, www, w, r)
 	} else if ii.IsMsgId(args[0]) {
 		page := 1
 		if len(args) > 1 {
