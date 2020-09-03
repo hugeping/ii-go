@@ -15,6 +15,7 @@ type WebContext struct {
 	Echoes []*ii.Echo
 	Topics []*Topic
 	Msg    []*ii.Msg
+	Error string
 	Echo string
 	Page int
 	Pages int
@@ -70,17 +71,16 @@ func www_login(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) e
 		udb := ii.LoadUsers(*users_opt)
 		if udb == nil || !udb.Auth(user, password) {
 			ii.Info.Printf("Access denied for user: %s", user)
-			return nil
+			return errors.New("Access denied")
 		}
 		exp := time.Now().Add(10 * 365 * 24 * time.Hour)
 		cookie := http.Cookie{Name: "pauth", Value: udb.Secret(user), Expires: exp}
 		http.SetCookie(w, &cookie)
 		ii.Info.Printf("User logged in: %s\n", user)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
-	default:
 		return nil
 	}
-	return nil
+	return errors.New("Wrong method")
 }
 
 func www_index(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) error {
