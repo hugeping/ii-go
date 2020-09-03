@@ -48,9 +48,6 @@ func DecodeMsgline(msg string, enc bool) (*Msg, error) {
 	var data []byte
 	var err error
 	if enc {
-		//		if msg, err = url.QueryUnescape(msg); err != nil {
-		//	return nil, err
-		// }
 		if data, err = base64.StdEncoding.DecodeString(msg); err != nil {
 			if data, err = base64.URLEncoding.DecodeString(msg); err != nil {
 				return nil, err
@@ -77,7 +74,7 @@ func DecodeMsgline(msg string, enc bool) (*Msg, error) {
 	repto := text[4]
 	m.Tags, _ = MakeTags("ii/ok")
 
-	if strings.HasPrefix(repto, "@Repto:") || strings.HasPrefix(repto, "@repto:") {
+	if strings.HasPrefix(repto, "@repto:") {
 		start += 1
 		m.Tags.Add("repto/" + strings.Trim(strings.Split(repto, ":")[1], " "))
 	}

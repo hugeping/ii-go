@@ -44,6 +44,9 @@ func getTopics(db *ii.DB, mi []*ii.MsgInfo) map[string][]string {
 		for p := m; p != nil; p = getParent(db, p) {
 			l = append(l, p.Id)
 		}
+		if len(l) == 0 {
+			continue
+		}
 		t := l[len(l) - 1]
 		for _, id := range l {
 			topics[t] = append(topics[t], id)
@@ -70,19 +73,20 @@ func www_topics(www WWW, w http.ResponseWriter, r *http.Request, echo string) er
 	topics := getTopics(db, mis)
 	ii.Trace.Printf("Start to generate topics")
 	for _, t := range topics {
-		//		if mi.Repto != "" || db.Exists(mi.Repto) != nil {
-		//	continue
-		//}
 		topic := Topic{}
 		topic.Ids = t
-		m := db.Get(topic.Ids[0])
+		m := db.Get(t[0])
 		if m == nil {
-			ii.Error.Printf("Skip wrong message: %s\n", topic.Ids[0])
+			ii.Error.Printf("Skip wrong message: %s\n", t[0])
 			continue
 		}
 		topic.Count = len(topic.Ids) - 1
 		topic.Head = m
 		topic.Last = db.Get(topic.Ids[topic.Count])
+		if topic.Last == nil {
+			ii.Error.Printf("Skip wrong message: %s\n", t[0])
+			continue
+		}
 		topic.Date = time.Unix(topic.Last.Date, 0).Format("2006-01-02 15:04:05")
 		ctx.Topics = append(ctx.Topics, topic)
 	}
