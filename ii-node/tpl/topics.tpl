@@ -1,4 +1,7 @@
 {{template "header.tpl" $}}
+{{if .User.Name }}
+<a href="/{{.BasePath}}/new">New topic</a><br>
+{{end}}
 {{template "pager.tpl" $}}
 <table class="topiclist">
 <tr>

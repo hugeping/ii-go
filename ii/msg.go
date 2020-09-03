@@ -57,7 +57,7 @@ func DecodeMsgline(msg string, enc bool) (*Msg, error) {
 		data = []byte(msg)
 	}
 	text := strings.Split(string(data), "\n")
-	if len(text) <= 6 {
+	if len(text) < 5 {
 		return nil, errors.New("Wrong message format")
 	}
 	if text[3] != "" {

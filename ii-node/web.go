@@ -87,7 +87,11 @@ func getTopics(db *ii.DB, mi []*ii.MsgInfo) map[string][]string {
 			continue
 		}
 		t := l[len(l) - 1]
+		topics[t] = append(topics[t], t)
 		for _, id := range l {
+			if id == t {
+				continue
+			}
 			topics[t] = append(topics[t], id)
 			intopic[id] = t
 		}
@@ -184,8 +188,9 @@ func www_topic(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, i
 	if mi == nil {
 		return errors.New("No such message")
 	}
-	mis := db.LookupIDS(db.SelectIDS(ii.Query{Echo: mi.Echo, Repto: ""}))
+	mis := db.LookupIDS(db.SelectIDS(ii.Query{Echo: mi.Echo}))
 	ids := getTopics(db, mis)[id]
+	fmt.Printf("%d\n", len(ids))
 	ii.Trace.Printf("www topic: %s", id)
 	start := makePager(&ctx, len(ids), page)
 	nr := PAGE_SIZE
@@ -202,6 +207,47 @@ func www_topic(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, i
 	ctx.BasePath = id
 	err := www.tpl.ExecuteTemplate(w, "topic.tpl", ctx)
 	return err
+}
+
+func www_new(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, echo string) error {
+	ctx := WebContext{ User: user }
+	ctx.BasePath = echo
+	ctx.Echo = echo
+
+	switch r.Method {
+	case "GET":
+		err := www.tpl.ExecuteTemplate(w, "new.tpl", ctx)
+		return err
+	case "POST":
+		ii.Trace.Printf("www new topic in %s", echo)
+		if err := r.ParseForm(); err != nil {
+			ii.Error.Printf("Error in POST request: %s", err)
+			return  err
+		}
+		if user.Name == "" {
+			ii.Error.Printf("Access denied")
+			return  errors.New("Access denied")
+		}
+		subj := r.FormValue("subj")
+		to := r.FormValue("to")
+		msg := r.FormValue("msg")
+		text := fmt.Sprintf("%s\n%s\n%s\n\n%s", echo, to, subj, msg)
+		fmt.Printf("%s\n", text)
+		m, err := ii.DecodeMsgline(text, false)
+		if err != nil {
+			ii.Error.Printf("Error while posting new topic: %s", err)
+			return err
+		}
+		m.From = user.Name
+		m.Addr = fmt.Sprintf("%s,%d", www.db.Name, user.Id)
+		if err = www.db.Store(m); err != nil {
+			ii.Error.Printf("Error while storig new topic %s: %s", m.MsgId, err)
+			return err
+		}
+		http.Redirect(w, r, "/"+echo+"/1", http.StatusSeeOther)
+		return nil
+	}
+	return nil
 }
 
 func msg_format(txt string) template.HTML {
@@ -251,6 +297,9 @@ func handleWWW(www WWW, w http.ResponseWriter, r *http.Request) error {
 	} else if ii.IsEcho(args[0]) {
 		page := 1
 		if len(args) > 1 {
+			if args[1] == "new" {
+				return www_new(user, www, w, r, args[0])
+			}
 			fmt.Sscanf(args[1], "%d", &page)
 		}
 		return www_topics(user, www, w, r, args[0], page)
