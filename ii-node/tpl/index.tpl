@@ -7,12 +7,12 @@
 <th>Posts</th>
 <th>Last</th>
 </tr>
-{{range $k, $v := .Echoes }}
+{{range .Echoes }}
 <tr>
-<td><a href="{{$v.Name}}/-1">{{$v.Name}}</a></td>
-<td>{{$v.Topics}}</td>
-<td>{{$v.Count}}</td>
-<td>{{with index $.Msg $k}}[{{.From}}] {{.Subj}}{{end}}</td>
+<td><a href="{{.Name}}/-1">{{.Name}}</a></td>
+<td>{{.Topics}}</td>
+<td>{{.Count}}</td>
+<td>{{with .Msg}}{{.Date | fdate}}[{{.From}}] {{.Subj}}{{end}}</td>
 </tr>
 {{ end }}
 </table>

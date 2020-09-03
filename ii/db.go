@@ -392,14 +392,15 @@ type Echo struct {
 	Count  int
 	Topics int
 	Last   MsgInfo
+	Msg    *Msg
 }
 
-func (db *DB) Echoes(names []string) []Echo {
+func (db *DB) Echoes(names []string) []*Echo {
 	db.Sync.Lock()
 	defer db.Sync.Unlock()
 	db.Lock()
 	defer db.Unlock()
-	var list []Echo
+	var list []*Echo
 
 	filter := make(map[string]bool)
 	for _, n := range names {
@@ -441,16 +442,25 @@ func (db *DB) Echoes(names []string) []Echo {
 	}
 	if names != nil {
 		for _, v := range names {
-			list = append(list, hash[v])
+			n := hash[v]
+			list = append(list, &n)
 		}
 	} else {
 		for _, v := range hash {
-			list = append(list, v)
+			n := v
+			list = append(list, &n)
 		}
-		sort.SliceStable(list, func(i, j int) bool {
-			return list[i].Last.Off < list[j].Last.Off
-		})
 	}
+	for _, v := range list {
+		v.Msg = db.GetFast(v.Last.Id)
+		if v.Msg == nil {
+			Error.Printf("Can not get echo last message: %s", v.Last.Id)
+			v.Msg = &Msg {}
+		}
+	}
+	sort.SliceStable(list, func(i, j int) bool {
+		return list[i].Msg.Date > list[j].Msg.Date
+	})
 	return list
 }
 

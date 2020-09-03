@@ -12,9 +12,9 @@ import (
 )
 
 type WebContext struct {
-	Echoes []ii.Echo
-	Topics []Topic
-	Msg    []ii.Msg
+	Echoes []*ii.Echo
+	Topics []*Topic
+	Msg    []*ii.Msg
 	Echo string
 	Page int
 	Pages int
@@ -59,15 +59,6 @@ func www_index(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) e
 	ii.Trace.Printf("www index")
 
 	ctx.Echoes = www.db.Echoes(nil)
-	ctx.Msg = make([]ii.Msg, len(ctx.Echoes))
-	www.db.LoadIndex()
-	www.db.Sync.RLock()
-	defer www.db.Sync.RUnlock()
-	for k, e := range ctx.Echoes {
-		if m := www.db.GetFast(e.Last.Id); m != nil {
-			ctx.Msg[k] = *m
-		}
-	}
 	err := www.tpl.ExecuteTemplate(w, "index.tpl", ctx)
 	return err
 }
@@ -177,7 +168,7 @@ func www_topics(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, 
 			ii.Error.Printf("Skip wrong message: %s\n", t.Ids[0])
 			continue
 		}
-		ctx.Topics = append(ctx.Topics, *topics[i])
+		ctx.Topics = append(ctx.Topics, topics[i])
 		nr --
 	}
 	ii.Trace.Printf("Stop to generate topics")
@@ -205,7 +196,7 @@ func www_topic(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, i
 			ii.Error.Printf("Skip wrong message: %s", id)
 			continue
 		}
-		ctx.Msg = append(ctx.Msg, *m)
+		ctx.Msg = append(ctx.Msg, m)
 		nr --
 	}
 	ctx.BasePath = id
