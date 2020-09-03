@@ -77,6 +77,9 @@ func main() {
 
 	WebInit(&www, db)
 
+	fs := http.FileServer(http.Dir("lib"))
+	http.Handle("/lib/", http.StripPrefix("/lib/", fs))
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		err := handleWWW(www, w, r)
 		if err != nil {
