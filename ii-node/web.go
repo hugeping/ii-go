@@ -19,6 +19,7 @@ type WebContext struct {
 	Echo string
 	Page int
 	Pages int
+	Pager []int
 }
 
 func www_index(www WWW, w http.ResponseWriter, r *http.Request) error {
@@ -75,7 +76,24 @@ type Topic struct {
 }
 
 const PAGE_SIZE = 100
-
+func makePager(ctx *WebContext, count int, page int) int {
+	ctx.Pages = count / PAGE_SIZE
+	if count % PAGE_SIZE != 0 {
+		ctx.Pages ++
+	}
+	if page == 0 {
+		page ++
+	} else if page < 0 {
+		page = ctx.Pages + page + 1
+	}
+	start := (page - 1)* PAGE_SIZE
+	if start < 0 {
+		start = 0
+		page = 1
+	}
+	ctx.Page = page
+	return start
+}
 func www_topics(www WWW, w http.ResponseWriter, r *http.Request, echo string, page int) error {
 	db := www.db
 	var ctx WebContext
@@ -103,8 +121,9 @@ func www_topics(www WWW, w http.ResponseWriter, r *http.Request, echo string, pa
 	sort.SliceStable(topics, func(i, j int) bool {
 		return topics[i].Last.Off > topics[j].Last.Off
 	})
+	ctx.Echo = echo
 	tcount := len(topics)
-	start := (page - 1)* PAGE_SIZE
+	start := makePager(&ctx, tcount, page)
 	nr := PAGE_SIZE
 	for i := start; i < tcount && nr > 0; i ++ {
 		t := topics[i]
@@ -119,11 +138,8 @@ func www_topics(www WWW, w http.ResponseWriter, r *http.Request, echo string, pa
 		nr --
 	}
 	ii.Trace.Printf("Stop to generate topics")
-	ctx.Page = page
-	ctx.Pages = tcount / PAGE_SIZE
-	ctx.Echo = echo
-	if tcount % PAGE_SIZE != 0 {
-		ctx.Pages ++
+	for i := 1; i <= ctx.Pages; i++ {
+		ctx.Pager = append(ctx.Pager, i)
 	}
 	err := www.tpl.ExecuteTemplate(w, "topics.tpl", ctx)
 	return err
@@ -170,9 +186,6 @@ func Web(www WWW, w http.ResponseWriter, r *http.Request) error {
 		page := 1
 		if len(args) > 1 {
 			fmt.Sscanf(args[1], "%d", &page)
-		}
-		if page <= 0 {
-			page = 1
 		}
 		return www_topics(www, w, r, args[0], page)
 	}
