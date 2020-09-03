@@ -36,11 +36,6 @@ type DB struct {
 	Name string
 }
 
-func mkdir(path string) {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-	}
-}
-
 func append_file(fn string, text string) error {
 	f, err := os.OpenFile(fn, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -453,7 +448,7 @@ func (db *DB) Echoes(names []string) []Echo {
 			list = append(list, v)
 		}
 		sort.SliceStable(list, func(i, j int) bool {
-			return list[i].Last.Off > list[j].Last.Off
+			return list[i].Last.Off < list[j].Last.Off
 		})
 	}
 	return list
@@ -604,6 +599,22 @@ func MakeSecret(msg string) string {
 	return s[0:10]
 }
 
+func (db *UDB) Secret(User string) string {
+	ui, ok := db.Names[User]
+	if !ok {
+		return ""
+	}
+	return ui.Secret
+}
+
+func (db *UDB) Auth(User string, Passwd string) bool {
+	ui, ok := db.Names[User]
+	if !ok {
+		return false
+	}
+	return ui.Secret == MakeSecret(User + Passwd)
+}
+
 func (db *UDB) Access(Secret string) bool {
 	_, ok := db.Secrets[Secret]
 	return ok
@@ -616,6 +627,16 @@ func (db *UDB) Name(Secret string) string {
 	}
 	Error.Printf("No user for secret: %s", Secret)
 	return ""
+}
+
+func (db *UDB) UserInfo(Secret string) *User {
+	name, ok := db.Secrets[Secret]
+	if ok {
+		v := db.Names[name]
+		return &v
+	}
+	Error.Printf("No user for secret: %s", Secret)
+	return nil
 }
 
 func (db *UDB) Id(Secret string) int32 {
@@ -694,6 +715,7 @@ func LoadUsers(path string) *UDB {
 		return true
 	})
 	if err != nil {
+		Error.Printf("Can not read user DB: %s", err)
 		return nil
 	}
 	return &db

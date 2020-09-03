@@ -22,7 +22,37 @@ type WebContext struct {
 	BasePath string
 }
 
-func www_index(www WWW, w http.ResponseWriter, r *http.Request) error {
+func www_login(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) error {
+	var ctx WebContext
+	ii.Trace.Printf("www login")
+	switch r.Method {
+	case "GET":
+		err := www.tpl.ExecuteTemplate(w, "login.tpl", ctx)
+		return err
+	case "POST":
+		if err := r.ParseForm(); err != nil {
+			ii.Error.Printf("Error in POST request: %s", err)
+			return  err
+		}
+		user := r.FormValue("username")
+		password := r.FormValue("password")
+		udb := ii.LoadUsers(*users_opt)
+		if udb == nil || !udb.Auth(user, password) {
+			ii.Info.Printf("Access denied for user: %s", user)
+			return nil
+		}
+		exp := time.Now().Add(10 * 365 * 24 * time.Hour)
+		cookie := http.Cookie{Name: "pauth", Value: udb.Secret(user), Expires: exp}
+		http.SetCookie(w, &cookie)
+		ii.Info.Printf("User logged in: %s:%s\n", user, password)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+	default:
+		return nil
+	}
+	return nil
+}
+
+func www_index(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) error {
 	var ctx WebContext
 	ii.Trace.Printf("www index")
 
@@ -105,7 +135,7 @@ func makePager(ctx *WebContext, count int, page int) int {
 	return start
 }
 
-func www_topics(www WWW, w http.ResponseWriter, r *http.Request, echo string, page int) error {
+func www_topics(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, echo string, page int) error {
 	db := www.db
 	var ctx WebContext
 
@@ -153,14 +183,7 @@ func www_topics(www WWW, w http.ResponseWriter, r *http.Request, echo string, pa
 	return err
 }
 
-func msg_format(txt string) template.HTML {
-	txt = strings.Replace(txt, "&", "&amp;", -1)
-	txt = strings.Replace(txt, "<", "&lt;", -1)
-	txt = strings.Replace(txt, ">", "&gt;", -1)
-	return template.HTML(strings.Replace(txt, "\n", "<br/>", -1))
-}
-
-func www_topic(www WWW, w http.ResponseWriter, r *http.Request, id string, page int) error {
+func www_topic(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, id string, page int) error {
 	db := www.db
 
 	var ctx WebContext
@@ -189,6 +212,13 @@ func www_topic(www WWW, w http.ResponseWriter, r *http.Request, id string, page 
 	return err
 }
 
+func msg_format(txt string) template.HTML {
+	txt = strings.Replace(txt, "&", "&amp;", -1)
+	txt = strings.Replace(txt, "<", "&lt;", -1)
+	txt = strings.Replace(txt, ">", "&gt;", -1)
+	return template.HTML(strings.Replace(txt, "\n", "<br/>", -1))
+}
+
 func WebInit(www *WWW, db *ii.DB) {
 	funcMap := template.FuncMap{
 		"fdate": func (date int64) string {
@@ -201,24 +231,36 @@ func WebInit(www *WWW, db *ii.DB) {
 }
 
 func handleWWW(www WWW, w http.ResponseWriter, r *http.Request) error {
+	var user *ii.User
+	cookie, err := r.Cookie("pauth")
+	if err == nil {
+		udb := ii.LoadUsers(*users_opt) /* per each request */
+		if udb.Access(cookie.Value) {
+			user = udb.UserInfo(cookie.Value)
+			ii.Info.Printf("User: %s GET %s", user.Name, r.URL.Path)
+		}
+	}
 	path := strings.TrimPrefix(r.URL.Path, "/")
 	args := strings.Split(path, "/")
 	if path == "" {
-		return www_index(www, w, r)
+		return www_index(user, www, w, r)
+	} else if path == "login" {
+		return www_login(user, www, w, r)
 	} else if ii.IsMsgId(args[0]) {
 		page := 1
 		if len(args) > 1 {
 			fmt.Sscanf(args[1], "%d", &page)
 		}
-		return www_topic(www, w, r, args[0], page)
+		return www_topic(user, www, w, r, args[0], page)
 	} else if ii.IsEcho(args[0]) {
 		page := 1
 		if len(args) > 1 {
 			fmt.Sscanf(args[1], "%d", &page)
 		}
-		return www_topics(www, w, r, args[0], page)
+		return www_topics(user, www, w, r, args[0], page)
 	} else {
 		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprintf(w, "404\n")
 	}
 	return nil
 }

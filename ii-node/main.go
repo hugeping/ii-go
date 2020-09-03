@@ -55,8 +55,6 @@ var verbose_opt *bool = flag.Bool("v", false, "Verbose")
 type WWW struct {
 	tpl *template.Template
 	db *ii.DB
-	w http.ResponseWriter
-	r *http.Request
 }
 
 func main() {
