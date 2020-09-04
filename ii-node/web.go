@@ -382,8 +382,8 @@ func www_reply(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, i
 			ii.Error.Printf("Error while store reply msg %s: %s", m.MsgId, err)
 			return err
 		}
-		topic := m.MsgId
-		http.Redirect(w, r, "/" + topic + "/-1", http.StatusSeeOther)
+		//		topic := m.MsgId
+		http.Redirect(w, r, "/" + m.MsgId + "#" + m.MsgId, http.StatusSeeOther)
 		return nil
 	}
 	return nil
@@ -397,6 +397,7 @@ func str_esc(l string) string {
 }
 
 var quoteRegex = regexp.MustCompile("^[^>]*>")
+var urlRegex = regexp.MustCompile(`(http|ftp|https)://[^ <>"]+`)
 
 func msg_format(txt string) template.HTML {
 	txt = strings.Replace(txt, "\r", "", -1)
@@ -407,6 +408,13 @@ func msg_format(txt string) template.HTML {
 	for _, l := range strings.Split(txt, "\n") {
 		if quoteRegex.MatchString(l) {
 			l = fmt.Sprintf("<span class=\"quote\">%s</span>", str_esc(l))
+		} else {
+			l = string(urlRegex.ReplaceAllFunc([]byte(l),
+				func (line []byte) []byte {
+				s := string(line)
+					return []byte(fmt.Sprintf(`<a href="%s" class="url">%s</a>`,
+						s, str_esc(s)))
+			}))
 		}
 		f += l + "<br>\n"
 	}

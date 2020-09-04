@@ -1,9 +1,7 @@
-.msgtext {
-    white-space: pre-wrap;
+.text {
+    overflow-wrap: break-word;
 }
-/* .selected { */
-/*     background: red; */
-/* } */
+
 #body {
     max-width: 60em;
     margin-left:auto;
