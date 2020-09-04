@@ -56,7 +56,7 @@ func www_register(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request
 }
 
 func www_login(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) error {
-	ctx := WebContext{ User: user }
+	ctx := WebContext{ User: user, BasePath: "login" }
 	ii.Trace.Printf("www login")
 	switch r.Method {
 	case "GET":
@@ -85,7 +85,7 @@ func www_login(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) e
 }
 
 func www_profile(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) error {
-	ctx := WebContext{ User: user }
+	ctx := WebContext{ User: user, BasePath: "profile" }
 	ii.Trace.Printf("www profile")
 	if user.Name == "" {
 		ii.Error.Printf("Access denied")

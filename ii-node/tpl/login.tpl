@@ -1,4 +1,4 @@
-{{template "header.tpl"}}
+{{template "header.tpl" $}}
 
 <form method="post" enctype="application/x-www-form-urlencoded" action="/login">
 <table id="login" cellspacing=0 cellpadding=0>
