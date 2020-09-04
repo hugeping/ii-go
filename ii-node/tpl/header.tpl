@@ -3,10 +3,21 @@
 <meta name="Robots" content="index,follow">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width; initial-scale=1.0">
 <link rel="icon" href="/lib/icon.png" type="image/png">
 <link rel="stylesheet" type="text/css" href="/lib/style.css">
 <title>go-ii</title>
 </head>
 <body>
 <div id="body">
-{{ with .User }}{{.Name}}{{end}}
+<table id="header">
+  <tr>
+    <td class="title">
+      <span class="logo"><a href="/">ii-go</a></span>
+      <span class="info">II/IDEC networks</span>
+    </td>
+    <td class="links">
+      {{ with .User }}{{.Name}}{{end}}
+    </td>
+</tr>
+</table>

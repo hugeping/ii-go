@@ -128,7 +128,10 @@ func getTopics(db *ii.DB, mi []*ii.MsgInfo) map[string][]string {
 			return l[i].Off < l[j].Off
 		})
 		for _, i := range l {
-			if i.Id == t.Id {
+			if i.Id == t.Id  {
+				continue
+			}
+			if _, ok := intopic[i.Id]; ok {
 				continue
 			}
 			topics[t.Id] = append(topics[t.Id], i.Id)
@@ -359,6 +362,10 @@ func www_reply(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, i
 }
 
 func msg_format(txt string) template.HTML {
+	txt = strings.Replace(txt, "\r", "", -1)
+	txt = strings.TrimLeft(txt, "\n")
+	txt = strings.TrimRight(txt, "\n")
+	txt = strings.TrimSuffix(txt, "\n")
 	txt = strings.Replace(txt, "&", "&amp;", -1)
 	txt = strings.Replace(txt, "<", "&lt;", -1)
 	txt = strings.Replace(txt, ">", "&gt;", -1)
@@ -371,6 +378,10 @@ func WebInit(www *WWW, db *ii.DB) {
 			return time.Unix(date, 0).Format("2006-01-02 15:04:05")
 		},
 		"msg_format": msg_format,
+		"repto": func (m ii.Msg) string {
+			r, _ := m.Tag("repto")
+			return r
+		},
 	}
 	www.db = db
 	www.tpl = template.Must(template.New("main").Funcs(funcMap).ParseGlob("tpl/*.tpl"))

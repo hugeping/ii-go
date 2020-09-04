@@ -12,6 +12,7 @@
 .fsmaller {
     font-size: smaller;
 }
+
 #pager {
 //    font-size: smaller;
     padding: 0.5em;
@@ -86,4 +87,70 @@
 
 #echolist .odd,#topiclist .odd {
     background: #eaffff;
+}
+
+#topic .msg {
+    background-color: #ffffea;
+    margin-bottom: 1em;
+    text-align: left;
+    padding: 1em;
+    box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.26);
+    overflow: auto;
+}
+#topic .selected {
+    background: #eaffff;
+}
+#topic .subj a, #topic .subj a:hover, #topic .subj a:visited {
+    color: #ea5555;
+    font-size: large;
+    text-decoration: none;
+}
+#topic .reply a, #topic .reply a:hover, #topic .reply a:visited {
+    color: #ea5555;
+    text-decoration: none;
+}
+#topic .info {
+    color: #555555;
+    font-size: smaller;
+}
+
+#header {
+    margin: 0;
+    margin-left:auto;
+    margin-right:auto;
+    padding: 0;
+    border: 0;
+    border-collapse: collapse;
+}
+
+#header .title {
+    width: 100%;
+    padding: 0 0 0.5em 0;
+}
+#header tr {
+    vertical-align: bottom;
+}
+#header .title .logo {
+    font-size: xx-large;
+    font-weight: bold;
+}
+
+#header .logo a {
+    text-decoration: none;
+    color: black;
+}
+#header .title .info {
+    font-size: smaller;
+    color: #555555;
+    font-style: italic;
+}
+
+#header .links {
+    padding: 0 1em 0.5em 0;
+}
+
+@media (max-width: 640px) {
+      .extra {
+	  display: none;
+      }
 }
