@@ -35,7 +35,7 @@
     text-decoration: none;
 }
 
-#echolist, #topiclist {
+#echolist, #topiclist, #profile, #login {
     margin: 0;
     margin-left:auto;
     margin-right:auto;
@@ -81,11 +81,11 @@
     padding: 0;
     margin: 0;
 }
-#echolist .even,#topiclist .even {
+#echolist .even {
     background: #ffffea;
 }
 
-#echolist .odd,#topiclist .odd {
+.odd {
     background: #eaffff;
 }
 
@@ -151,10 +151,21 @@
     text-align: right;
 }
 
-#header .links a, #header .links a:visited {
+.links a, .links a:visited {
     color: #ea5555;
 }
-
+#footer {
+    text-align: right;
+    font-size: smaller;
+    font-style: italic;
+    margin-top: 1em;
+}
+#profile td, #login td{
+    padding: 0.5em;
+}
+#profile .links, #login .links {
+    text-align: center;
+}
 @media (max-width: 640px) {
       .extra {
 	  display: none;

@@ -84,6 +84,29 @@ func www_login(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) e
 	return errors.New("Wrong method")
 }
 
+func www_profile(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) error {
+	ctx := WebContext{ User: user }
+	ii.Trace.Printf("www profile")
+	if user.Name == "" {
+		ii.Error.Printf("Access denied")
+		return  errors.New("Access denied")
+	}
+	err := www.tpl.ExecuteTemplate(w, "profile.tpl", ctx)
+	return err
+}
+
+func www_logout(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) error {
+	ii.Trace.Printf("www logout: %s", user.Name)
+	if user.Name == "" {
+		ii.Error.Printf("Access denied")
+		return  errors.New("Access denied")
+	}
+	cookie := http.Cookie{Name: "pauth", Value: "", Expires: time.Unix(0, 0)}
+	http.SetCookie(w, &cookie)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+	return nil
+}
+
 func www_index(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) error {
 	ctx := WebContext{ User: user }
 
@@ -407,6 +430,10 @@ func handleWWW(www WWW, w http.ResponseWriter, r *http.Request) error {
 		return www_index(user, www, w, r)
 	} else if path == "login" {
 		return www_login(user, www, w, r)
+	} else if path == "logout" {
+		return www_logout(user, www, w, r)
+	} else if path == "profile" {
+		return www_profile(user, www, w, r)
 	} else if path == "register" {
 		return www_register(user, www, w, r)
 	} else if ii.IsMsgId(args[0]) {

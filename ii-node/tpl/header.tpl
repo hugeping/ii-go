@@ -19,8 +19,10 @@
     </td>
     <td class="links">
       <span>
-      {{ with .User }}
-      {{.Name}}
+      {{ if .User.Name }}
+      <a href="/profile">{{.User.Name}}</a>
+      {{else}}
+      <a href="/login">Login</a>
       {{end}}
       {{ with .Echo }}
       :: <a href="/{{.}}/new">New topic</a>
