@@ -22,6 +22,7 @@ type WebContext struct {
 	Pager []int
 	BasePath string
 	User *ii.User
+	Selected string
 }
 
 func www_register(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) error {
@@ -241,7 +242,8 @@ func www_topic(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, i
 	} else if topic != mi.Id {
 		for k, v := range ids {
 			if v == mi.Id {
-				ids = ids[k:]
+				page = k / PAGE_SIZE + 1
+				ctx.Selected = mi.Id
 				break
 			}
 		}

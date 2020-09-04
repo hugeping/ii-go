@@ -1,3 +1,56 @@
 .msgtext {
     white-space: pre-wrap;
 }
+.selected {
+    background: red;
+}
+#echolist {
+    margin: 0;
+    margin-left:auto;
+    margin-right:auto;
+    padding: 0;
+    border: 1px solid #55aaaa;
+}
+#echolist a,a:visited,a:hover {
+    color: #000000;
+    text-decoration: underline;
+}
+#echolist th {
+    text-align: left;
+    color: white;
+    font-weight: bold;
+}
+
+#echolist .echo {
+    font-weight: normal;
+    text-align: left;
+}
+#echolist .count, .topics {
+    text-align: center;
+}
+#echolist .info {
+    color: #777777;
+    font-size: smaller;
+}
+#echolist .subj {
+    font-weight: bold;
+}
+#echolist th,td,tr {
+    border: 0;
+    margin: 0;
+    padding: 0.5em;
+    border-collapse: collapse;
+}
+
+#echolist .title {
+    background: #55aaaa;
+    padding: 0;
+    margin: 0;
+}
+#echolist .even {
+    background: #ffffea;
+}
+
+#echolist .odd {
+    background: #eaffff;
+}
