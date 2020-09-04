@@ -8,4 +8,5 @@
 <title>go-ii</title>
 </head>
 <body>
+<div id="body">
 {{ with .User }}{{.Name}}{{end}}

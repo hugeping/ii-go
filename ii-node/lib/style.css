@@ -1,9 +1,39 @@
 .msgtext {
     white-space: pre-wrap;
 }
-.selected {
-    background: red;
+/* .selected { */
+/*     background: red; */
+/* } */
+#body {
+    max-width: 60em;
+    margin-left:auto;
+    margin-right:auto;
 }
+.fsmaller {
+    font-size: smaller;
+}
+#pager {
+//    font-size: smaller;
+    padding: 0.5em;
+    margin-left:auto;
+    margin-right:auto;
+}
+
+#pager a, a:visited {
+    color: #777777;
+    text-decoration: none;
+}
+
+#pager a:hover {
+    color: #000000;
+}
+
+#pager .selected {
+    color: #ffffff;
+    background: #55aaaa;
+    text-decoration: none;
+}
+
 #echolist, #topiclist {
     margin: 0;
     margin-left:auto;
@@ -25,9 +55,9 @@
 #echolist .echo, #topiclist .topic {
     font-weight: normal;
     text-align: left;
-    max-width: 32em;
-    width: 32em;
+    width: 100%;
 }
+
 #echolist .count, #echolist .topics, #topiclist .topics, #topiclist .posts {
     text-align: center;
 }
