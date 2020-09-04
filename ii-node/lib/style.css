@@ -116,15 +116,15 @@
 
 #header {
     margin: 0;
-    margin-left:auto;
-    margin-right:auto;
+    margin-left:0;
+    margin-right:0;
+    width: 100%;
     padding: 0;
     border: 0;
     border-collapse: collapse;
 }
 
 #header .title {
-    width: 100%;
     padding: 0 0 0.5em 0;
 }
 #header tr {
@@ -143,10 +143,16 @@
     font-size: smaller;
     color: #555555;
     font-style: italic;
+    font-weight: bold;
 }
 
 #header .links {
     padding: 0 1em 0.5em 0;
+    text-align: right;
+}
+
+#header .links a, #header .links a:visited {
+    color: #ea5555;
 }
 
 @media (max-width: 640px) {

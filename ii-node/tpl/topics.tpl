@@ -1,8 +1,5 @@
 {{template "header.tpl" $}}
 {{ $odd := false }}
-{{if .User.Name }}
-<a href="/{{.BasePath}}/new">New topic</a><br>
-{{end}}
 {{template "pager.tpl" $}}
 <table id="topiclist" cellspacing=0 cellpadding=0>
 <tr class="title">

@@ -176,7 +176,7 @@ func makePager(ctx *WebContext, count int, page int) int {
 
 func www_topics(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, echo string, page int) error {
 	db := www.db
-	ctx := WebContext{ User: user }
+	ctx := WebContext{ User: user, Echo: echo }
 
 	mis := db.LookupIDS(db.SelectIDS(ii.Query{Echo: echo}))
 	ii.Trace.Printf("www topics: %s", echo)

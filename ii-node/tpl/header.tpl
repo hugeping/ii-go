@@ -14,10 +14,18 @@
   <tr>
     <td class="title">
       <span class="logo"><a href="/">ii-go</a></span>
-      <span class="info">II/IDEC networks</span>
+      <span class="info">II/IDEC networks {{ with .Echo }} :: {{.}}{{end}}
+</span>
     </td>
     <td class="links">
-      {{ with .User }}{{.Name}}{{end}}
+      <span>
+      {{ with .User }}
+      {{.Name}}
+      {{end}}
+      {{ with .Echo }}
+      :: <a href="/{{.}}/new">New topic</a>
+      {{ end }}
+      </span>
     </td>
 </tr>
 </table>
