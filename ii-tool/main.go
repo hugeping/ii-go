@@ -69,6 +69,7 @@ func main() {
 	if len(args) < 1 {
 		fmt.Printf(`Help: %s [options] command [arguments]
 Commands:
+	search <string> [echo]        - search in base
 	send <server> <pauth> <msg|-> - send message
 	fetch <url> [echofile|-]      - fetch
 	store <bundle|->              - import bundle to database
@@ -85,6 +86,37 @@ Options:
 		os.Exit(1)
 	}
 	switch cmd := args[0]; cmd {
+	case "search":
+		echo := ""
+		if len(args) < 2 {
+			fmt.Printf("No string supplied\n")
+			os.Exit(1)
+		}
+		if len(args) > 2 {
+			echo = args[2]
+		}
+		db := open_db(*db_opt)
+		db.Lock()
+		defer db.Unlock()
+		db.LoadIndex();
+		for _, v := range db.Idx.List {
+			if echo != "" {
+				mi := db.Idx.Hash[v]
+				if mi.Echo != echo {
+					continue
+				}
+			}
+			m := db.GetFast(v)
+			if m == nil {
+				continue
+			}
+			if strings.Contains(m.Text, args[1]) {
+				fmt.Printf("%s\n", v)
+				if *verbose_opt {
+					fmt.Printf("%s\n", m)
+				}
+			}
+		}
 	case "blacklist":
 		if len(args) < 2 {
 			fmt.Printf("No msgid supplied\n")
