@@ -8,7 +8,7 @@
 {{else}}
 <div class="msg">
 {{end}}
-<a class="msgid" href="/{{.MsgId}}#{{.MsgId}}">#</a><span class="subj"><a href="/{{. | repto}}#{{. | repto}}">{{.Subj}}</a></span><br>
+<a class="msgid" href="/{{.MsgId}}#{{.MsgId}}">#</a><span class="subj"> <a href="/{{. | repto}}#{{. | repto}}">{{.Subj}}</a></span><br>
 <span class="info">{{.From}}({{.Addr}}) &mdash; {{.To}}<br>{{.Date | fdate}}</span><br>
 <div class="text">
 <br>

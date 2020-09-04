@@ -600,7 +600,7 @@ type UDB struct {
 }
 
 func IsUsername(u string) bool {
-	return !strings.ContainsAny(u, ":\n\r\t") && len(u) <= 16
+	return !strings.ContainsAny(u, ":\n \r\t") && len(u) <= 16
 }
 
 func MakeSecret(msg string) string {

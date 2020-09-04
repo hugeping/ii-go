@@ -382,7 +382,6 @@ func www_reply(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, i
 			ii.Error.Printf("Error while store reply msg %s: %s", m.MsgId, err)
 			return err
 		}
-		//		topic := m.MsgId
 		http.Redirect(w, r, "/" + m.MsgId + "#" + m.MsgId, http.StatusSeeOther)
 		return nil
 	}
@@ -396,7 +395,7 @@ func str_esc(l string) string {
 	return l
 }
 
-var quoteRegex = regexp.MustCompile("^[^>]*>")
+var quoteRegex = regexp.MustCompile("^[^ >]*>")
 var urlRegex = regexp.MustCompile(`(http|ftp|https)://[^ <>"]+`)
 
 func msg_format(txt string) template.HTML {
