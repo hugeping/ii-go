@@ -57,11 +57,6 @@ type WWW struct {
 	db *ii.DB
 }
 
-func handleErr(www WWW, w http.ResponseWriter, err error) {
-	ctx := WebContext{ Error: err.Error() }
-	www.tpl.ExecuteTemplate(w, "error.tpl", ctx)
-}
-
 func main() {
 	var www WWW
 	ii.OpenLog(ioutil.Discard, os.Stdout, os.Stderr)
@@ -81,10 +76,7 @@ func main() {
 	http.Handle("/lib/", http.StripPrefix("/lib/", fs))
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		err := handleWWW(www, w, r)
-		if err != nil {
-			handleErr(www, w, err)
-		}
+		handleWWW(www, w, r)
 	})
 	http.HandleFunc("/list.txt", func(w http.ResponseWriter, r *http.Request) {
 		echoes := db.Echoes(nil)

@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+const PAGE_SIZE = 100
+
 type WebContext struct {
 	Echoes []*ii.Echo
 	Topics []*Topic
@@ -172,7 +174,6 @@ type Topic struct {
 	Tail    *ii.Msg
 }
 
-const PAGE_SIZE = 100
 func makePager(ctx *WebContext, count int, page int) int {
 	ctx.Pages = count / PAGE_SIZE
 	if count % PAGE_SIZE != 0 {
@@ -253,6 +254,7 @@ func www_topic(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, i
 	if mi == nil {
 		return errors.New("No such message")
 	}
+	ctx.Echo = mi.Echo
 	mis := db.LookupIDS(db.SelectIDS(ii.Query{Echo: mi.Echo}))
 
 	topic := mi.Id
@@ -410,8 +412,20 @@ func WebInit(www *WWW, db *ii.DB) {
 	www.tpl = template.Must(template.New("main").Funcs(funcMap).ParseGlob("tpl/*.tpl"))
 }
 
-func handleWWW(www WWW, w http.ResponseWriter, r *http.Request) error {
+func handleErr(user *ii.User, www WWW, w http.ResponseWriter, err error) {
+	ctx := WebContext{ Error: err.Error(), User: user }
+	www.tpl.ExecuteTemplate(w, "error.tpl", ctx)
+}
+
+func handleWWW(www WWW, w http.ResponseWriter, r *http.Request) {
 	var user *ii.User = &ii.User {}
+	err := _handleWWW(user, www, w, r)
+	if err != nil {
+		handleErr(user, www, w, err)
+	}
+}
+
+func _handleWWW(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) error {
 	cookie, err := r.Cookie("pauth")
 	if err == nil {
 		udb := ii.LoadUsers(*users_opt) /* per each request */

@@ -35,7 +35,7 @@
     text-decoration: none;
 }
 
-#echolist, #topiclist, #profile, #login {
+#echolist, #topiclist, #profile, #login, #error {
     margin: 0;
     margin-left:auto;
     margin-right:auto;
@@ -81,7 +81,14 @@
     padding: 0;
     margin: 0;
 }
-#echolist .even {
+.alert {
+    background: #ea5555;
+    color: white;
+    font-weight: bold;
+    text-align: center;
+}
+
+.even {
     background: #ffffea;
 }
 
@@ -160,12 +167,11 @@
     font-style: italic;
     margin-top: 1em;
 }
-#profile td, #login td{
+#profile td, #login td, #error td {
     padding: 0.5em;
 }
-#profile .links, #login .links {
+#profile .links, #login .links, #error .links {
     text-align: center;
-    margin: 10pt;
 }
 @media (max-width: 640px) {
       .extra {
