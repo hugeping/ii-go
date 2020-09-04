@@ -109,26 +109,29 @@ func getTopics(db *ii.DB, mi []*ii.MsgInfo) map[string][]string {
 		if _, ok := intopic[m.Id]; ok {
 			continue
 		}
-		var l []string
+		var l [] *ii.MsgInfo
 		for p := m; p != nil; p = getParent(db, p) {
 			if m.Echo != p.Echo {
 				continue
 			}
-			l = append(l, p.Id)
+			l = append(l, p)
 		}
 		if len(l) == 0 {
 			continue
 		}
 		t := l[len(l) - 1]
-		if len(topics[t]) == 0 {
-			topics[t] = append(topics[t], t)
+		if len(topics[t.Id]) == 0 {
+			topics[t.Id] = append(topics[t.Id], t.Id)
 		}
-		for _, id := range l {
-			if id == t {
+		sort.SliceStable(l, func(i int, j int) bool {
+			return l[i].Off < l[j].Off
+		})
+		for _, i := range l {
+			if i.Id == t.Id {
 				continue
 			}
-			topics[t] = append(topics[t], id)
-			intopic[id] = t
+			topics[t.Id] = append(topics[t.Id], i.Id)
+			intopic[i.Id] = t.Id
 		}
 	}
 	return topics
@@ -224,9 +227,24 @@ func www_topic(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, i
 		return errors.New("No such message")
 	}
 	mis := db.LookupIDS(db.SelectIDS(ii.Query{Echo: mi.Echo}))
-	ids := getTopics(db, mis)[id]
+
+	topic := mi.Id
+	for p := mi; p != nil; p = getParent(db, p) {
+		if p.Echo != mi.Echo {
+			continue
+		}
+		topic = p.Id
+	}
+	ids := getTopics(db, mis)[topic]
 	if len(ids) == 0 {
 		ids = append(ids, id)
+	} else if topic != mi.Id {
+		for k, v := range ids {
+			if v == mi.Id {
+				ids = ids[k:]
+				break
+			}
+		}
 	}
 	ii.Trace.Printf("www topic: %s", id)
 	start := makePager(&ctx, len(ids), page)
@@ -332,17 +350,6 @@ func www_reply(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, i
 			return err
 		}
 		topic := m.MsgId
-		mi := www.db.Lookup(m.MsgId)
-		if mi == nil {
-			http.Redirect(w, r, "/" + m.MsgId + "/1", http.StatusSeeOther)
-			return nil
-		}
-		for p := mi; p != nil; p = getParent(www.db, p) {
-			if p.Echo != mi.Echo {
-				continue
-			}
-			topic = p.Id
-		}
 		http.Redirect(w, r, "/" + topic + "/-1", http.StatusSeeOther)
 		return nil
 	}
