@@ -2,7 +2,7 @@
 {{ $odd := false }}
 <table id="echolist" cellspacing=0 cellpadding=0>
 <tr class="title">
-<th>Name</th>
+<th>Echo</th>
 <th>Topics</th>
 <th>Posts</th>
 <th>Last</th>

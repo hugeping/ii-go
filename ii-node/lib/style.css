@@ -4,53 +4,56 @@
 .selected {
     background: red;
 }
-#echolist {
+#echolist, #topiclist {
     margin: 0;
     margin-left:auto;
     margin-right:auto;
     padding: 0;
     border: 1px solid #55aaaa;
+    border-collapse: collapse;
 }
-#echolist a,a:visited,a:hover {
+#echolist a,#echolist a:visited,#echolist a:hover,#topiclist a, #topiclist a:visited, #topiclist a:hover {
     color: #000000;
     text-decoration: underline;
 }
-#echolist th {
+#echolist th,#topiclist th {
     text-align: left;
     color: white;
     font-weight: bold;
 }
 
-#echolist .echo {
+#echolist .echo, #topiclist .topic {
     font-weight: normal;
     text-align: left;
+    max-width: 32em;
+    width: 32em;
 }
-#echolist .count, .topics {
+#echolist .count, #echolist .topics, #topiclist .topics, #topiclist .posts {
     text-align: center;
 }
-#echolist .info {
+#echolist .info, #topiclist .info {
     color: #777777;
     font-size: smaller;
+    min-width: 16em;
 }
 #echolist .subj {
     font-weight: bold;
 }
-#echolist th,td,tr {
-    border: 0;
+
+#echolist th, #echolist td, #topiclist th, #topiclist td {
     margin: 0;
     padding: 0.5em;
-    border-collapse: collapse;
 }
 
-#echolist .title {
+#echolist .title, #topiclist .title {
     background: #55aaaa;
     padding: 0;
     margin: 0;
 }
-#echolist .even {
+#echolist .even,#topiclist .even {
     background: #ffffea;
 }
 
-#echolist .odd {
+#echolist .odd,#topiclist .odd {
     background: #eaffff;
 }
