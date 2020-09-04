@@ -51,10 +51,12 @@ var db_opt *string = flag.String("db", "./db", "II database path (directory)")
 var listen_opt *string = flag.String("L", ":8080", "Listen address")
 var sysname_opt *string = flag.String("sys", "ii-go", "Node name")
 var verbose_opt *bool = flag.Bool("v", false, "Verbose")
+var echo_opt *string = flag.String("e", "list.txt", "Echoes list")
 
 type WWW struct {
 	tpl *template.Template
 	db *ii.DB
+	edb *ii.EDB
 }
 
 func main() {
@@ -62,6 +64,7 @@ func main() {
 	ii.OpenLog(ioutil.Discard, os.Stdout, os.Stderr)
 
 	db := open_db(*db_opt)
+	edb := ii.LoadEcholist(*echo_opt)
 
 	flag.Parse()
 	if *verbose_opt {
@@ -69,8 +72,9 @@ func main() {
 	}
 
 	db.Name = *sysname_opt
-
-	WebInit(&www, db)
+	www.db = db
+	www.edb = edb
+	WebInit(&www)
 
 	fs := http.FileServer(http.Dir("lib"))
 	http.Handle("/lib/", http.StripPrefix("/lib/", fs))

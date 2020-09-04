@@ -25,11 +25,12 @@ type WebContext struct {
 	Pager []int
 	BasePath string
 	User *ii.User
+	Echolist *ii.EDB
 	Selected string
 }
 
 func www_register(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) error {
-	ctx := WebContext{ User:  user }
+	ctx := WebContext{ User: user, Echolist: www.edb }
 	ii.Trace.Printf("www register")
 	switch r.Method {
 	case "GET":
@@ -59,7 +60,7 @@ func www_register(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request
 }
 
 func www_login(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) error {
-	ctx := WebContext{ User: user, BasePath: "login" }
+	ctx := WebContext{ User: user, BasePath: "login", Echolist: www.edb }
 	ii.Trace.Printf("www login")
 	switch r.Method {
 	case "GET":
@@ -88,7 +89,7 @@ func www_login(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) e
 }
 
 func www_profile(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) error {
-	ctx := WebContext{ User: user, BasePath: "profile" }
+	ctx := WebContext{ User: user, BasePath: "profile", Echolist: www.edb }
 	ii.Trace.Printf("www profile")
 	if user.Name == "" {
 		ii.Error.Printf("Access denied")
@@ -111,7 +112,7 @@ func www_logout(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) 
 }
 
 func www_index(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) error {
-	ctx := WebContext{ User: user }
+	ctx := WebContext{ User: user, Echolist: www.edb }
 
 	ii.Trace.Printf("www index")
 
@@ -201,7 +202,7 @@ func makePager(ctx *WebContext, count int, page int) int {
 
 func www_topics(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, echo string, page int) error {
 	db := www.db
-	ctx := WebContext{ User: user, Echo: echo }
+	ctx := WebContext{ User: user, Echo: echo, Echolist: www.edb }
 	mis := db.LookupIDS(db.SelectIDS(ii.Query{Echo: echo}))
 	ii.Trace.Printf("www topics: %s", echo)
 	topicsIds := getTopics(db, mis)
@@ -248,7 +249,7 @@ func www_topics(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, 
 
 func www_topic(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, id string, page int) error {
 	db := www.db
-	ctx := WebContext{ User: user }
+	ctx := WebContext{ User: user, Echolist: www.edb }
 
 	mi := db.Lookup(id)
 	if mi == nil {
@@ -298,7 +299,7 @@ func www_topic(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, i
 }
 
 func www_new(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, echo string) error {
-	ctx := WebContext{ User: user }
+	ctx := WebContext{ User: user, Echolist: www.edb }
 	ctx.BasePath = echo
 	ctx.Echo = echo
 
@@ -338,7 +339,7 @@ func www_new(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, ech
 }
 
 func www_reply(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, id string) error {
-	ctx := WebContext{ User: user }
+	ctx := WebContext{ User: user, Echolist: www.edb }
 	ctx.BasePath = id
 
 	switch r.Method {
@@ -439,7 +440,7 @@ func msg_format(txt string) template.HTML {
 	return template.HTML(f)
 }
 
-func WebInit(www *WWW, db *ii.DB) {
+func WebInit(www *WWW) {
 	funcMap := template.FuncMap{
 		"fdate": func (date int64) string {
 			return time.Unix(date, 0).Format("2006-01-02 15:04:05")
@@ -450,12 +451,11 @@ func WebInit(www *WWW, db *ii.DB) {
 			return r
 		},
 	}
-	www.db = db
 	www.tpl = template.Must(template.New("main").Funcs(funcMap).ParseGlob("tpl/*.tpl"))
 }
 
 func handleErr(user *ii.User, www WWW, w http.ResponseWriter, err error) {
-	ctx := WebContext{ Error: err.Error(), User: user }
+	ctx := WebContext{ Error: err.Error(), User: user, Echolist: www.edb }
 	www.tpl.ExecuteTemplate(w, "error.tpl", ctx)
 }
 

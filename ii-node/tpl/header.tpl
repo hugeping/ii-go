@@ -14,7 +14,7 @@
   <tr>
     <td class="title">
       <span class="logo"><a href="/">ii-go</a></span>
-      <span class="info">II/IDEC networks {{ with .Echo }} :: <a href="/{{.}}">{{.}}</a>{{end}}
+      <span class="info">II/IDEC networks {{ with .Echo }} :: <a href="/{{.}}">{{.}}</a> <span class="info">{{index $.Echolist.Info .}}</span>{{end}}
 </span>
     </td>
     <td class="links">

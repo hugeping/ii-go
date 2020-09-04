@@ -730,3 +730,31 @@ func LoadUsers(path string) *UDB {
 	}
 	return &db
 }
+
+type EDB struct {
+	Info map[string]string
+	List []string
+	Path string
+	Sync sync.Mutex
+}
+
+func LoadEcholist(path string) *EDB {
+	var db EDB
+	db.Path = path
+	db.Info = make(map[string]string)
+	err := file_lines(path, func(line string) bool {
+		a := strings.SplitN(line, ":", 3)
+		if len(a) < 2 {
+			Error.Printf("Wrong entry in echo DB: %s", line)
+			return true
+		}
+		db.Info[a[0]] = a[2]
+		db.List = append(db.List, a[0])
+		return true
+	})
+	if err != nil {
+		Error.Printf("Can not read echo DB: %s", err)
+		return nil
+	}
+	return &db
+}

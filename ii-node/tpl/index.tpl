@@ -13,7 +13,9 @@
 {{ else }}
 <tr class="even">
 {{ end }}
-<td class="echo"><a href="{{.Name}}">{{.Name}}</a></td>
+<td class="echo"><a href="{{.Name}}">{{.Name}}</a><br>
+<span class="info">{{ index $.Echolist.Info .Name }}</span>
+</td>
 <td class="topics extra">{{.Topics}}</td>
 <td class="count extra">{{.Count}}</td>
 <td class="info">{{with .Msg}}<span class="subj">{{.Subj}}</span><br><a href="/{{.MsgId}}#{{.MsgId}}">{{.Date | fdate}}</a> by {{.From}}{{end}}</td>
