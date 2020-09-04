@@ -404,7 +404,22 @@ func msg_format(txt string) template.HTML {
 	txt = strings.TrimRight(txt, "\n")
 	txt = strings.TrimSuffix(txt, "\n")
 	f := ""
+	pre := false
 	for _, l := range strings.Split(txt, "\n") {
+		if strings.Trim(l, " ") == "====" {
+			if !pre {
+				pre = true
+				f += "<pre class=\"code\">\n"
+				continue
+			}
+			pre = false
+			f += "</pre>\n"
+			continue
+		}
+		if pre {
+			f += l + "\n"
+			continue
+		}
 		if quoteRegex.MatchString(l) {
 			l = fmt.Sprintf("<span class=\"quote\">%s</span>", str_esc(l))
 		} else {
@@ -416,6 +431,10 @@ func msg_format(txt string) template.HTML {
 			}))
 		}
 		f += l + "<br>\n"
+	}
+	if pre {
+		pre = false
+		f += "</pre>\n"
 	}
 	return template.HTML(f)
 }

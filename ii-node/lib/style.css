@@ -2,6 +2,17 @@
     overflow-wrap: break-word;
 }
 
+.code {
+    overflow-x: auto;
+    white-space: pre-wrap;
+    white-space: -moz-pre-wrap;
+    white-space: -pre-wrap;
+    white-space: -o-pre-wrap;
+    word-wrap: break-word;
+    background: #eaffff;
+    padding: 1em;
+}
+
 #body {
     max-width: 60em;
     margin-left:auto;
