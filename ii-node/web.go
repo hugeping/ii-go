@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -28,7 +29,7 @@ type WebContext struct {
 }
 
 func www_register(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) error {
-	ctx := WebContext{ User: user }
+	ctx := WebContext{ User:  user }
 	ii.Trace.Printf("www register")
 	switch r.Method {
 	case "GET":
@@ -201,7 +202,6 @@ func makePager(ctx *WebContext, count int, page int) int {
 func www_topics(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, echo string, page int) error {
 	db := www.db
 	ctx := WebContext{ User: user, Echo: echo }
-
 	mis := db.LookupIDS(db.SelectIDS(ii.Query{Echo: echo}))
 	ii.Trace.Printf("www topics: %s", echo)
 	topicsIds := getTopics(db, mis)
@@ -253,6 +253,9 @@ func www_topic(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, i
 	mi := db.Lookup(id)
 	if mi == nil {
 		return errors.New("No such message")
+	}
+	if page == 0 {
+		ctx.Selected = id
 	}
 	ctx.Echo = mi.Echo
 	mis := db.LookupIDS(db.SelectIDS(ii.Query{Echo: mi.Echo}))
@@ -386,15 +389,28 @@ func www_reply(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, i
 	return nil
 }
 
+func str_esc(l string) string {
+	l = strings.Replace(l, "&", "&amp;", -1)
+	l = strings.Replace(l, "<", "&lt;", -1)
+	l = strings.Replace(l, ">", "&gt;", -1)
+	return l
+}
+
+var quoteRegex = regexp.MustCompile("^[^>]*>")
+
 func msg_format(txt string) template.HTML {
 	txt = strings.Replace(txt, "\r", "", -1)
 	txt = strings.TrimLeft(txt, "\n")
 	txt = strings.TrimRight(txt, "\n")
 	txt = strings.TrimSuffix(txt, "\n")
-	txt = strings.Replace(txt, "&", "&amp;", -1)
-	txt = strings.Replace(txt, "<", "&lt;", -1)
-	txt = strings.Replace(txt, ">", "&gt;", -1)
-	return template.HTML(strings.Replace(txt, "\n", "<br/>", -1))
+	f := ""
+	for _, l := range strings.Split(txt, "\n") {
+		if quoteRegex.MatchString(l) {
+			l = fmt.Sprintf("<span class=\"quote\">%s</span>", str_esc(l))
+		}
+		f += l + "<br>\n"
+	}
+	return template.HTML(f)
 }
 
 func WebInit(www *WWW, db *ii.DB) {
@@ -451,7 +467,7 @@ func _handleWWW(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) 
 	} else if path == "register" {
 		return www_register(user, www, w, r)
 	} else if ii.IsMsgId(args[0]) {
-		page := 1
+		page := 0
 		if len(args) > 1 {
 			if args[1] == "reply" {
 				return www_reply(user, www, w, r, args[0])

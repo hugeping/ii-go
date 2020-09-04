@@ -20,7 +20,7 @@
     margin-right:auto;
 }
 
-#pager a, a:visited {
+#pager a, #pager a:visited {
     color: #777777;
     text-decoration: none;
 }
@@ -108,11 +108,11 @@
     background: #eaffff;
 }
 #topic .subj a, #topic .subj a:hover, #topic .subj a:visited {
-    color: #ea5555;
+    color: #000000;
     font-size: large;
     text-decoration: none;
 }
-#topic .reply a, #topic .reply a:hover, #topic .reply a:visited {
+#topic .reply a, #topic .reply a:hover, #topic .reply a:visited  {
     color: #ea5555;
     text-decoration: none;
 }
@@ -167,12 +167,21 @@
     font-style: italic;
     margin-top: 1em;
 }
+.quote {
+    color: #555555;
+}
 #profile td, #login td, #error td {
     padding: 0.5em;
 }
 #profile .links, #login .links, #error .links {
     text-align: center;
 }
+
+.msgid {
+    color: #ea5555;
+    text-decoration: none;
+}
+
 @media (max-width: 640px) {
       .extra {
 	  display: none;

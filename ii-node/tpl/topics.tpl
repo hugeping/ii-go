@@ -13,7 +13,7 @@
 {{ else }}
 <tr class="even">
 {{ end }}
-<td class="topic"><a href="/{{.Head.MsgId}}">{{.Head.Subj}}</a></td>
+<td class="topic"><a href="/{{.Head.MsgId}}/1">{{.Head.Subj}}</a></td>
 <td class="posts extra">{{.Count}}</td>
 <td class="info"><a href="/{{.Tail.MsgId}}#{{.Tail.MsgId}}">{{.Tail.Date | fdate}}</a><br>by {{.Tail.From}}</td>
 </tr>

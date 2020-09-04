@@ -75,12 +75,15 @@ func DecodeMsgline(msg string, enc bool) (*Msg, error) {
 	m.Tags, _ = MakeTags("ii/ok")
 	if strings.HasPrefix(repto, "@repto:") {
 		start += 1
-		m.Tags.Add("repto/" + strings.Trim(strings.Split(repto, ":")[1], " "))
+		repto = strings.Trim(strings.Split(repto, ":")[1], " ")
+		m.Tags.Add("repto/" + repto)
+		Trace.Printf("Add repto tag: %s", repto)
 	}
 	for i := start; i < len(text); i++ {
 		m.Text += text[i] + "\n"
 	}
 	m.Text = strings.TrimSuffix(m.Text, "\n")
+	Trace.Printf("Final message: %s\n", m.String())
 	return &m, nil
 }
 
@@ -154,7 +157,7 @@ func NewTags(str string) Tags {
 	return t
 }
 
-func (t Tags) Add(str string) error {
+func (t *Tags) Add(str string) error {
 	tags := strings.Split(str, "/")
 	if len(tags)%2 != 0 {
 		return errors.New("Wrong tags")

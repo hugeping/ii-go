@@ -1,6 +1,5 @@
 {{template "header.tpl" $}}
 {{template "pager.tpl" $}}
-
 <div id="topic">
 {{ range .Msg }}
 {{if eq $.Selected .MsgId }}
@@ -9,17 +8,16 @@
 {{else}}
 <div class="msg">
 {{end}}
-<span class="subj"><a href="/{{. | repto}}#{{. | repto}}">{{.Subj}}</a></span><br>
+<a class="msgid" href="/{{.MsgId}}#{{.MsgId}}">#</a><span class="subj"><a href="/{{. | repto}}#{{. | repto}}">{{.Subj}}</a></span><br>
 <span class="info">{{.From}}({{.Addr}}) &mdash; {{.To}}<br>{{.Date | fdate}}</span><br>
-<span class="text">
+<div class="text">
 <br>
 {{with .Text}}
 {{. | msg_format}}
 {{end}}
 <br>
-<br>
-<span class="reply"><a href="/{{$.BasePath}}/reply">Reply</a></span><br>
-</span>
+<span class="reply"><a href="/{{.MsgId}}/reply">Reply</a></span><br>
+</div>
 </div>
 {{ end }}
 </div>
