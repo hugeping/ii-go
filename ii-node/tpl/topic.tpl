@@ -16,7 +16,9 @@
 {{. | msg_format}}
 {{end}}
 <br>
+{{if $.User.Name}}
 <span class="reply"><a href="/{{.MsgId}}/reply">Reply</a></span><br>
+{{end}}
 </div>
 </div>
 {{ end }}
