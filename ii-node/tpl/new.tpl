@@ -1,7 +1,14 @@
 {{template "header.tpl" $}}
 <table id="edit">
+{{ if eq .Echo "" }}
+<form method="post" enctype="application/x-www-form-urlencoded" action="/new">
+{{ else }}
 <form method="post" enctype="application/x-www-form-urlencoded" action="/{{.Echo}}/new">
+{{ end }}
 <tr><td class="odd">
+{{ if eq .Echo "" }}
+<input type="text" name="echo" class="echo" placeholder="echo" value=""><br>
+{{ end }}
 <input type="text" name="to" class="to" placeholder="To" value="All"><br>
 <input type="text" name="subj" class="subj" placeholder="Subject"><br>
 <textarea type="text" name="msg" class="message" cols=60 row=16 placeholder="Hi, All!">

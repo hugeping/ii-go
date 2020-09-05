@@ -299,6 +299,26 @@ func www_topic(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, i
 	return err
 }
 
+func www_edit(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, id string) error {
+	ctx := WebContext{ User: user, Echolist: www.edb, Ref: r.Header.Get("Referer") }
+	ctx.BasePath = id
+	switch r.Method {
+	case "GET":
+		m := www.db.Get(id)
+		if m == nil {
+			ii.Error.Printf("No such msg: %s", id)
+			return  errors.New("No such msg")
+		}
+		msg := *m
+		ctx.Msg = append(ctx.Msg, &msg)
+		err := www.tpl.ExecuteTemplate(w, "edit.tpl", ctx)
+		return err
+	case "POST":
+		return www_new(user, www, w, r, "")
+	}
+	return nil
+}
+
 func www_new(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, echo string) error {
 	ctx := WebContext{ User: user, Echolist: www.edb, Ref: r.Header.Get("Referer") }
 	ctx.BasePath = echo
@@ -309,6 +329,7 @@ func www_new(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, ech
 		err := www.tpl.ExecuteTemplate(w, "new.tpl", ctx)
 		return err
 	case "POST":
+		edit := (echo == "")
 		ii.Trace.Printf("www new topic in %s", echo)
 		if err := r.ParseForm(); err != nil {
 			ii.Error.Printf("Error in POST request: %s", err)
@@ -322,6 +343,15 @@ func www_new(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, ech
 		to := r.FormValue("to")
 		msg := r.FormValue("msg")
 		repto := r.FormValue("repto")
+		id := r.FormValue("id")
+		newecho := r.FormValue("echo")
+		if newecho != "" {
+			echo = newecho
+		}
+		if ! www.edb.Allowed(echo) {
+			ii.Error.Printf("This echo is disallowed")
+			return errors.New("This echo is disallowed")
+		}
 		action := r.FormValue("action")
 		text := fmt.Sprintf("%s\n%s\n%s\n\n%s", echo, to, subj, msg)
 		m, err := ii.DecodeMsgline(text, false)
@@ -334,13 +364,31 @@ func www_new(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, ech
 		if repto != "" {
 			m.Tags.Add("repto/" + repto)
 		}
+		if id != "" {
+			om := www.db.Get(id)
+			if (om == nil || m.Addr != om.Addr) && user.Id != 1 {
+				ii.Error.Printf("Access denied")
+				return  errors.New("Access denied")
+			}
+			m.MsgId = id
+			m.From = om.From
+			m.Addr = om.Addr
+		}
 		if action == "Submit" { // submit
-			if err = www.db.Store(m); err != nil {
+			if edit {
+				err = www.db.Edit(m)
+			} else {
+				err = www.db.Store(m)
+			}
+			if err != nil {
 				ii.Error.Printf("Error while storig new topic %s: %s", m.MsgId, err)
 				return err
 			}
 			http.Redirect(w, r, "/"+m.MsgId+"#" + m.MsgId, http.StatusSeeOther)
 			return nil
+		}
+		if ! edit {
+			m.MsgId = ""
 		}
 		ctx.Msg = append(ctx.Msg, m)
 		err = www.tpl.ExecuteTemplate(w, "preview.tpl", ctx)
@@ -492,10 +540,14 @@ func _handleWWW(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) 
 		if len(args) > 1 {
 			if args[1] == "reply" {
 				return www_reply(user, www, w, r, args[0])
+			} else if args[1] == "edit" {
+				return www_edit(user, www, w, r, args[0])
 			}
 			fmt.Sscanf(args[1], "%d", &page)
 		}
 		return www_topic(user, www, w, r, args[0], page)
+	} else if path == "new" {
+		return www_new(user, www, w, r, "")
 	} else if ii.IsEcho(args[0]) {
 		page := 1
 		if len(args) > 1 {

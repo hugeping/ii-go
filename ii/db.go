@@ -744,7 +744,15 @@ type EDB struct {
 	Path string
 	Sync sync.Mutex
 }
-
+func (db *EDB) Allowed(name string) bool {
+	if len(db.List) == 0 {
+		return true
+	}
+	if _, ok := db.Info[name]; ok {
+		return true
+	}
+	return false
+}
 func LoadEcholist(path string) *EDB {
 	var db EDB
 	db.Path = path

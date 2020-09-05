@@ -104,7 +104,9 @@
 .odd {
     background: #eaffff;
 }
-
+#topic .echo {
+    font-weight: bold;
+}
 #topic .msg {
     background-color: #ffffea;
     margin-bottom: 1em;

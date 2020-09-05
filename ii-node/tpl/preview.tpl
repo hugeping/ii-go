@@ -1,8 +1,9 @@
 {{template "header.tpl" $}}
-{{range .Msg}}
+{{ with index .Msg 0 }}
 
 <div id="topic">
 <div class="msg">
+<span class="echo">{{.Echo}}</span><br>
 <span class="subj">{{.Subj}}</span><br>
 <span class="info">{{.From}}({{.Addr}}) &mdash; {{.To}}<br>{{.Date | fdate}}</span><br>
 <div class="text">
@@ -16,9 +17,15 @@
 </div>
 
 <table id="edit">
+{{ if eq $.Echo "" }}
+<form method="post" enctype="application/x-www-form-urlencoded" action="/new">
+{{ else }}
 <form method="post" enctype="application/x-www-form-urlencoded" action="/{{.Echo}}/new">
-
+{{ end }}
 <tr><td class="even">
+{{ if eq $.Echo "" }}
+<input type="text" name="echo" class="echo" placeholder="{{.Echo}}" value="{{.Echo}}"><br>
+{{ end }}
 <input type="text" name="to" class="to" placeholder="{{.To}}" value="{{.To}}"><br>
 <input type="text" name="subj" class="subj" placeholder="{{.Subj}}" value="{{.Subj}}"><br>
 <input type="hidden" name="repto" value="{{ . | repto}}">
