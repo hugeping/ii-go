@@ -211,6 +211,14 @@
 .quote {
     color: #555555;
 }
+
+.comment {
+    color: #555555;
+    font-style: italic;
+}
+.spoiler {
+    color: #cccccc;
+}
 #profile td, #login td, #error td {
     padding: 0.5em;
 }

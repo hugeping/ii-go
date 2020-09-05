@@ -17,7 +17,13 @@
 {{end}}
 <br>
 {{if $.User.Name}}
-<span class="reply"><a href="/{{.MsgId}}/reply">Reply</a></span><br>
+<span class="reply"><a href="/{{.MsgId}}/reply">Reply</a></span>
+{{end}}
+{{ if msg_access . $.User }}
+ :: <span class="reply"><a href="/{{.MsgId}}/edit">Edit</a></span>
+{{ end }}
+{{if $.User.Name}}
+<br>
 {{end}}
 </div>
 </div>

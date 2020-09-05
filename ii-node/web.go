@@ -310,6 +310,14 @@ func www_edit(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, id
 			return  errors.New("No such msg")
 		}
 		msg := *m
+		ln := strings.Split(msg_clean(msg.Text), "\n")
+		if len(ln) > 0 {
+			fmt.Printf("%s\n", ln[len(ln) - 1])
+			if strings.HasPrefix(ln[len(ln) - 1], "P.S. Edited: ") {
+				msg.Text = strings.Join(ln[:len(ln) - 1], "\n")
+			}
+		}
+		msg.Text = msg.Text + "\nP.S. Edited: " + time.Now().Format("2006-01-02 15:04:05")
 		ctx.Msg = append(ctx.Msg, &msg)
 		err := www.tpl.ExecuteTemplate(w, "edit.tpl", ctx)
 		return err
@@ -444,6 +452,15 @@ func msg_quote(txt string) string {
 	}
 	return f
 }
+
+func ReverseStr(s string) string {
+	runes := []rune(s)
+	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
+		runes[i], runes[j] = runes[j], runes[i]
+	}
+	return string(runes)
+}
+
 func msg_format(txt string) template.HTML {
 	txt = msg_clean(txt)
 	f := ""
@@ -463,7 +480,12 @@ func msg_format(txt string) template.HTML {
 			f += l + "\n"
 			continue
 		}
-		if quoteRegex.MatchString(l) {
+		if strings.HasPrefix(l, "P.S.") || strings.HasPrefix(l, "PS:") ||
+			strings.HasPrefix(l, "//") || strings.HasPrefix(l, "#")  {
+			l = fmt.Sprintf("<span class=\"comment\">%s</span>", str_esc(l))
+		} else if strings.HasPrefix(l, "spoiler:") {
+			l = fmt.Sprintf("<span class=\"spoiler\">%s</span>", str_esc(ReverseStr(l)))
+		} else if quoteRegex.MatchString(l) {
 			l = fmt.Sprintf("<span class=\"quote\">%s</span>", str_esc(l))
 		} else {
 			l = string(urlRegex.ReplaceAllFunc([]byte(l),
@@ -493,6 +515,10 @@ func WebInit(www *WWW) {
 			return r
 		},
 		"msg_quote": msg_quote,
+		"msg_access": func (m ii.Msg, u ii.User) bool {
+			addr := fmt.Sprintf("%s,%d", www.db.Name, u.Id)
+			return addr == m.Addr
+		},
 	}
 	www.tpl = template.Must(template.New("main").Funcs(funcMap).ParseGlob("tpl/*.tpl"))
 }
