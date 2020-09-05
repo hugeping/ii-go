@@ -1,5 +1,4 @@
 {{template "header.tpl" $}}
-{{ $odd := false }}
 {{template "pager.tpl" $}}
 <table id="topiclist" cellspacing=0 cellpadding=0>
 <tr class="title">
@@ -7,17 +6,16 @@
 <th class="extra">Posts</th>
 <th>Last post</th>
 </tr>
-{{range .Topics }}
-{{ if $odd }}
-<tr class="odd">
-{{ else }}
+{{range $k, $v := .Topics }}
+{{ if is_even $k }}
 <tr class="even">
+{{ else }}
+<tr class="odd">
 {{ end }}
 <td class="topic"><a href="/{{.Head.MsgId}}/1">{{with .Head.Subj}}{{.}}{{else}}No subject{{end}}</a></td>
 <td class="posts extra">{{.Count}}</td>
 <td class="info"><a href="/{{.Tail.MsgId}}#{{.Tail.MsgId}}">{{.Tail.Date | fdate}}</a><br>by {{.Tail.From}}</td>
 </tr>
-{{ $odd = not $odd }}
 {{ end }}
 </table>
 {{template "pager.tpl" $}}

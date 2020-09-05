@@ -1,5 +1,4 @@
 {{template "header.tpl" $}}
-{{ $odd := false }}
 <table id="echolist" cellspacing=0 cellpadding=0>
 <tr class="title">
 <th>Echo</th>
@@ -7,11 +6,11 @@
 <th class="extra">Posts</th>
 <th>Last</th>
 </tr>
-{{range .Echoes }}
-{{ if $odd }}
-<tr class="odd">
-{{ else }}
+{{range $k, $_ := .Echoes }}
+{{ if is_even $k }}
 <tr class="even">
+{{ else }}
+<tr class="odd">
 {{ end }}
 <td class="echo"><a href="/{{.Name}}/">{{.Name}}</a><br>
 <span class="info">{{ index $.Echolist.Info .Name }}</span>
@@ -20,7 +19,6 @@
 <td class="count extra">{{.Count}}</td>
 <td class="info">{{with .Msg}}<span class="subj">{{.Subj}}</span><br><a href="/{{.MsgId}}#{{.MsgId}}">{{.Date | fdate}}</a> by {{.From}}{{end}}</td>
 </tr>
-{{ $odd = not $odd }}
 {{ end }}
 </table>
 

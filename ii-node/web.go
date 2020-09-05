@@ -543,6 +543,9 @@ func WebInit(www *WWW) {
 		"msg_access": func (m ii.Msg, u ii.User) bool {
 			return msg_access(www, m, u)
 		},
+		"is_even": func (i int) bool {
+			return i % 2 == 0
+		},
 	}
 	www.tpl = template.Must(template.New("main").Funcs(funcMap).ParseGlob("tpl/*.tpl"))
 }
