@@ -313,9 +313,10 @@ func www_blacklist(user *ii.User, www WWW, w http.ResponseWriter, r *http.Reques
 	err := www.db.Blacklist(m)
 	if err != nil {
 		ii.Error.Printf("Error blacklisting: %s", id)
-		return  errors.New(err)
+		return  err
 	}
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+	return nil
 }
 
 func www_edit(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, id string) error {
