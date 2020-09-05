@@ -118,7 +118,7 @@
     text-align: center;
 }
 #edit {
-    text-align: left;
+    text-align: center;
     width: 100%;
     margin-right: auto;
     margin-left: auto;
@@ -133,7 +133,7 @@
     padding: 10px;
     border: none;
     overflow: auto;
-    width: 95%;
+    width: 90%;
     border: 1px solid #55aaaa;
 }
 
