@@ -110,6 +110,7 @@
     margin-bottom: 1em;
     text-align: left;
     padding: 1em;
+    border: 1px solid #55aaaa;
 //    box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.26);
     overflow: auto;
 }
