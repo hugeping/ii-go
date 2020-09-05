@@ -2,6 +2,9 @@
     overflow-wrap: break-word;
 }
 
+body {
+    background: #fffff9;
+}
 .code {
     overflow-x: auto;
     white-space: pre-wrap;
