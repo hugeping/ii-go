@@ -110,9 +110,33 @@
     margin-bottom: 1em;
     text-align: left;
     padding: 1em;
-    box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.26);
+//    box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.26);
     overflow: auto;
 }
+.center {
+    text-align: center;
+}
+#edit {
+    text-align: left;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 1em;
+    background: #ffffea;
+    border: 1px solid #55aaaa;
+//    box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.26);
+}
+#edit textarea, #edit input {
+    font-size: larger;
+    background-color: #ffffea;
+    margin: 0.5em;
+    border: none;
+    overflow: auto;
+}
+
+#edit textarea {
+    min-height: 20em;
+}
+
 #topic .selected {
     background: #eaffff;
 }

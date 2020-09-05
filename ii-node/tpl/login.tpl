@@ -12,7 +12,7 @@
 </td></tr>
 
 <tr class="odd"><td class="links" colspan="2">
-<button>Login</button>
+<button class="form-button">Login</button>
 </td></tr>
 
 </table>

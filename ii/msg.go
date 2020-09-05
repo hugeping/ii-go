@@ -43,6 +43,10 @@ func IsEcho(e string) bool {
 	return l >= 3 && l <= 120 && strings.Contains(e, ".")
 }
 
+func IsSubject(s string) bool {
+	return len(strings.TrimSpace(s)) > 0
+}
+
 func DecodeMsgline(msg string, enc bool) (*Msg, error) {
 	var m Msg
 	var data []byte
@@ -63,12 +67,18 @@ func DecodeMsgline(msg string, enc bool) (*Msg, error) {
 	if text[3] != "" {
 		return nil, errors.New("No body delimiter in message")
 	}
-	m.Echo = text[0]
+	m.Echo = strings.TrimSpace(text[0])
 	if !IsEcho(m.Echo) {
 		return nil, errors.New("Wrong echoarea format")
 	}
-	m.To = text[1]
-	m.Subj = text[2]
+	m.To = strings.TrimSpace(text[1])
+	if len(m.To) == 0 {
+		m.To = "All"
+	}
+	m.Subj = strings.TrimSpace(text[2])
+	if !IsSubject(m.Subj) {
+		return nil, errors.New("Wrong subject")
+	}
 	m.Date = time.Now().Unix()
 	start := 4
 	repto := text[4]
@@ -127,6 +137,9 @@ func DecodeBundle(msg string) (*Msg, error) {
 	m.Addr = text[4]
 	m.To = text[5]
 	m.Subj = text[6]
+	if !IsSubject(m.Subj) {
+		return nil, errors.New("Wrong subject")
+	}
 	for i := 8; i < len(text); i++ {
 		m.Text += text[i] + "\n"
 	}
