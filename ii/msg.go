@@ -44,6 +44,10 @@ func IsEcho(e string) bool {
 }
 
 func IsSubject(s string) bool {
+	return true // len(strings.TrimSpace(s)) > 0
+}
+
+func IsEmptySubject(s string) bool {
 	return len(strings.TrimSpace(s)) > 0
 }
 
@@ -76,7 +80,7 @@ func DecodeMsgline(msg string, enc bool) (*Msg, error) {
 		m.To = "All"
 	}
 	m.Subj = strings.TrimSpace(text[2])
-	if !IsSubject(m.Subj) {
+	if !IsEmptySubject(m.Subj) {
 		return nil, errors.New("Wrong subject")
 	}
 	m.Date = time.Now().Unix()
