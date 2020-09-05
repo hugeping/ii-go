@@ -518,20 +518,22 @@ func (db *DB) Edit(m *Msg) error {
 }
 
 func (db *DB) Blacklist(m *Msg) error {
-	db.Sync.Lock()
-	defer db.Sync.Unlock()
-	db.Lock()
-	defer db.Unlock()
+	m.Tags.Add("access/blacklist")
+	return db.Edit(m)
 
-	repto, _ := m.Tag("repto")
-	if repto != "" {
-		repto = ":" + repto
-	}
-	rec := fmt.Sprintf("%s:%s:%d%s", m.MsgId, m.Echo, -1, repto)
-	if err := append_file(db.IndexPath(), rec); err != nil {
-		return err
-	}
-	return nil
+	//db.Sync.Lock()
+	//defer db.Sync.Unlock()
+	//db.Lock()
+	//defer db.Unlock()
+	// repto, _ := m.Tag("repto")
+	// if repto != "" {
+	// 	repto = ":" + repto
+	// }
+	// rec := fmt.Sprintf("%s:%s:%d%s", m.MsgId, m.Echo, -1, repto)
+	// if err := append_file(db.IndexPath(), rec); err != nil {
+	// 	return err
+	// }
+	// return nil
 }
 
 func (db *DB) _Store(m *Msg, edit bool) error {
@@ -550,6 +552,9 @@ func (db *DB) _Store(m *Msg, edit bool) error {
 	var off int64
 	if err == nil {
 		off = fi.Size()
+	}
+	if v, _ := m.Tag("access"); v == "blacklist" {
+		off = -1
 	}
 	if err := append_file(db.BundlePath(), m.Encode()); err != nil {
 		return err
