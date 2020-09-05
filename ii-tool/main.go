@@ -75,6 +75,7 @@ Commands:
 	store <bundle|->              - import bundle to database
         get <msgid>                   - show message from database
         select <echo> [[start]:lim]   - get slice from echo
+        cc <name> [[start]:lim]       - get msgs to name
         index                         - recreate index
         blacklist <msgid>             - blacklist msg
 	useradd <name> <e-mail> <password> - adduser
@@ -234,6 +235,24 @@ Options:
 		m := db.Get(args[1])
 		if m != nil {
 			fmt.Println(m)
+		}
+	case "cc":
+		if len(args) < 2 {
+			fmt.Printf("No echo supplied\n")
+			os.Exit(1)
+		}
+		db := open_db(*db_opt)
+		req := ii.Query{To: args[1]}
+		if len(args) > 2 {
+			fmt.Sscanf(args[2], "%d:%d", &req.Start, &req.Lim)
+		}
+		resp := db.SelectIDS(req)
+		for _, v := range resp {
+			if *verbose_opt {
+				fmt.Println(db.Get(v))
+			} else {
+				fmt.Println(v)
+			}
 		}
 	case "select":
 		if len(args) < 2 {

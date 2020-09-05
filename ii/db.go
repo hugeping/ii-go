@@ -19,6 +19,7 @@ import (
 type MsgInfo struct {
 	Id    string
 	Echo  string
+	To    string
 	Off   int64
 	Repto string
 }
@@ -144,7 +145,8 @@ func (db *DB) _CreateIndex() error {
 		if repto != "" {
 			repto = ":" + repto
 		}
-		fidx.WriteString(fmt.Sprintf("%s:%s:%d%s\n", msg.MsgId, msg.Echo, off, repto))
+		fidx.WriteString(fmt.Sprintf("%s:%s:%d:%s%s\n",
+			msg.MsgId, msg.Echo, off, msg.To, repto))
 		off += int64(len(line) + 1)
 		return true
 	})
@@ -212,17 +214,17 @@ func (db *DB) LoadIndex() error {
 	err = f_lines(file, func(line string) bool {
 		linenr ++
 		info := strings.Split(line, ":")
-		if len(info) < 3 {
+		if len(info) < 4 {
 			err2 = errors.New("Wrong format on line:" + fmt.Sprintf("%d", linenr))
 			return false
 		}
-		mi := MsgInfo{Id: info[0], Echo: info[1]}
+		mi := MsgInfo{Id: info[0], Echo: info[1], To: info[3] }
 		if _, err := fmt.Sscanf(info[2], "%d", &mi.Off); err != nil {
 			err2 = errors.New("Wrong offset on line: " + fmt.Sprintf("%d", linenr))
 			return false
 		}
-		if len(info) > 3 {
-			mi.Repto = info[3]
+		if len(info) > 4 {
+			mi.Repto = info[4]
 		}
 		if _, ok := Idx.Hash[mi.Id]; !ok { // new msg
 			Idx.List = append(Idx.List, mi.Id)
@@ -359,6 +361,7 @@ func (db *DB) GetFast(Id string) *Msg {
 type Query struct {
 	Echo  string
 	Repto string
+	To string
 	Start int
 	Lim   int
 	Blacklisted bool
@@ -378,10 +381,10 @@ func (db *DB) Match(info MsgInfo, r Query) bool {
 	if r.Echo != "" && r.Echo != info.Echo {
 		return false
 	}
-	if r.Repto != "" && r.Repto != "." && r.Repto != info.Repto {
+	if r.Repto != "" && r.Repto != info.Repto {
 		return false
 	}
-	if r.Repto == "." && info.Repto != "" {
+	if r.To != "" && r.To != info.To {
 		return false
 	}
 	return true
@@ -563,7 +566,7 @@ func (db *DB) _Store(m *Msg, edit bool) error {
 	if repto != "" {
 		repto = ":" + repto
 	}
-	rec := fmt.Sprintf("%s:%s:%d%s", m.MsgId, m.Echo, off, repto)
+	rec := fmt.Sprintf("%s:%s:%d:%s%s", m.MsgId, m.Echo, off, m.To, repto)
 	if err := append_file(db.IndexPath(), rec); err != nil {
 		return err
 	}
