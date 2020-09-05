@@ -299,6 +299,25 @@ func www_topic(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, i
 	return err
 }
 
+func www_blacklist(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, id string) error {
+	m := www.db.Get(id)
+	ii.Trace.Printf("www blacklist: %s", id)
+	if m == nil {
+		ii.Error.Printf("No such msg: %s", id)
+		return  errors.New("No such msg")
+	}
+	if ! msg_access(&www, *m, *user) {
+		ii.Error.Printf("Access denied")
+		return  errors.New("Access denied")
+	}
+	err := www.db.Blacklist(m)
+	if err != nil {
+		ii.Error.Printf("Error blacklisting: %s", id)
+		return  errors.New(err)
+	}
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
 func www_edit(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, id string) error {
 	ctx := WebContext{ User: user, Echolist: www.edb, Ref: r.Header.Get("Referer") }
 	ctx.BasePath = id
@@ -504,6 +523,11 @@ func msg_format(txt string) template.HTML {
 	return template.HTML(f)
 }
 
+func msg_access(www *WWW, m ii.Msg, u ii.User) bool {
+	addr := fmt.Sprintf("%s,%d", www.db.Name, u.Id)
+	return addr == m.Addr
+}
+
 func WebInit(www *WWW) {
 	funcMap := template.FuncMap{
 		"fdate": func (date int64) string {
@@ -516,8 +540,7 @@ func WebInit(www *WWW) {
 		},
 		"msg_quote": msg_quote,
 		"msg_access": func (m ii.Msg, u ii.User) bool {
-			addr := fmt.Sprintf("%s,%d", www.db.Name, u.Id)
-			return addr == m.Addr
+			return msg_access(www, m, u)
 		},
 	}
 	www.tpl = template.Must(template.New("main").Funcs(funcMap).ParseGlob("tpl/*.tpl"))
@@ -568,6 +591,8 @@ func _handleWWW(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) 
 				return www_reply(user, www, w, r, args[0])
 			} else if args[1] == "edit" {
 				return www_edit(user, www, w, r, args[0])
+			} else if args[1] == "blacklist" {
+				return www_blacklist(user, www, w, r, args[0])
 			}
 			fmt.Sscanf(args[1], "%d", &page)
 		}
