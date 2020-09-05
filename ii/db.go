@@ -600,7 +600,11 @@ type UDB struct {
 }
 
 func IsUsername(u string) bool {
-	return !strings.ContainsAny(u, ":\n \r\t") && len(u) <= 16
+	return !strings.ContainsAny(u, ":\n \r\t") && len(u) <= 16 && len(u) > 2
+}
+
+func IsPassword(u string) bool {
+	return len(u) >= 1
 }
 
 func MakeSecret(msg string) string {
@@ -673,6 +677,9 @@ func (db *UDB) Add(Name string, Mail string, Passwd string) error {
 	}
 	if !IsUsername(Name) {
 		return errors.New("Wrong username")
+	}
+	if !IsPassword(Passwd) {
+		return errors.New("Bad password")
 	}
 	if !emailRegex.MatchString(Mail) {
 		return errors.New("Wrong email")

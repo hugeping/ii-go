@@ -14,7 +14,7 @@
 <input type="text" name="email" class="email" placeholder="email">
 </td></tr>
 
-<tr class="even"><td class="links" colspan="2">
+<tr class="even"><td class="links">
 <button class="form-button">Register</button>
 </td></tr>
 

@@ -1,7 +1,7 @@
 {{template "header.tpl" $}}
 <table id="edit">
 <form method="post" enctype="application/x-www-form-urlencoded" action="/{{.Echo}}/new">
-<tr><td class="even">
+<tr><td class="odd">
 <input type="text" name="to" class="to" placeholder="To" value="All"><br>
 <input type="text" name="subj" class="subj" placeholder="Subject"><br>
 <textarea type="text" name="msg" class="message" cols=60 row=16 placeholder="Hi, All!">

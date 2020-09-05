@@ -11,7 +11,7 @@
 <input type="password" name="password" class="passwd" placeholder="password">
 </td></tr>
 
-<tr class="odd"><td class="links" colspan="2">
+<tr class="odd"><td class="links">
 <button class="form-button">Login</button>
 </td></tr>
 

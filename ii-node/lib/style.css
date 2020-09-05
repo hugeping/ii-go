@@ -125,19 +125,22 @@
     margin-top: 1em;
     background: #ffffea;
     border: 1px solid #55aaaa;
-//    box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.26);
 }
+
 #edit textarea, #edit input {
     font-size: larger;
-    background-color: #ffffea;
-    margin: 0.5em;
+    margin: 10px;
+    padding: 10px;
     border: none;
     overflow: auto;
     width: 95%;
+    border: 1px solid #55aaaa;
 }
 
 #edit textarea {
+    background-color: #ffffea;
     min-height: 20em;
+    font-size: x-large;
 }
 
 #topic .selected {
