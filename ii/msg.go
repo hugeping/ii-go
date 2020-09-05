@@ -40,7 +40,7 @@ func IsMsgId(id string) bool {
 
 func IsEcho(e string) bool {
 	l := len(e)
-	return l >= 3 && l <= 120 && strings.Contains(e, ".")
+	return l >= 3 && l <= 120 && strings.Contains(e, ".") && !strings.Contains(e, ":")
 }
 
 func IsSubject(s string) bool {
