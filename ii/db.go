@@ -608,7 +608,10 @@ type UDB struct {
 }
 
 func IsUsername(u string) bool {
-	return !strings.ContainsAny(u, ":\n \r\t") && len(u) <= 16 && len(u) > 2
+	return !strings.ContainsAny(u, ":\n\r\t") &&
+		!strings.HasPrefix(u, " ") &&
+		!strings.HasSuffix(u, " ") &&
+		len(u) <= 16 && len(u) > 2
 }
 
 func IsPassword(u string) bool {

@@ -17,6 +17,7 @@ const PAGE_SIZE = 100
 type WebContext struct {
 	Echoes []*ii.Echo
 	Topics []*Topic
+	Topic string
 	Msg    []*ii.Msg
 	Error string
 	Echo string
@@ -269,6 +270,7 @@ func www_topic(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, i
 		}
 		topic = p.Id
 	}
+	ctx.Topic = topic
 	ids := getTopics(db, mis)[topic]
 	if len(ids) == 0 {
 		ids = append(ids, id)
@@ -464,6 +466,10 @@ func msg_quote(txt string) string {
 	txt = msg_clean(txt)
 	f := ""
 	for _, l := range strings.Split(txt, "\n") {
+		if strings.Trim(l, " ") == "" {
+			f += l + "\n"
+			continue
+		}
 		if strings.HasPrefix(l, ">") {
 			f += ">"+ l + "\n"
 		} else {

@@ -28,7 +28,11 @@
       {{ end }}
 
       {{ with .Echo }}
+      {{ if $.Topic }}
+      :: <a href="/{{$.Topic}}/reply">Reply topic</a>
+      {{ else }}
       :: <a href="/{{.}}/new">New topic</a>
+      {{ end }}
       {{ end }}
 
       {{ else if eq .BasePath "login" }}
