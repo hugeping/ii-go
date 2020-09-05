@@ -20,19 +20,23 @@
     <td class="links">
       <span>
       {{ if .User.Name }}
+
       {{ if eq .BasePath "profile" }}
       <a href="/logout">Logout</a>
       {{ else }}
       <a href="/profile">{{.User.Name}}</a>
       {{ end }}
+
+      {{ with .Echo }}
+      :: <a href="/{{.}}/new">New topic</a>
+      {{ end }}
+
       {{ else if eq .BasePath "login" }}
       <a href="/register">Register</a>
       {{ else }}
       <a href="/login">Login</a>
       {{ end }}
-      {{ with .Echo }}
-      :: <a href="/{{.}}/new">New topic</a>
-      {{ end }}
+
       </span>
     </td>
 </tr>

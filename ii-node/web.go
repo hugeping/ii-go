@@ -27,10 +27,11 @@ type WebContext struct {
 	User *ii.User
 	Echolist *ii.EDB
 	Selected string
+	Ref string
 }
 
 func www_register(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) error {
-	ctx := WebContext{ User: user, Echolist: www.edb }
+	ctx := WebContext{ User: user, Echolist: www.edb, Ref: r.Header.Get("Referer") }
 	ii.Trace.Printf("www register")
 	switch r.Method {
 	case "GET":
@@ -60,7 +61,7 @@ func www_register(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request
 }
 
 func www_login(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) error {
-	ctx := WebContext{ User: user, BasePath: "login", Echolist: www.edb }
+	ctx := WebContext{ User: user, BasePath: "login", Echolist: www.edb, Ref: r.Header.Get("Referer") }
 	ii.Trace.Printf("www login")
 	switch r.Method {
 	case "GET":
@@ -89,7 +90,7 @@ func www_login(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) e
 }
 
 func www_profile(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) error {
-	ctx := WebContext{ User: user, BasePath: "profile", Echolist: www.edb }
+	ctx := WebContext{ User: user, BasePath: "profile", Echolist: www.edb, Ref: r.Header.Get("Referer") }
 	ii.Trace.Printf("www profile")
 	if user.Name == "" {
 		ii.Error.Printf("Access denied")
@@ -112,7 +113,7 @@ func www_logout(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) 
 }
 
 func www_index(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) error {
-	ctx := WebContext{ User: user, Echolist: www.edb }
+	ctx := WebContext{ User: user, Echolist: www.edb, Ref: r.Header.Get("Referer") }
 
 	ii.Trace.Printf("www index")
 
@@ -202,7 +203,7 @@ func makePager(ctx *WebContext, count int, page int) int {
 
 func www_topics(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, echo string, page int) error {
 	db := www.db
-	ctx := WebContext{ User: user, Echo: echo, Echolist: www.edb }
+	ctx := WebContext{ User: user, Echo: echo, Echolist: www.edb, Ref: r.Header.Get("Referer") }
 	mis := db.LookupIDS(db.SelectIDS(ii.Query{Echo: echo}))
 	ii.Trace.Printf("www topics: %s", echo)
 	topicsIds := getTopics(db, mis)
@@ -249,7 +250,7 @@ func www_topics(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, 
 
 func www_topic(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, id string, page int) error {
 	db := www.db
-	ctx := WebContext{ User: user, Echolist: www.edb }
+	ctx := WebContext{ User: user, Echolist: www.edb, Ref: r.Header.Get("Referer") }
 
 	mi := db.Lookup(id)
 	if mi == nil {
@@ -299,7 +300,7 @@ func www_topic(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, i
 }
 
 func www_new(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, echo string) error {
-	ctx := WebContext{ User: user, Echolist: www.edb }
+	ctx := WebContext{ User: user, Echolist: www.edb, Ref: r.Header.Get("Referer") }
 	ctx.BasePath = echo
 	ctx.Echo = echo
 
@@ -320,6 +321,7 @@ func www_new(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, ech
 		subj := r.FormValue("subj")
 		to := r.FormValue("to")
 		msg := r.FormValue("msg")
+		action := r.FormValue("action")
 		text := fmt.Sprintf("%s\n%s\n%s\n\n%s", echo, to, subj, msg)
 		m, err := ii.DecodeMsgline(text, false)
 		if err != nil {
@@ -328,18 +330,23 @@ func www_new(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, ech
 		}
 		m.From = user.Name
 		m.Addr = fmt.Sprintf("%s,%d", www.db.Name, user.Id)
-		if err = www.db.Store(m); err != nil {
-			ii.Error.Printf("Error while storig new topic %s: %s", m.MsgId, err)
-			return err
+		if action == "Submit" { // submit
+			if err = www.db.Store(m); err != nil {
+				ii.Error.Printf("Error while storig new topic %s: %s", m.MsgId, err)
+				return err
+			}
+			http.Redirect(w, r, "/"+echo+"/1", http.StatusSeeOther)
+			return nil
 		}
-		http.Redirect(w, r, "/"+echo+"/1", http.StatusSeeOther)
-		return nil
+		ctx.Msg = append(ctx.Msg, m)
+		err = www.tpl.ExecuteTemplate(w, "preview.tpl", ctx)
+		return err
 	}
 	return nil
 }
 
 func www_reply(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, id string) error {
-	ctx := WebContext{ User: user, Echolist: www.edb }
+	ctx := WebContext{ User: user, Echolist: www.edb, Ref: r.Header.Get("Referer") }
 	ctx.BasePath = id
 
 	switch r.Method {

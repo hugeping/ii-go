@@ -79,13 +79,10 @@ func main() {
 	fs := http.FileServer(http.Dir("lib"))
 	http.Handle("/lib/", http.StripPrefix("/lib/", fs))
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		handleWWW(www, w, r)
-	})
 	http.HandleFunc("/list.txt", func(w http.ResponseWriter, r *http.Request) {
 		echoes := db.Echoes(nil)
 		for _, v := range echoes {
-			fmt.Fprintf(w, "%s:%d:\n", v.Name, v.Count)
+			fmt.Fprintf(w, "%s:%d:%s\n", v.Name, v.Count,www.edb.Info[v.Name])
 		}
 	})
 	http.HandleFunc("/blacklist.txt", func(w http.ResponseWriter, r *http.Request) {
@@ -93,6 +90,9 @@ func main() {
 		for _, v := range ids {
 			fmt.Fprintf(w, "%s\n", v)
 		}
+	})
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		handleWWW(www, w, r)
 	})
 	http.HandleFunc("/u/point/", func(w http.ResponseWriter, r *http.Request) {
 		var pauth, tmsg string

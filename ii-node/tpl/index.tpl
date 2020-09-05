@@ -13,7 +13,7 @@
 {{ else }}
 <tr class="even">
 {{ end }}
-<td class="echo"><a href="{{.Name}}">{{.Name}}</a><br>
+<td class="echo"><a href="/{{.Name}}/">{{.Name}}</a><br>
 <span class="info">{{ index $.Echolist.Info .Name }}</span>
 </td>
 <td class="topics extra">{{.Topics}}</td>
