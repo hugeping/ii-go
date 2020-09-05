@@ -321,6 +321,7 @@ func www_new(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, ech
 		subj := r.FormValue("subj")
 		to := r.FormValue("to")
 		msg := r.FormValue("msg")
+		repto := r.FormValue("repto")
 		action := r.FormValue("action")
 		text := fmt.Sprintf("%s\n%s\n%s\n\n%s", echo, to, subj, msg)
 		m, err := ii.DecodeMsgline(text, false)
@@ -330,12 +331,15 @@ func www_new(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, ech
 		}
 		m.From = user.Name
 		m.Addr = fmt.Sprintf("%s,%d", www.db.Name, user.Id)
+		if repto != "" {
+			m.Tags.Add("repto/" + repto)
+		}
 		if action == "Submit" { // submit
 			if err = www.db.Store(m); err != nil {
 				ii.Error.Printf("Error while storig new topic %s: %s", m.MsgId, err)
 				return err
 			}
-			http.Redirect(w, r, "/"+echo+"/1", http.StatusSeeOther)
+			http.Redirect(w, r, "/"+m.MsgId+"#" + m.MsgId, http.StatusSeeOther)
 			return nil
 		}
 		ctx.Msg = append(ctx.Msg, m)
@@ -348,52 +352,19 @@ func www_new(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, ech
 func www_reply(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, id string) error {
 	ctx := WebContext{ User: user, Echolist: www.edb, Ref: r.Header.Get("Referer") }
 	ctx.BasePath = id
-
-	switch r.Method {
-	case "GET":
-		m := www.db.Get(id)
-		if m == nil {
-			ii.Error.Printf("No such msg: %s", id)
-			return  errors.New("No such msg")
-		}
-		ctx.Msg = append(ctx.Msg, m)
-		err := www.tpl.ExecuteTemplate(w, "reply.tpl", ctx)
-		return err
-	case "POST":
-		ii.Trace.Printf("www reply on %s", id)
-		if err := r.ParseForm(); err != nil {
-			ii.Error.Printf("Error in POST request: %s", err)
-			return  err
-		}
-		if user.Name == "" {
-			ii.Error.Printf("Access denied")
-			return  errors.New("Access denied")
-		}
-		m := www.db.Get(id)
-		if m == nil {
-			ii.Error.Printf("No such msg: %s", id)
-			return  errors.New("No such msg")
-		}
-		subj := r.FormValue("subj")
-		to := r.FormValue("to")
-		msg := r.FormValue("msg")
-		text := fmt.Sprintf("%s\n%s\n%s\n\n@repto:%s\n%s", m.Echo, to, subj, m.MsgId,  msg)
-		ii.Trace.Printf("Reply msg: %s\n", text)
-		m, err := ii.DecodeMsgline(text, false)
-		if err != nil {
-			ii.Error.Printf("Error while reply to %s: %s", id, err)
-			return err
-		}
-		m.From = user.Name
-		m.Addr = fmt.Sprintf("%s,%d", www.db.Name, user.Id)
-		if err = www.db.Store(m); err != nil {
-			ii.Error.Printf("Error while store reply msg %s: %s", m.MsgId, err)
-			return err
-		}
-		http.Redirect(w, r, "/" + m.MsgId + "#" + m.MsgId, http.StatusSeeOther)
-		return nil
+	m := www.db.Get(id)
+	if m == nil {
+		ii.Error.Printf("No such msg: %s", id)
+		return  errors.New("No such msg")
 	}
-	return nil
+	msg := *m
+	msg.To = msg.From
+	msg.Subj = "Re: " + strings.TrimPrefix(msg.Subj, "Re: ")
+	msg.Tags.Add("repto/" + id)
+	msg.Text = msg_quote(msg.Text)
+	ctx.Msg = append(ctx.Msg, &msg)
+	err := www.tpl.ExecuteTemplate(w, "reply.tpl", ctx)
+	return err
 }
 
 func str_esc(l string) string {
@@ -406,11 +377,27 @@ func str_esc(l string) string {
 var quoteRegex = regexp.MustCompile("^[^ >]*>")
 var urlRegex = regexp.MustCompile(`(http|ftp|https)://[^ <>"]+`)
 
-func msg_format(txt string) template.HTML {
+func msg_clean(txt string) string {
 	txt = strings.Replace(txt, "\r", "", -1)
 	txt = strings.TrimLeft(txt, "\n")
 	txt = strings.TrimRight(txt, "\n")
 	txt = strings.TrimSuffix(txt, "\n")
+	return txt
+}
+func msg_quote(txt string) string {
+	txt = msg_clean(txt)
+	f := ""
+	for _, l := range strings.Split(txt, "\n") {
+		if strings.HasPrefix(l, ">") {
+			f += ">"+ l + "\n"
+		} else {
+			f += "> "+ l + "\n"
+		}
+	}
+	return f
+}
+func msg_format(txt string) template.HTML {
+	txt = msg_clean(txt)
 	f := ""
 	pre := false
 	for _, l := range strings.Split(txt, "\n") {
@@ -457,6 +444,7 @@ func WebInit(www *WWW) {
 			r, _ := m.Tag("repto")
 			return r
 		},
+		"msg_quote": msg_quote,
 	}
 	www.tpl = template.Must(template.New("main").Funcs(funcMap).ParseGlob("tpl/*.tpl"))
 }
