@@ -72,12 +72,12 @@
     text-align: center;
 }
 #echolist .info, #topiclist .info {
-    color: #777777;
+    color: #555555;
     font-size: smaller;
     min-width: 16em;
 }
+
 #echolist .subj {
-    font-weight: bold;
 }
 
 #echolist th, #echolist td, #topiclist th, #topiclist td {
