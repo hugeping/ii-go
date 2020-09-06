@@ -209,8 +209,8 @@ func www_query(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, q
 `,
 				str_esc(m.Subj), m.MsgId, www.Host, m.MsgId, m.MsgId,
 				time.Unix(m.Date, 0).Format("2006-01-02 15:04:05"),
-				msg_esc(msg_format(fmt.Sprintf("%s -> %s\n\n%s", m.From, m.To, m.Text))),
-				msg_esc(m.From))
+				str_esc(msg_format(fmt.Sprintf("%s -> %s\n\n%s", m.From, m.To, m.Text))),
+				str_esc(m.From))
 		}
 		fmt.Fprintf(w,
 `</channel>
