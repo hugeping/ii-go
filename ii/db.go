@@ -34,6 +34,7 @@ type DB struct {
 	Path string
 	Idx  Index
 	Sync sync.RWMutex
+	IdxSync sync.RWMutex
 	Name string
 }
 
@@ -163,6 +164,8 @@ func (db *DB) _ReopenIndex() (*os.File, error) {
 	return file, nil
 }
 func (db *DB) LoadIndex() error {
+	db.IdxSync.Lock()
+	defer db.IdxSync.Unlock()
 	var Idx Index
 	file, err := os.Open(db.IndexPath())
 	if err != nil {
@@ -252,6 +255,8 @@ func (db *DB) _Lookup(Id string, bl bool, idx bool) *MsgInfo {
 			return nil
 		}
 	}
+	db.IdxSync.RLock()
+	defer db.IdxSync.RUnlock()
 	info, ok := db.Idx.Hash[Id]
 	if !ok || (!bl && info.Off < 0) {
 		return nil
@@ -414,6 +419,9 @@ func (db *DB) Echoes(names []string) []*Echo {
 		return list
 	}
 
+	db.IdxSync.RLock()
+	defer db.IdxSync.RUnlock()
+
 	hash := make(map[string]Echo)
 	size := len(db.Idx.List)
 	for i := 0; i < size; i++ {
@@ -481,6 +489,10 @@ func (db *DB) SelectIDS(r Query) []string {
 	if size == 0 {
 		return Resp
 	}
+
+	db.IdxSync.RLock()
+	defer db.IdxSync.RUnlock()
+
 	if r.Start < 0 {
 		start := 0
 		for i := size - 1; i >= 0; i-- {
@@ -548,6 +560,10 @@ func (db *DB) _Store(m *Msg, edit bool) error {
 	if err := db.LoadIndex(); err != nil {
 		return err
 	}
+
+	db.IdxSync.RLock()
+	defer db.IdxSync.RUnlock()
+
 	if _, ok := db.Idx.Hash[m.MsgId]; ok && !edit { // exist and not edit
 		return errors.New("Already exists")
 	}
@@ -570,12 +586,6 @@ func (db *DB) _Store(m *Msg, edit bool) error {
 	if err := append_file(db.IndexPath(), rec); err != nil {
 		return err
 	}
-	// if _, ok := db.Idx.Hash[m.MsgId]; !ok { // new msg
-	//  	db.Idx.List = append(db.Idx.List, m.MsgId)
-	// }
-	// mi := MsgInfo{Id: m.MsgId, Echo: m.Echo, Off: off, Repto: repto}
-	// db.Idx.Hash[m.MsgId] = mi
-	// db.Idx.FileSize += (int64(len(rec) + 1))
 	return nil
 }
 
