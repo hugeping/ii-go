@@ -187,10 +187,36 @@ func www_query(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, q
 	}
 	if rss {
 		ctx.Topic = db.Name + " :: " + req
-		ctx.BasePath = www.Host
-		/* yes, we should use text/template here, but it will be longer to do */
 		fmt.Fprintf(w, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-		return www.tpl.ExecuteTemplate(w, "rss.tpl", ctx)
+		fmt.Fprintf(w,
+`<rss version="2.0">
+<channel>
+<title>%s</title>
+<description>RSS feed with last messages</description>
+<link>%s</link>
+`,
+			str_esc(ctx.Topic), www.Host)
+		for _, m := range(ctx.Msg) {
+			fmt.Fprintf(w,
+`<item>
+	<title>%s</title>
+	<guid>%s</guid>
+	<link>%s/%s#%s</link>
+	<pubDate>%s</pubDate>
+	<description>%s</description>
+	<author>%s</author>
+</item>
+`,
+				str_esc(m.Subj), m.MsgId, www.Host, m.MsgId, m.MsgId,
+				time.Unix(m.Date, 0).Format("2006-01-02 15:04:05"),
+				msg_esc(msg_format(fmt.Sprintf("%s -> %s\n\n%s", m.From, m.To, m.Text))),
+				msg_esc(m.From))
+		}
+		fmt.Fprintf(w,
+`</channel>
+</rss>
+`)
+		return nil
 	}
 	return www.tpl.ExecuteTemplate(w, "query.tpl", ctx)
 }
@@ -514,7 +540,7 @@ func msg_esc(l string) string {
 	return l
 }
 
-func msg_format(txt string) template.HTML {
+func msg_format(txt string) string {
 	txt = msg_clean(txt)
 	f := ""
 	pre := false
@@ -573,7 +599,7 @@ func msg_format(txt string) template.HTML {
 		pre = false
 		f += "</pre>\n"
 	}
-	return template.HTML(f)
+	return f
 }
 
 func msg_access(www *WWW, m ii.Msg, u ii.User) bool {
@@ -586,7 +612,9 @@ func WebInit(www *WWW) {
 		"fdate": func(date int64) string {
 			return time.Unix(date, 0).Format("2006-01-02 15:04:05")
 		},
-		"msg_format": msg_format,
+		"msg_format": func(s string) template.HTML {
+			return template.HTML(msg_format(s))
+		},
 		"repto": func(m ii.Msg) string {
 			r, _ := m.Tag("repto")
 			return r
