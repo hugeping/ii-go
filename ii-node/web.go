@@ -160,7 +160,7 @@ func makePager(ctx *WebContext, count int, page int) int {
 	return start
 }
 
-func www_query(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, q ii.Query, page int, req string) error {
+func www_query(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, q ii.Query, page int, req string, rss bool) error {
 	db := www.db
 	ctx := WebContext{User: user, Echolist: www.edb, Ref: r.Header.Get("Referer")}
 	mis := db.LookupIDS(db.SelectIDS(q))
@@ -171,6 +171,9 @@ func www_query(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, q
 	})
 	ctx.BasePath = req
 	count := len(mis)
+	if rss {
+		count = 100
+	}
 	start := makePager(&ctx, count, page)
 	nr := PAGE_SIZE
 	for i := start; i < count && nr > 0; i++ {
@@ -182,8 +185,13 @@ func www_query(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, q
 		ctx.Msg = append(ctx.Msg, m)
 		nr--
 	}
-	err := www.tpl.ExecuteTemplate(w, "query.tpl", ctx)
-	return err
+	if rss {
+		ctx.Topic = db.Name + " :: " + req
+		/* yes, we should use text/template here, but it will be longer to do */
+		fmt.Fprintf(w, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+		return www.tpl.ExecuteTemplate(w, "rss.tpl", ctx)
+	}
+	return www.tpl.ExecuteTemplate(w, "query.tpl", ctx)
 }
 
 func www_topics(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, echo string, page int) error {
@@ -648,34 +656,49 @@ func _handleWWW(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) 
 		return www_new(user, www, w, r, "")
 	} else if args[0] == "to" {
 		page := 1
+		rss := false
 		if len(args) < 2 {
 			return errors.New("Wrong request")
 		}
 		if len(args) > 2 {
-			fmt.Sscanf(args[2], "%d", &page)
+			if args[2] == "rss" {
+				rss = true
+			} else {
+				fmt.Sscanf(args[2], "%d", &page)
+			}
 		}
 		return www_query(user, www, w, r, ii.Query { To: args[1] },
-			page, "to/" + args[1])
+			page, "to/" + args[1], rss)
 	} else if args[0] == "from" {
 		page := 1
+		rss := false
 		if len(args) < 2 {
 			return errors.New("Wrong request")
 		}
 		if len(args) > 2 {
-			fmt.Sscanf(args[2], "%d", &page)
+			if args[2] == "rss" {
+				rss = true
+			} else {
+				fmt.Sscanf(args[2], "%d", &page)
+			}
 		}
-		return www_query(user, www, w, r, ii.Query { Addr: args[1] },
-			page, "from/" + args[1])
+		return www_query(user, www, w, r, ii.Query { From: args[1] },
+			page, "from/" + args[1], rss)
 	} else if args[0] == "echo" {
 		page := 1
+		rss := false
 		if len(args) < 2 {
 			return errors.New("Wrong request")
 		}
 		if len(args) > 2 {
-			fmt.Sscanf(args[2], "%d", &page)
+			if args[2] == "rss" {
+				rss = true
+			} else {
+				fmt.Sscanf(args[2], "%d", &page)
+			}
 		}
 		return www_query(user, www, w, r, ii.Query { Echo: args[1] },
-			page, "echo/" + args[1])
+			page, "echo/" + args[1], rss)
 	} else if ii.IsEcho(args[0]) {
 		page := 1
 		if len(args) > 1 {

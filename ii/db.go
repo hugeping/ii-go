@@ -22,7 +22,7 @@ type MsgInfo struct {
 	To    string
 	Off   int64
 	Repto string
-	Addr  string
+	From  string
 }
 
 type Index struct {
@@ -145,7 +145,7 @@ func (db *DB) _CreateIndex() error {
 		}
 		repto, _ := msg.Tag("repto")
 		fidx.WriteString(fmt.Sprintf("%s:%s:%d:%s:%s:%s\n",
-			msg.MsgId, msg.Echo, off, msg.To, msg.Addr, repto))
+			msg.MsgId, msg.Echo, off, msg.To, msg.From, repto))
 		off += int64(len(line) + 1)
 		return true
 	})
@@ -219,7 +219,7 @@ func (db *DB) LoadIndex() error {
 			err2 = errors.New("Wrong format on line:" + fmt.Sprintf("%d", linenr))
 			return false
 		}
-		mi := MsgInfo{Id: info[0], Echo: info[1], To: info[3], Addr: info[4] }
+		mi := MsgInfo{Id: info[0], Echo: info[1], To: info[3], From: info[4] }
 		if _, err := fmt.Sscanf(info[2], "%d", &mi.Off); err != nil {
 			err2 = errors.New("Wrong offset on line: " + fmt.Sprintf("%d", linenr))
 			return false
@@ -365,7 +365,7 @@ func (db *DB) GetFast(Id string) *Msg {
 type Query struct {
 	Echo        string
 	Repto       string
-	Addr        string
+	From        string
 	To          string
 	Start       int
 	Lim         int
@@ -392,7 +392,7 @@ func (db *DB) Match(info MsgInfo, r Query) bool {
 	if r.To != "" && r.To != info.To {
 		return false
 	}
-	if r.Addr != "" && r.Addr != info.Addr {
+	if r.From != "" && r.From != info.From {
 		return false
 	}
 	return true
@@ -625,7 +625,7 @@ func (db *DB) _Store(m *Msg, edit bool) error {
 		return err
 	}
 
-	rec := fmt.Sprintf("%s:%s:%d:%s:%s:%s", m.MsgId, m.Echo, off, m.To, m.Addr, repto)
+	rec := fmt.Sprintf("%s:%s:%d:%s:%s:%s", m.MsgId, m.Echo, off, m.To, m.From, repto)
 	if err := append_file(db.IndexPath(), rec); err != nil {
 		return err
 	}
