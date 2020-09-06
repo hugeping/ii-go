@@ -87,6 +87,11 @@ body {
     min-width: 16em;
 }
 
+.today {
+    color: #555555;
+    font-weight: bold;
+}
+
 #echolist .subj {
 }
 

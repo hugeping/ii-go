@@ -609,8 +609,11 @@ func msg_access(www *WWW, m ii.Msg, u ii.User) bool {
 
 func WebInit(www *WWW) {
 	funcMap := template.FuncMap{
-		"fdate": func(date int64) string {
-			return time.Unix(date, 0).Format("2006-01-02 15:04:05")
+		"fdate": func(date int64) template.HTML {
+			if time.Now().Unix() - date < 60 * 60 * 24 {
+				return template.HTML("<span class='today'>"+time.Unix(date, 0).Format("2006-01-02 15:04:05") + "</span>")
+			}
+			return template.HTML(time.Unix(date, 0).Format("2006-01-02 15:04:05"))
 		},
 		"msg_format": func(s string) template.HTML {
 			return template.HTML(msg_format(s))
