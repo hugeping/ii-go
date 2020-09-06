@@ -458,6 +458,7 @@ func str_esc(l string) string {
 var quoteRegex = regexp.MustCompile("^[^ >]*>")
 var urlRegex = regexp.MustCompile(`(http|ftp|https)://[^ <>"]+`)
 var url2Regex = regexp.MustCompile(`{{{href=[0-9]+}}}`)
+var urlIIRegex = regexp.MustCompile(`ii://[a-zA-Z0-9]{20}`)
 
 func msg_clean(txt string) string {
 	txt = strings.Replace(txt, "\r", "", -1)
@@ -494,6 +495,15 @@ func ReverseStr(s string) string {
 func msg_esc(l string) string {
 	var links []string
 	link := 0
+	l = string(urlIIRegex.ReplaceAllFunc([]byte(l),
+		func(line []byte) []byte {
+			s := string(line)
+			url := strings.TrimPrefix(s, "ii://")
+			links = append(links, fmt.Sprintf(`<a href="/%s#%s" class="url">%s</a>`,
+				url, url, str_esc(s)))
+			link++
+			return []byte(fmt.Sprintf(`{{{href=%d}}}`, link-1))
+		}))
 	l = string(urlRegex.ReplaceAllFunc([]byte(l),
 		func(line []byte) []byte {
 			s := string(line)
