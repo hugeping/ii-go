@@ -39,7 +39,7 @@ func ParseXpm(lines []string) (*image.RGBA, int) {
 			l = strings.TrimRight(l, ",")
 			l = strings.Trim(l, "\"")
 		}
-		l = strings.ReplaceAll(l, "\t", " ")
+		l = strings.Replace(l, "\t", " ", -1)
 		if cols == 0 { /* desc line */
 			dsc := strings.Split(l, " ")
 			if len(dsc) != 4 {
