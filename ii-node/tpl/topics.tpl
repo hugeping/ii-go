@@ -1,5 +1,6 @@
 {{template "header.tpl" $}}
 {{template "pager.tpl" $}}
+<a class="rss" href="/echo/{{.Echo}}/rss">RSS</a>
 <table id="topiclist" cellspacing=0 cellpadding=0>
 <tr class="title">
 <th>Topics</th>

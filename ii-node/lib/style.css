@@ -5,6 +5,13 @@
 body {
     background: #fffff9;
 }
+
+.rss {
+    color: #ee802f;
+    font-weight: bold;
+    text-decoration: none;
+}
+
 .code {
     overflow-x: auto;
     white-space: pre-wrap;
