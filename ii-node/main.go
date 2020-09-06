@@ -177,7 +177,7 @@ func main() {
 		m := db.Get(id)
 		ii.Info.Printf("/m/%s %s", id, m)
 		if m != nil {
-			fmt.Fprintf(w, m.String())
+			fmt.Fprintf(w, "%s", m.String())
 		}
 	})
 	http.HandleFunc("/e/", func(w http.ResponseWriter, r *http.Request) {
