@@ -128,53 +128,6 @@ func www_index(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) e
 	return err
 }
 
-func getParent(db *ii.DB, i *ii.MsgInfo) *ii.MsgInfo {
-	return db.LookupFast(i.Repto, false)
-}
-
-func getTopics(db *ii.DB, mi []*ii.MsgInfo) map[string][]string {
-	db.Sync.RLock()
-	defer db.Sync.RUnlock()
-
-	intopic := make(map[string]string)
-	topics := make(map[string][]string)
-
-	db.LoadIndex()
-	for _, m := range mi {
-		if _, ok := intopic[m.Id]; ok {
-			continue
-		}
-		var l []*ii.MsgInfo
-		for p := m; p != nil; p = getParent(db, p) {
-			if m.Echo != p.Echo {
-				continue
-			}
-			l = append(l, p)
-		}
-		if len(l) == 0 {
-			continue
-		}
-		t := l[len(l)-1]
-		if len(topics[t.Id]) == 0 {
-			topics[t.Id] = append(topics[t.Id], t.Id)
-		}
-		sort.SliceStable(l, func(i int, j int) bool {
-			return l[i].Off < l[j].Off
-		})
-		for _, i := range l {
-			if i.Id == t.Id {
-				continue
-			}
-			if _, ok := intopic[i.Id]; ok {
-				continue
-			}
-			topics[t.Id] = append(topics[t.Id], i.Id)
-			intopic[i.Id] = t.Id
-		}
-	}
-	return topics
-}
-
 type Topic struct {
 	Ids   []string
 	Count int
@@ -238,7 +191,7 @@ func www_topics(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, 
 	ctx := WebContext{User: user, Echo: echo, Echolist: www.edb, Ref: r.Header.Get("Referer")}
 	mis := db.LookupIDS(db.SelectIDS(ii.Query{Echo: echo}))
 	ii.Trace.Printf("www topics: %s", echo)
-	topicsIds := getTopics(db, mis)
+	topicsIds := db.GetTopics(mis)
 	var topics []*Topic
 	ii.Trace.Printf("Start to generate topics")
 
@@ -296,14 +249,14 @@ func www_topic(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, i
 	mis := db.LookupIDS(db.SelectIDS(ii.Query{Echo: mi.Echo}))
 
 	topic := mi.Id
-	for p := mi; p != nil; p = getParent(db, p) {
+	for p := mi; p != nil; p = db.LookupFast(p.Repto, false) {
 		if p.Echo != mi.Echo {
 			continue
 		}
 		topic = p.Id
 	}
 	ctx.Topic = topic
-	ids := getTopics(db, mis)[topic]
+	ids := db.GetTopics(mis)[topic]
 	if len(ids) == 0 {
 		ids = append(ids, id)
 	} else if topic != mi.Id {

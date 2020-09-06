@@ -261,6 +261,9 @@ func (db *DB) _Lookup(Id string, bl bool, idx bool) *MsgInfo {
 }
 
 func (db *DB) LookupFast(Id string, bl bool) *MsgInfo {
+	if Id == "" {
+		return nil
+	}
 	return db._Lookup(Id, bl, false)
 }
 
@@ -522,6 +525,49 @@ func (db *DB) SelectIDS(r Query) []string {
 		}
 	}
 	return Resp
+}
+
+func (db *DB)GetTopics(mi []*MsgInfo) map[string][]string {
+	db.Sync.RLock()
+	defer db.Sync.RUnlock()
+
+	intopic := make(map[string]string)
+	topics := make(map[string][]string)
+
+	db.LoadIndex()
+	for _, m := range mi {
+		if _, ok := intopic[m.Id]; ok {
+			continue
+		}
+		var l []*MsgInfo
+		for p := m; p != nil; p = db.LookupFast(p.Repto, false) {
+			if m.Echo != p.Echo {
+				continue
+			}
+			l = append(l, p)
+		}
+		if len(l) == 0 {
+			continue
+		}
+		t := l[len(l)-1]
+		if len(topics[t.Id]) == 0 {
+			topics[t.Id] = append(topics[t.Id], t.Id)
+		}
+		sort.SliceStable(l, func(i int, j int) bool {
+			return l[i].Off < l[j].Off
+		})
+		for _, i := range l {
+			if i.Id == t.Id {
+				continue
+			}
+			if _, ok := intopic[i.Id]; ok {
+				continue
+			}
+			topics[t.Id] = append(topics[t.Id], i.Id)
+			intopic[i.Id] = t.Id
+		}
+	}
+	return topics
 }
 
 func (db *DB) Store(m *Msg) error {
