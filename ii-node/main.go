@@ -55,7 +55,7 @@ var echo_opt *string = flag.String("e", "list.txt", "Echoes list")
 
 type WWW struct {
 	tpl *template.Template
-	db *ii.DB
+	db  *ii.DB
 	edb *ii.EDB
 }
 
@@ -82,11 +82,11 @@ func main() {
 	http.HandleFunc("/list.txt", func(w http.ResponseWriter, r *http.Request) {
 		echoes := db.Echoes(nil)
 		for _, v := range echoes {
-			fmt.Fprintf(w, "%s:%d:%s\n", v.Name, v.Count,www.edb.Info[v.Name])
+			fmt.Fprintf(w, "%s:%d:%s\n", v.Name, v.Count, www.edb.Info[v.Name])
 		}
 	})
 	http.HandleFunc("/blacklist.txt", func(w http.ResponseWriter, r *http.Request) {
-		ids := db.SelectIDS(ii.Query { Blacklisted: true } )
+		ids := db.SelectIDS(ii.Query{Blacklisted: true})
 		for _, v := range ids {
 			fmt.Fprintf(w, "%s\n", v)
 		}

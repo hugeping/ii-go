@@ -11,6 +11,7 @@ var (
 	Info  *log.Logger
 	Error *log.Logger
 )
+
 func InitLog() {
 	Trace = log.New(os.Stdout, "=== ", log.Ldate|log.Ltime)
 	Info = log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime)

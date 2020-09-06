@@ -55,6 +55,9 @@ func DecodeMsgline(msg string, enc bool) (*Msg, error) {
 	var m Msg
 	var data []byte
 	var err error
+	if len(msg) > 65536 {
+		return nil, errors.New("Message too long")
+	}
 	if enc {
 		if data, err = base64.StdEncoding.DecodeString(msg); err != nil {
 			if data, err = base64.URLEncoding.DecodeString(msg); err != nil {

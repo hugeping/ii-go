@@ -99,7 +99,7 @@ Options:
 		db := open_db(*db_opt)
 		db.Lock()
 		defer db.Unlock()
-		db.LoadIndex();
+		db.LoadIndex()
 		for _, v := range db.Idx.List {
 			if echo != "" {
 				mi := db.Idx.Hash[v]

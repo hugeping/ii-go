@@ -2,9 +2,13 @@ package main
 
 import (
 	"../ii"
+	"bytes"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"html/template"
+	"image"
+	"image/png"
 	"net/http"
 	"regexp"
 	"sort"
@@ -15,24 +19,24 @@ import (
 const PAGE_SIZE = 100
 
 type WebContext struct {
-	Echoes []*ii.Echo
-	Topics []*Topic
-	Topic string
-	Msg    []*ii.Msg
-	Error string
-	Echo string
-	Page int
-	Pages int
-	Pager []int
+	Echoes   []*ii.Echo
+	Topics   []*Topic
+	Topic    string
+	Msg      []*ii.Msg
+	Error    string
+	Echo     string
+	Page     int
+	Pages    int
+	Pager    []int
 	BasePath string
-	User *ii.User
+	User     *ii.User
 	Echolist *ii.EDB
 	Selected string
-	Ref string
+	Ref      string
 }
 
 func www_register(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) error {
-	ctx := WebContext{ User: user, Echolist: www.edb, Ref: r.Header.Get("Referer") }
+	ctx := WebContext{User: user, Echolist: www.edb, Ref: r.Header.Get("Referer")}
 	ii.Trace.Printf("www register")
 	switch r.Method {
 	case "GET":
@@ -41,7 +45,7 @@ func www_register(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request
 	case "POST":
 		if err := r.ParseForm(); err != nil {
 			ii.Error.Printf("Error in POST request: %s", err)
-			return  err
+			return err
 		}
 		user := r.FormValue("username")
 		password := r.FormValue("password")
@@ -62,7 +66,7 @@ func www_register(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request
 }
 
 func www_login(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) error {
-	ctx := WebContext{ User: user, BasePath: "login", Echolist: www.edb, Ref: r.Header.Get("Referer") }
+	ctx := WebContext{User: user, BasePath: "login", Echolist: www.edb, Ref: r.Header.Get("Referer")}
 	ii.Trace.Printf("www login")
 	switch r.Method {
 	case "GET":
@@ -71,7 +75,7 @@ func www_login(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) e
 	case "POST":
 		if err := r.ParseForm(); err != nil {
 			ii.Error.Printf("Error in POST request: %s", err)
-			return  err
+			return err
 		}
 		user := r.FormValue("username")
 		password := r.FormValue("password")
@@ -91,11 +95,11 @@ func www_login(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) e
 }
 
 func www_profile(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) error {
-	ctx := WebContext{ User: user, BasePath: "profile", Echolist: www.edb, Ref: r.Header.Get("Referer") }
+	ctx := WebContext{User: user, BasePath: "profile", Echolist: www.edb, Ref: r.Header.Get("Referer")}
 	ii.Trace.Printf("www profile")
 	if user.Name == "" {
 		ii.Error.Printf("Access denied")
-		return  errors.New("Access denied")
+		return errors.New("Access denied")
 	}
 	err := www.tpl.ExecuteTemplate(w, "profile.tpl", ctx)
 	return err
@@ -105,7 +109,7 @@ func www_logout(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) 
 	ii.Trace.Printf("www logout: %s", user.Name)
 	if user.Name == "" {
 		ii.Error.Printf("Access denied")
-		return  errors.New("Access denied")
+		return errors.New("Access denied")
 	}
 	cookie := http.Cookie{Name: "pauth", Value: "", Expires: time.Unix(0, 0)}
 	http.SetCookie(w, &cookie)
@@ -114,7 +118,7 @@ func www_logout(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) 
 }
 
 func www_index(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) error {
-	ctx := WebContext{ User: user, Echolist: www.edb, Ref: r.Header.Get("Referer") }
+	ctx := WebContext{User: user, Echolist: www.edb, Ref: r.Header.Get("Referer")}
 
 	ii.Trace.Printf("www index")
 
@@ -139,7 +143,7 @@ func getTopics(db *ii.DB, mi []*ii.MsgInfo) map[string][]string {
 		if _, ok := intopic[m.Id]; ok {
 			continue
 		}
-		var l [] *ii.MsgInfo
+		var l []*ii.MsgInfo
 		for p := m; p != nil; p = getParent(db, p) {
 			if m.Echo != p.Echo {
 				continue
@@ -149,7 +153,7 @@ func getTopics(db *ii.DB, mi []*ii.MsgInfo) map[string][]string {
 		if len(l) == 0 {
 			continue
 		}
-		t := l[len(l) - 1]
+		t := l[len(l)-1]
 		if len(topics[t.Id]) == 0 {
 			topics[t.Id] = append(topics[t.Id], t.Id)
 		}
@@ -157,7 +161,7 @@ func getTopics(db *ii.DB, mi []*ii.MsgInfo) map[string][]string {
 			return l[i].Off < l[j].Off
 		})
 		for _, i := range l {
-			if i.Id == t.Id  {
+			if i.Id == t.Id {
 				continue
 			}
 			if _, ok := intopic[i.Id]; ok {
@@ -171,24 +175,24 @@ func getTopics(db *ii.DB, mi []*ii.MsgInfo) map[string][]string {
 }
 
 type Topic struct {
-	Ids     []string
-	Count   int
-	Last    *ii.MsgInfo
-	Head    *ii.Msg
-	Tail    *ii.Msg
+	Ids   []string
+	Count int
+	Last  *ii.MsgInfo
+	Head  *ii.Msg
+	Tail  *ii.Msg
 }
 
 func makePager(ctx *WebContext, count int, page int) int {
 	ctx.Pages = count / PAGE_SIZE
-	if count % PAGE_SIZE != 0 {
-		ctx.Pages ++
+	if count%PAGE_SIZE != 0 {
+		ctx.Pages++
 	}
 	if page == 0 {
-		page ++
+		page++
 	} else if page < 0 {
 		page = ctx.Pages + page + 1
 	}
-	start := (page - 1)* PAGE_SIZE
+	start := (page - 1) * PAGE_SIZE
 	if start < 0 {
 		start = 0
 		page = 1
@@ -204,7 +208,7 @@ func makePager(ctx *WebContext, count int, page int) int {
 
 func www_topics(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, echo string, page int) error {
 	db := www.db
-	ctx := WebContext{ User: user, Echo: echo, Echolist: www.edb, Ref: r.Header.Get("Referer") }
+	ctx := WebContext{User: user, Echo: echo, Echolist: www.edb, Ref: r.Header.Get("Referer")}
 	mis := db.LookupIDS(db.SelectIDS(ii.Query{Echo: echo}))
 	ii.Trace.Printf("www topics: %s", echo)
 	topicsIds := getTopics(db, mis)
@@ -233,7 +237,7 @@ func www_topics(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, 
 	tcount := len(topics)
 	start := makePager(&ctx, tcount, page)
 	nr := PAGE_SIZE
-	for i := start; i < tcount && nr > 0; i ++ {
+	for i := start; i < tcount && nr > 0; i++ {
 		t := topics[i]
 		t.Head = db.GetFast(t.Ids[0])
 		t.Tail = db.GetFast(t.Ids[t.Count])
@@ -242,7 +246,7 @@ func www_topics(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, 
 			continue
 		}
 		ctx.Topics = append(ctx.Topics, topics[i])
-		nr --
+		nr--
 	}
 	ii.Trace.Printf("Stop to generate topics")
 	err := www.tpl.ExecuteTemplate(w, "topics.tpl", ctx)
@@ -251,7 +255,7 @@ func www_topics(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, 
 
 func www_topic(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, id string, page int) error {
 	db := www.db
-	ctx := WebContext{ User: user, Echolist: www.edb, Ref: r.Header.Get("Referer") }
+	ctx := WebContext{User: user, Echolist: www.edb, Ref: r.Header.Get("Referer")}
 
 	mi := db.Lookup(id)
 	if mi == nil {
@@ -277,7 +281,7 @@ func www_topic(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, i
 	} else if topic != mi.Id {
 		for k, v := range ids {
 			if v == mi.Id {
-				page = k / PAGE_SIZE + 1
+				page = k/PAGE_SIZE + 1
 				ctx.Selected = mi.Id
 				break
 			}
@@ -294,7 +298,7 @@ func www_topic(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, i
 			continue
 		}
 		ctx.Msg = append(ctx.Msg, m)
-		nr --
+		nr--
 	}
 	ctx.BasePath = id
 	err := www.tpl.ExecuteTemplate(w, "topic.tpl", ctx)
@@ -306,37 +310,37 @@ func www_blacklist(user *ii.User, www WWW, w http.ResponseWriter, r *http.Reques
 	ii.Trace.Printf("www blacklist: %s", id)
 	if m == nil {
 		ii.Error.Printf("No such msg: %s", id)
-		return  errors.New("No such msg")
+		return errors.New("No such msg")
 	}
-	if ! msg_access(&www, *m, *user) {
+	if !msg_access(&www, *m, *user) {
 		ii.Error.Printf("Access denied")
-		return  errors.New("Access denied")
+		return errors.New("Access denied")
 	}
 	err := www.db.Blacklist(m)
 	if err != nil {
 		ii.Error.Printf("Error blacklisting: %s", id)
-		return  err
+		return err
 	}
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 	return nil
 }
 
 func www_edit(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, id string) error {
-	ctx := WebContext{ User: user, Echolist: www.edb, Ref: r.Header.Get("Referer") }
+	ctx := WebContext{User: user, Echolist: www.edb, Ref: r.Header.Get("Referer")}
 	ctx.BasePath = id
 	switch r.Method {
 	case "GET":
 		m := www.db.Get(id)
 		if m == nil {
 			ii.Error.Printf("No such msg: %s", id)
-			return  errors.New("No such msg")
+			return errors.New("No such msg")
 		}
 		msg := *m
 		ln := strings.Split(msg_clean(msg.Text), "\n")
 		if len(ln) > 0 {
-			fmt.Printf("%s\n", ln[len(ln) - 1])
-			if strings.HasPrefix(ln[len(ln) - 1], "P.S. Edited: ") {
-				msg.Text = strings.Join(ln[:len(ln) - 1], "\n")
+			fmt.Printf("%s\n", ln[len(ln)-1])
+			if strings.HasPrefix(ln[len(ln)-1], "P.S. Edited: ") {
+				msg.Text = strings.Join(ln[:len(ln)-1], "\n")
 			}
 		}
 		msg.Text = msg.Text + "\nP.S. Edited: " + time.Now().Format("2006-01-02 15:04:05")
@@ -350,7 +354,7 @@ func www_edit(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, id
 }
 
 func www_new(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, echo string) error {
-	ctx := WebContext{ User: user, Echolist: www.edb, Ref: r.Header.Get("Referer") }
+	ctx := WebContext{User: user, Echolist: www.edb, Ref: r.Header.Get("Referer")}
 	ctx.BasePath = echo
 	ctx.Echo = echo
 
@@ -363,11 +367,11 @@ func www_new(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, ech
 		ii.Trace.Printf("www new topic in %s", echo)
 		if err := r.ParseForm(); err != nil {
 			ii.Error.Printf("Error in POST request: %s", err)
-			return  err
+			return err
 		}
 		if user.Name == "" {
 			ii.Error.Printf("Access denied")
-			return  errors.New("Access denied")
+			return errors.New("Access denied")
 		}
 		subj := r.FormValue("subj")
 		to := r.FormValue("to")
@@ -378,7 +382,7 @@ func www_new(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, ech
 		if newecho != "" {
 			echo = newecho
 		}
-		if ! www.edb.Allowed(echo) {
+		if !www.edb.Allowed(echo) {
 			ii.Error.Printf("This echo is disallowed")
 			return errors.New("This echo is disallowed")
 		}
@@ -398,7 +402,7 @@ func www_new(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, ech
 			om := www.db.Get(id)
 			if (om == nil || m.Addr != om.Addr) && user.Id != 1 {
 				ii.Error.Printf("Access denied")
-				return  errors.New("Access denied")
+				return errors.New("Access denied")
 			}
 			m.MsgId = id
 			m.From = om.From
@@ -414,10 +418,10 @@ func www_new(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, ech
 				ii.Error.Printf("Error while storig new topic %s: %s", m.MsgId, err)
 				return err
 			}
-			http.Redirect(w, r, "/"+m.MsgId+"#" + m.MsgId, http.StatusSeeOther)
+			http.Redirect(w, r, "/"+m.MsgId+"#"+m.MsgId, http.StatusSeeOther)
 			return nil
 		}
-		if ! edit {
+		if !edit {
 			m.MsgId = ""
 		}
 		ctx.Msg = append(ctx.Msg, m)
@@ -428,12 +432,12 @@ func www_new(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, ech
 }
 
 func www_reply(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, id string) error {
-	ctx := WebContext{ User: user, Echolist: www.edb, Ref: r.Header.Get("Referer") }
+	ctx := WebContext{User: user, Echolist: www.edb, Ref: r.Header.Get("Referer")}
 	ctx.BasePath = id
 	m := www.db.Get(id)
 	if m == nil {
 		ii.Error.Printf("No such msg: %s", id)
-		return  errors.New("No such msg")
+		return errors.New("No such msg")
 	}
 	msg := *m
 	msg.To = msg.From
@@ -454,6 +458,7 @@ func str_esc(l string) string {
 
 var quoteRegex = regexp.MustCompile("^[^ >]*>")
 var urlRegex = regexp.MustCompile(`(http|ftp|https)://[^ <>"]+`)
+var url2Regex = regexp.MustCompile(`{{{href=[0-9]+}}}`)
 
 func msg_clean(txt string) string {
 	txt = strings.Replace(txt, "\r", "", -1)
@@ -471,9 +476,9 @@ func msg_quote(txt string) string {
 			continue
 		}
 		if strings.HasPrefix(l, ">") {
-			f += ">"+ l + "\n"
+			f += ">" + l + "\n"
 		} else {
-			f += "> "+ l + "\n"
+			f += "> " + l + "\n"
 		}
 	}
 	return f
@@ -487,11 +492,40 @@ func ReverseStr(s string) string {
 	return string(runes)
 }
 
+func msg_esc(l string) string {
+	var links []string
+	link := 0
+	l = string(urlRegex.ReplaceAllFunc([]byte(l),
+		func(line []byte) []byte {
+			s := string(line)
+			links = append(links, fmt.Sprintf(`<a href="%s" class="url">%s</a>`,
+				s, str_esc(s)))
+			link++
+			return []byte(fmt.Sprintf(`{{{href=%d}}}`, link-1))
+		}))
+	l = str_esc(l)
+	l = string(url2Regex.ReplaceAllFunc([]byte(l),
+		func(line []byte) []byte {
+			s := string(line)
+			var n int
+			fmt.Sscanf(s, "{{{href=%d}}}", &n)
+			return []byte(links[n])
+		}))
+
+	return l
+}
+
 func msg_format(txt string) template.HTML {
 	txt = msg_clean(txt)
 	f := ""
 	pre := false
-	for _, l := range strings.Split(txt, "\n") {
+	skip := 0
+	lines := strings.Split(txt, "\n")
+	for k, l := range lines {
+		if skip > 0 {
+			skip--
+			continue
+		}
 		if strings.Trim(l, " ") == "====" {
 			if !pre {
 				pre = true
@@ -506,20 +540,32 @@ func msg_format(txt string) template.HTML {
 			f += l + "\n"
 			continue
 		}
-		if strings.HasPrefix(l, "P.S.") || strings.HasPrefix(l, "PS:") ||
-			strings.HasPrefix(l, "//") || strings.HasPrefix(l, "#")  {
+		if strings.HasPrefix(l, "/* XPM */") || strings.HasPrefix(l, "! XPM2") {
+			var img *image.RGBA
+			img, skip = ParseXpm(lines[k:])
+			if img != nil {
+				skip--
+				/* embed xpm */
+				b := new(bytes.Buffer)
+				if err := png.Encode(b, img); err == nil {
+					b64 := base64.StdEncoding.EncodeToString(b.Bytes())
+					l = fmt.Sprintf("<img class=\"img\" src=\"data:image/png;base64,%s\"><br>\n",
+						b64)
+					f += l
+					continue
+				}
+			}
+			skip = 0
+			l = msg_esc(l)
+		} else if strings.HasPrefix(l, "P.S.") || strings.HasPrefix(l, "PS:") ||
+			strings.HasPrefix(l, "//") || strings.HasPrefix(l, "#") {
 			l = fmt.Sprintf("<span class=\"comment\">%s</span>", str_esc(l))
 		} else if strings.HasPrefix(l, "spoiler:") {
 			l = fmt.Sprintf("<span class=\"spoiler\">%s</span>", str_esc(ReverseStr(l)))
 		} else if quoteRegex.MatchString(l) {
 			l = fmt.Sprintf("<span class=\"quote\">%s</span>", str_esc(l))
 		} else {
-			l = string(urlRegex.ReplaceAllFunc([]byte(l),
-				func (line []byte) []byte {
-				s := string(line)
-					return []byte(fmt.Sprintf(`<a href="%s" class="url">%s</a>`,
-						s, str_esc(s)))
-			}))
+			l = msg_esc(l)
 		}
 		f += l + "<br>\n"
 	}
@@ -537,32 +583,32 @@ func msg_access(www *WWW, m ii.Msg, u ii.User) bool {
 
 func WebInit(www *WWW) {
 	funcMap := template.FuncMap{
-		"fdate": func (date int64) string {
+		"fdate": func(date int64) string {
 			return time.Unix(date, 0).Format("2006-01-02 15:04:05")
 		},
 		"msg_format": msg_format,
-		"repto": func (m ii.Msg) string {
+		"repto": func(m ii.Msg) string {
 			r, _ := m.Tag("repto")
 			return r
 		},
 		"msg_quote": msg_quote,
-		"msg_access": func (m ii.Msg, u ii.User) bool {
+		"msg_access": func(m ii.Msg, u ii.User) bool {
 			return msg_access(www, m, u)
 		},
-		"is_even": func (i int) bool {
-			return i % 2 == 0
+		"is_even": func(i int) bool {
+			return i%2 == 0
 		},
 	}
 	www.tpl = template.Must(template.New("main").Funcs(funcMap).ParseGlob("tpl/*.tpl"))
 }
 
 func handleErr(user *ii.User, www WWW, w http.ResponseWriter, err error) {
-	ctx := WebContext{ Error: err.Error(), User: user, Echolist: www.edb }
+	ctx := WebContext{Error: err.Error(), User: user, Echolist: www.edb}
 	www.tpl.ExecuteTemplate(w, "error.tpl", ctx)
 }
 
 func handleWWW(www WWW, w http.ResponseWriter, r *http.Request) {
-	var user *ii.User = &ii.User {}
+	var user *ii.User = &ii.User{}
 	err := _handleWWW(user, www, w, r)
 	if err != nil {
 		handleErr(user, www, w, err)

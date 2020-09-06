@@ -215,6 +215,14 @@ body {
     color: #555555;
 }
 
+.text .img {
+    min-width: 8em;
+    height: auto;
+    image-rendering: auto;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+}
+
 .comment {
     color: #555555;
     font-style: italic;

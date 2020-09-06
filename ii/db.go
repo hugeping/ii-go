@@ -212,13 +212,13 @@ func (db *DB) LoadIndex() error {
 	var err2 error
 	linenr := 0
 	err = f_lines(file, func(line string) bool {
-		linenr ++
+		linenr++
 		info := strings.Split(line, ":")
 		if len(info) < 4 {
 			err2 = errors.New("Wrong format on line:" + fmt.Sprintf("%d", linenr))
 			return false
 		}
-		mi := MsgInfo{Id: info[0], Echo: info[1], To: info[3] }
+		mi := MsgInfo{Id: info[0], Echo: info[1], To: info[3]}
 		if _, err := fmt.Sscanf(info[2], "%d", &mi.Off); err != nil {
 			err2 = errors.New("Wrong offset on line: " + fmt.Sprintf("%d", linenr))
 			return false
@@ -359,11 +359,11 @@ func (db *DB) GetFast(Id string) *Msg {
 }
 
 type Query struct {
-	Echo  string
-	Repto string
-	To string
-	Start int
-	Lim   int
+	Echo        string
+	Repto       string
+	To          string
+	Start       int
+	Lim         int
 	Blacklisted bool
 }
 
@@ -458,7 +458,7 @@ func (db *DB) Echoes(names []string) []*Echo {
 		v.Msg = db.GetFast(v.Last.Id)
 		if v.Msg == nil {
 			Error.Printf("Can not get echo last message: %s", v.Last.Id)
-			v.Msg = &Msg {}
+			v.Msg = &Msg{}
 		}
 	}
 	sort.SliceStable(list, func(i, j int) bool {
@@ -637,7 +637,7 @@ func (db *UDB) Auth(User string, Passwd string) bool {
 	if !ok {
 		return false
 	}
-	return ui.Secret == MakeSecret(User + Passwd)
+	return ui.Secret == MakeSecret(User+Passwd)
 }
 
 func (db *UDB) Access(Secret string) bool {
@@ -755,6 +755,7 @@ type EDB struct {
 	Path string
 	Sync sync.Mutex
 }
+
 func (db *EDB) Allowed(name string) bool {
 	if len(db.List) == 0 {
 		return true
