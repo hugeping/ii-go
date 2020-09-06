@@ -22,6 +22,7 @@ type MsgInfo struct {
 	To    string
 	Off   int64
 	Repto string
+	Addr  string
 }
 
 type Index struct {
@@ -143,11 +144,8 @@ func (db *DB) _CreateIndex() error {
 			return true
 		}
 		repto, _ := msg.Tag("repto")
-		if repto != "" {
-			repto = ":" + repto
-		}
-		fidx.WriteString(fmt.Sprintf("%s:%s:%d:%s%s\n",
-			msg.MsgId, msg.Echo, off, msg.To, repto))
+		fidx.WriteString(fmt.Sprintf("%s:%s:%d:%s:%s:%s\n",
+			msg.MsgId, msg.Echo, off, msg.To, msg.Addr, repto))
 		off += int64(len(line) + 1)
 		return true
 	})
@@ -217,18 +215,16 @@ func (db *DB) LoadIndex() error {
 	err = f_lines(file, func(line string) bool {
 		linenr++
 		info := strings.Split(line, ":")
-		if len(info) < 4 {
+		if len(info) < 6 {
 			err2 = errors.New("Wrong format on line:" + fmt.Sprintf("%d", linenr))
 			return false
 		}
-		mi := MsgInfo{Id: info[0], Echo: info[1], To: info[3]}
+		mi := MsgInfo{Id: info[0], Echo: info[1], To: info[3], Addr: info[4] }
 		if _, err := fmt.Sscanf(info[2], "%d", &mi.Off); err != nil {
 			err2 = errors.New("Wrong offset on line: " + fmt.Sprintf("%d", linenr))
 			return false
 		}
-		if len(info) > 4 {
-			mi.Repto = info[4]
-		}
+		mi.Repto = info[5]
 		if _, ok := Idx.Hash[mi.Id]; !ok { // new msg
 			Idx.List = append(Idx.List, mi.Id)
 		}
@@ -366,6 +362,7 @@ func (db *DB) GetFast(Id string) *Msg {
 type Query struct {
 	Echo        string
 	Repto       string
+	Addr        string
 	To          string
 	Start       int
 	Lim         int
@@ -390,6 +387,9 @@ func (db *DB) Match(info MsgInfo, r Query) bool {
 		return false
 	}
 	if r.To != "" && r.To != info.To {
+		return false
+	}
+	if r.Addr != "" && r.Addr != info.Addr {
 		return false
 	}
 	return true
@@ -579,10 +579,7 @@ func (db *DB) _Store(m *Msg, edit bool) error {
 		return err
 	}
 
-	if repto != "" {
-		repto = ":" + repto
-	}
-	rec := fmt.Sprintf("%s:%s:%d:%s%s", m.MsgId, m.Echo, off, m.To, repto)
+	rec := fmt.Sprintf("%s:%s:%d:%s:%s:%s", m.MsgId, m.Echo, off, m.To, m.Addr, repto)
 	if err := append_file(db.IndexPath(), rec); err != nil {
 		return err
 	}

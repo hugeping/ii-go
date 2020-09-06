@@ -101,6 +101,7 @@ func www_profile(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request)
 		ii.Error.Printf("Access denied")
 		return errors.New("Access denied")
 	}
+	ctx.Selected = fmt.Sprintf("%s,%d", www.db.Name, user.Id)
 	err := www.tpl.ExecuteTemplate(w, "profile.tpl", ctx)
 	return err
 }
@@ -206,6 +207,32 @@ func makePager(ctx *WebContext, count int, page int) int {
 	return start
 }
 
+func www_query(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, q ii.Query, page int, req string) error {
+	db := www.db
+	ctx := WebContext{User: user, Echolist: www.edb, Ref: r.Header.Get("Referer")}
+	mis := db.LookupIDS(db.SelectIDS(q))
+	ii.Trace.Printf("www query")
+
+	sort.SliceStable(mis, func(i, j int) bool {
+		return mis[i].Off > mis[j].Off
+	})
+	ctx.BasePath = req
+	count := len(mis)
+	start := makePager(&ctx, count, page)
+	nr := PAGE_SIZE
+	for i := start; i < count && nr > 0; i++ {
+		m := db.GetFast(mis[i].Id)
+		if m == nil {
+			ii.Error.Printf("Can't get msg: %s\n", mis[i].Id)
+			continue
+		}
+		ctx.Msg = append(ctx.Msg, m)
+		nr--
+	}
+	err := www.tpl.ExecuteTemplate(w, "query.tpl", ctx)
+	return err
+}
+
 func www_topics(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, echo string, page int) error {
 	db := www.db
 	ctx := WebContext{User: user, Echo: echo, Echolist: www.edb, Ref: r.Header.Get("Referer")}
@@ -252,6 +279,7 @@ func www_topics(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, 
 	err := www.tpl.ExecuteTemplate(w, "topics.tpl", ctx)
 	return err
 }
+
 
 func www_topic(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, id string, page int) error {
 	db := www.db
@@ -588,7 +616,7 @@ func msg_format(txt string) template.HTML {
 
 func msg_access(www *WWW, m ii.Msg, u ii.User) bool {
 	addr := fmt.Sprintf("%s,%d", www.db.Name, u.Id)
-	return addr == m.Addr
+	return addr == m.Addr || u.Id == 1
 }
 
 func WebInit(www *WWW) {
@@ -665,6 +693,36 @@ func _handleWWW(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request) 
 		return www_topic(user, www, w, r, args[0], page)
 	} else if path == "new" {
 		return www_new(user, www, w, r, "")
+	} else if args[0] == "to" {
+		page := 1
+		if len(args) < 2 {
+			return errors.New("Wrong request")
+		}
+		if len(args) > 2 {
+			fmt.Sscanf(args[2], "%d", &page)
+		}
+		return www_query(user, www, w, r, ii.Query { To: args[1] },
+			page, "to/" + args[1])
+	} else if args[0] == "from" {
+		page := 1
+		if len(args) < 2 {
+			return errors.New("Wrong request")
+		}
+		if len(args) > 2 {
+			fmt.Sscanf(args[2], "%d", &page)
+		}
+		return www_query(user, www, w, r, ii.Query { Addr: args[1] },
+			page, "from/" + args[1])
+	} else if args[0] == "echo" {
+		page := 1
+		if len(args) < 2 {
+			return errors.New("Wrong request")
+		}
+		if len(args) > 2 {
+			fmt.Sscanf(args[2], "%d", &page)
+		}
+		return www_query(user, www, w, r, ii.Query { Echo: args[1] },
+			page, "echo/" + args[1])
 	} else if ii.IsEcho(args[0]) {
 		page := 1
 		if len(args) > 1 {

@@ -110,6 +110,11 @@ body {
 #topic .echo {
     font-weight: bold;
 }
+
+#topic .echo a, #topic .echo a:visited {
+    color: #555555;
+}
+
 #topic .msg {
     background-color: #ffffea;
     margin-bottom: 1em;
@@ -163,6 +168,10 @@ body {
 #topic .info {
     color: #555555;
     font-size: smaller;
+}
+
+#topic .info a {
+    color: #555555;
 }
 
 #header {
