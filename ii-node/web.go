@@ -187,6 +187,7 @@ func www_query(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, q
 	}
 	if rss {
 		ctx.Topic = db.Name + " :: " + req
+		ctx.BasePath = www.Host
 		/* yes, we should use text/template here, but it will be longer to do */
 		fmt.Fprintf(w, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
 		return www.tpl.ExecuteTemplate(w, "rss.tpl", ctx)
@@ -596,6 +597,9 @@ func WebInit(www *WWW) {
 		},
 		"is_even": func(i int) bool {
 			return i%2 == 0
+		},
+		"unescape": func(s string) template.HTML {
+			return template.HTML(s)
 		},
 	}
 	www.tpl = template.Must(template.New("main").Funcs(funcMap).ParseGlob("tpl/*.tpl"))

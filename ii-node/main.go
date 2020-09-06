@@ -50,10 +50,12 @@ var users_opt *string = flag.String("u", "points.txt", "Users database")
 var db_opt *string = flag.String("db", "./db", "II database path (directory)")
 var listen_opt *string = flag.String("L", ":8080", "Listen address")
 var sysname_opt *string = flag.String("sys", "ii-go", "Node name")
+var host_opt *string = flag.String("host", "http://127.0.0.1:8080", "Node address")
 var verbose_opt *bool = flag.Bool("v", false, "Verbose")
 var echo_opt *string = flag.String("e", "list.txt", "Echoes list")
 
 type WWW struct {
+	Host string;
 	tpl *template.Template
 	db  *ii.DB
 	edb *ii.EDB
@@ -74,6 +76,7 @@ func main() {
 	db.Name = *sysname_opt
 	www.db = db
 	www.edb = edb
+	www.Host = *host_opt
 	WebInit(&www)
 
 	fs := http.FileServer(http.Dir("lib"))
