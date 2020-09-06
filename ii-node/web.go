@@ -338,7 +338,6 @@ func www_edit(user *ii.User, www WWW, w http.ResponseWriter, r *http.Request, id
 		msg := *m
 		ln := strings.Split(msg_clean(msg.Text), "\n")
 		if len(ln) > 0 {
-			fmt.Printf("%s\n", ln[len(ln)-1])
 			if strings.HasPrefix(ln[len(ln)-1], "P.S. Edited: ") {
 				msg.Text = strings.Join(ln[:len(ln)-1], "\n")
 			}
