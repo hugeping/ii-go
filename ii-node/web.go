@@ -531,7 +531,7 @@ func www_new(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func www_reply(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
+func www_reply(ctx *WebContext, w http.ResponseWriter, r *http.Request, quote bool) error {
 	id := ctx.BasePath
 	m := ctx.www.db.Get(id)
 	if m == nil {
@@ -542,7 +542,11 @@ func www_reply(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 	msg.To = msg.From
 	msg.Subj = "Re: " + strings.TrimPrefix(msg.Subj, "Re: ")
 	msg.Tags.Add("repto/" + id)
-	msg.Text = msg_quote(msg.Text)
+	if quote {
+		msg.Text = msg_quote(msg.Text)
+	} else {
+		msg.Text = ""
+	}
 	ctx.Msg = append(ctx.Msg, &msg)
 	err := ctx.www.tpl.ExecuteTemplate(w, "reply.tpl", ctx)
 	return err
@@ -788,7 +792,7 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 		if len(args) > 1 {
 			if args[1] == "reply" {
 				ctx.BasePath = args[0]
-				return www_reply(ctx, w, r)
+				return www_reply(ctx, w, r, !(len(args) > 2 && args[2] == "new"))
 			} else if args[1] == "edit" {
 				ctx.BasePath = args[0]
 				return www_edit(ctx, w, r)

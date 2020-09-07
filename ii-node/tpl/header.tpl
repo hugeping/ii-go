@@ -29,7 +29,7 @@
 
       {{ with .Echo }}
       {{ if $.Topic }}
-      :: <a href="/{{$.Topic}}/reply">Reply topic</a>
+      :: <a href="/{{$.Topic}}/reply/new">New post</a>
       {{ else }}
       :: <a href="/{{.}}/new">New topic</a>
       {{ end }}
