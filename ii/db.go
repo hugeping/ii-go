@@ -855,6 +855,7 @@ func (db *UDB) LoadUsers() error {
 	db.Names = make(map[string]User)
 	db.Secrets = make(map[string]string)
 	db.ById = make(map[int32]string)
+	db.List = nil
 	err = file_lines(db.Path, func(line string) bool {
 		a := strings.Split(line, ":")
 		if len(a) < 4 {
