@@ -124,23 +124,22 @@ func www_index(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 }
 
 func www_avatar(ctx *WebContext, w http.ResponseWriter, r *http.Request, user string) error {
-	udb := ctx.www.udb
-	ava, _ := u.Tags.Get("avatar")
+	ava, _ := ctx.User.Tags.Get("avatar")
 	if ava == "" {
 		return nil
 	}
 	if data, err := base64.StdEncoding.DecodeString(ava); err != nil {
 		txt := msg_clean(string(data))
 		lines := strings.Split(txt, "\n")
-		img, skip = ParseXpm(lines)
+		img, _ := ParseXpm(lines)
 		if img == nil {
 			return nil
 		}
 		b := new(bytes.Buffer)
 		if err := png.Encode(b, img); err == nil {
 			w.Header().Set("Content-Type", "image/jpeg")
-			w.Header().Set("Content-Length", fmt.Sprintf("%d", len(buffer.Bytes())))
-			if _, err := w.Write(buffer.Bytes()); err != nil {
+			w.Header().Set("Content-Length", fmt.Sprintf("%d", len(b.Bytes())))
+			if _, err := w.Write(b.Bytes()); err != nil {
 				return nil
 			}
 			return nil
