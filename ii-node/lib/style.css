@@ -254,7 +254,7 @@ body {
     image-rendering: auto;
     image-rendering: crisp-edges;
     image-rendering: pixelated;
-    border: solid 1px #555555;
+    border: none;
 }
 
 .comment {
