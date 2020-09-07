@@ -20,8 +20,9 @@ func open_db(path string) *ii.DB {
 	return db
 }
 
-func PointMsg(db *ii.DB, pauth string, tmsg string) string {
-	udb := ii.LoadUsers(*users_opt)
+func PointMsg(db *ii.DB, udb *ii.UDB, pauth string, tmsg string) string {
+	udb.LoadUsers()
+
 	if !udb.Access(pauth) {
 		ii.Info.Printf("Access denied for pauth: %s", pauth)
 		return "Access denied"
@@ -59,16 +60,18 @@ type WWW struct {
 	tpl *template.Template
 	db  *ii.DB
 	edb *ii.EDB
+	udb *ii.UDB
 }
 
 func main() {
 	var www WWW
 	ii.OpenLog(ioutil.Discard, os.Stdout, os.Stderr)
 
+	flag.Parse()
+
 	db := open_db(*db_opt)
 	edb := ii.LoadEcholist(*echo_opt)
-
-	flag.Parse()
+	udb := ii.OpenUsers(*users_opt)
 	if *verbose_opt {
 		ii.OpenLog(os.Stdout, os.Stdout, os.Stderr)
 	}
@@ -76,6 +79,7 @@ func main() {
 	db.Name = *sysname_opt
 	www.db = db
 	www.edb = edb
+	www.udb = udb
 	www.Host = *host_opt
 	WebInit(&www)
 
@@ -111,7 +115,7 @@ func main() {
 			return
 		}
 		ii.Info.Printf("/u/point/%s/%s GET request", pauth, tmsg)
-		fmt.Fprintf(w, PointMsg(db, pauth, tmsg))
+		fmt.Fprintf(w, PointMsg(db, udb, pauth, tmsg))
 	})
 	http.HandleFunc("/u/point", func(w http.ResponseWriter, r *http.Request) {
 		var pauth, tmsg string
@@ -127,7 +131,7 @@ func main() {
 			return
 		}
 		ii.Info.Printf("/u/point/%s/%s POST request", pauth, tmsg)
-		fmt.Fprintf(w, PointMsg(db, pauth, tmsg))
+		fmt.Fprintf(w, PointMsg(db, udb, pauth, tmsg))
 	})
 	http.HandleFunc("/x/c/", func(w http.ResponseWriter, r *http.Request) {
 		enames := strings.Split(r.URL.Path[5:], "/")

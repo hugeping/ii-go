@@ -177,6 +177,17 @@ func NewTags(str string) Tags {
 	return t
 }
 
+func (t *Tags) Get(n string) (string, bool) {
+	if t == nil || t.Hash == nil {
+		return "", false
+	}
+	v, ok := t.Hash[n]
+	if ok {
+		return v, true
+	}
+	return "", false
+}
+
 func (t *Tags) Add(str string) error {
 	tags := strings.Split(str, "/")
 	if len(tags)%2 != 0 {
@@ -212,14 +223,7 @@ func (m *Msg) Dump() string {
 }
 
 func (m *Msg) Tag(n string) (string, bool) {
-	if m == nil || m.Tags.Hash == nil {
-		return "", false
-	}
-	v, ok := m.Tags.Hash[n]
-	if ok {
-		return v, true
-	}
-	return "", false
+	return m.Tags.Get(n)
 }
 
 func (m *Msg) String() string {

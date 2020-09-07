@@ -51,7 +51,7 @@ func www_register(ctx *WebContext, w http.ResponseWriter, r *http.Request) error
 		password := r.FormValue("password")
 		email := r.FormValue("email")
 
-		udb := ii.LoadUsers(*users_opt)
+		udb := ctx.www.udb
 		err := udb.Add(user, email, password)
 		if err != nil {
 			ii.Info.Printf("Can not register user %s: %s", user, err)
@@ -78,8 +78,8 @@ func www_login(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 		}
 		user := r.FormValue("username")
 		password := r.FormValue("password")
-		udb := ii.LoadUsers(*users_opt)
-		if udb == nil || !udb.Auth(user, password) {
+		udb := ctx.www.udb
+		if !udb.Auth(user, password) {
 			ii.Info.Printf("Access denied for user: %s", user)
 			return errors.New("Access denied")
 		}
@@ -121,6 +121,20 @@ func www_index(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 	ctx.Echoes = ctx.www.db.Echoes(nil)
 	err := ctx.www.tpl.ExecuteTemplate(w, "index.tpl", ctx)
 	return err
+}
+
+func www_avatar(ctx *WebContext, w http.ResponseWriter, r *http.Request, user string) error {
+	// udb := ctx.www.udb
+	// u := udb.UserInfo(udb.Name(user))
+	// ava, _ := u.Tags.Get("avatar")
+	// if ava == "" {
+	// 	return nil
+	// }
+	// if data, err := base64.StdEncoding.DecodeString(ava); err != nil {
+	// 	txt := msg_clean(string(data))
+	// 	lines := strings.Split(txt, "\n")
+	// }
+	return nil
 }
 
 type Topic struct {
@@ -220,7 +234,6 @@ func www_topics(ctx *WebContext, w http.ResponseWriter, r *http.Request,  page i
 	db := ctx.www.db
 	echo := ctx.BasePath
 	ctx.Echo = echo
-
 	mis := db.LookupIDS(db.SelectIDS(ii.Query{Echo: echo}))
 	ii.Trace.Printf("www topics: %s", echo)
 	topicsIds := db.GetTopics(mis)
@@ -640,6 +653,7 @@ func handleWWW(www *WWW, w http.ResponseWriter, r *http.Request) {
 	var user *ii.User = &ii.User{}
 	ctx.User = user
 	ctx.www = www
+	www.udb.LoadUsers()
 	err := _handleWWW(&ctx, w, r)
 	if err != nil {
 		handleErr(&ctx, w, err)
@@ -649,7 +663,7 @@ func handleWWW(www *WWW, w http.ResponseWriter, r *http.Request) {
 func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 	cookie, err := r.Cookie("pauth")
 	if err == nil {
-		udb := ii.LoadUsers(*users_opt) /* per each request */
+		udb := ctx.www.udb
 		if udb.Access(cookie.Value) {
 			if user := udb.UserInfo(cookie.Value); user != nil {
 				ctx.User = user
@@ -676,6 +690,12 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 	} else if path == "register" {
 		ctx.BasePath = "register"
 		return www_register(ctx, w, r)
+	} else if path == "avatar" {
+		ctx.BasePath = "avatar"
+		if len(args) < 2 {
+			return errors.New("Wrong request")
+		}
+		return www_avatar(ctx, w, r, args[1])
 	} else if ii.IsMsgId(args[0]) {
 		page := 0
 		if len(args) > 1 {

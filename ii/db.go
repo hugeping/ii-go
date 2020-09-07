@@ -657,7 +657,8 @@ type UDB struct {
 	Names   map[string]User
 	Secrets map[string]string
 	List    []string
-	Sync    sync.Mutex
+	Sync    sync.RWMutex
+	FileSize    int64
 }
 
 func IsUsername(u string) bool {
@@ -678,6 +679,8 @@ func MakeSecret(msg string) string {
 }
 
 func (db *UDB) Secret(User string) string {
+	db.Sync.RLock()
+	defer db.Sync.RUnlock()
 	ui, ok := db.Names[User]
 	if !ok {
 		return ""
@@ -686,6 +689,8 @@ func (db *UDB) Secret(User string) string {
 }
 
 func (db *UDB) Auth(User string, Passwd string) bool {
+	db.Sync.RLock()
+	defer db.Sync.RUnlock()
 	ui, ok := db.Names[User]
 	if !ok {
 		return false
@@ -694,11 +699,15 @@ func (db *UDB) Auth(User string, Passwd string) bool {
 }
 
 func (db *UDB) Access(Secret string) bool {
+	db.Sync.RLock()
+	defer db.Sync.RUnlock()
 	_, ok := db.Secrets[Secret]
 	return ok
 }
 
 func (db *UDB) Name(Secret string) string {
+	db.Sync.RLock()
+	defer db.Sync.RUnlock()
 	name, ok := db.Secrets[Secret]
 	if ok {
 		return name
@@ -708,6 +717,8 @@ func (db *UDB) Name(Secret string) string {
 }
 
 func (db *UDB) UserInfo(Secret string) *User {
+	db.Sync.RLock()
+	defer db.Sync.RUnlock()
 	name, ok := db.Secrets[Secret]
 	if ok {
 		v := db.Names[name]
@@ -718,6 +729,8 @@ func (db *UDB) UserInfo(Secret string) *User {
 }
 
 func (db *UDB) Id(Secret string) int32 {
+	db.Sync.RLock()
+	defer db.Sync.RUnlock()
 	name, ok := db.Secrets[Secret]
 	if ok {
 		v, ok := db.Names[name]
@@ -768,12 +781,37 @@ func (db *UDB) Add(Name string, Mail string, Passwd string) error {
 	return nil
 }
 
-func LoadUsers(path string) *UDB {
+func OpenUsers(path string) *UDB {
 	var db UDB
 	db.Path = path
+	return &db
+}
+
+func (db *UDB) LoadUsers() error {
+	db.Sync.Lock()
+	defer db.Sync.Unlock()
+	var fsize int64
+	file, err := os.Open(db.Path)
+	if err == nil {
+		info, err := file.Stat()
+		file.Close()
+		if err != nil {
+			Error.Printf("Can not stat %s file: %s", db.Path, err)
+			return err
+		}
+		fsize = info.Size()
+	} else if os.IsNotExist(err) {
+		fsize = 0
+	} else {
+		Error.Printf("Can not open %s file: %s", db.Path, err)
+		return err
+	}
+	if db.FileSize == fsize {
+		return nil
+	}
 	db.Names = make(map[string]User)
 	db.Secrets = make(map[string]string)
-	err := file_lines(path, func(line string) bool {
+	err = file_lines(db.Path, func(line string) bool {
 		a := strings.Split(line, ":")
 		if len(a) < 4 {
 			Error.Printf("Wrong entry in user DB: %s", line)
@@ -797,16 +835,16 @@ func LoadUsers(path string) *UDB {
 	})
 	if err != nil {
 		Error.Printf("Can not read user DB: %s", err)
-		return nil
+		return errors.New(err.Error())
 	}
-	return &db
+	db.FileSize = fsize
+	return nil
 }
 
 type EDB struct {
 	Info map[string]string
 	List []string
 	Path string
-	Sync sync.Mutex
 }
 
 func (db *EDB) Allowed(name string) bool {
@@ -822,6 +860,7 @@ func LoadEcholist(path string) *EDB {
 	var db EDB
 	db.Path = path
 	db.Info = make(map[string]string)
+
 	err := file_lines(path, func(line string) bool {
 		a := strings.SplitN(line, ":", 3)
 		if len(a) < 2 {
