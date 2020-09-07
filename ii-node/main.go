@@ -95,7 +95,7 @@ func main() {
 		}
 	})
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		handleWWW(www, w, r)
+		handleWWW(&www, w, r)
 	})
 	http.HandleFunc("/u/point/", func(w http.ResponseWriter, r *http.Request) {
 		var pauth, tmsg string
