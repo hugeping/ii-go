@@ -8,6 +8,9 @@
 {{else}}
 <div class="msg">
 {{end}}
+{{ if has_avatar .From }}
+<img class="avatar" src="/avatar/{{.From}}">
+{{ end }}
 <a class="msgid" href="/{{.MsgId}}#{{.MsgId}}">#</a><span class="subj"> <a href="/{{. | repto}}#{{. | repto}}">{{with .Subj}}{{.}}{{else}}No subject{{end}}</a></span><br>
 <span class="info"><a href="/from/{{.From}}">{{.From}}</a>({{.Addr}}) &mdash; {{.To}}<br>{{.Date | fdate}}</span><br>
 <div class="text">

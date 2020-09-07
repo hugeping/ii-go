@@ -4,6 +4,9 @@
 <div id="topic">
 {{ range .Msg }}
 <div class="msg">
+{{ if has_avatar .From }}
+<img class="avatar" src="/avatar/{{.From}}">
+{{ end }}
 <a class="msgid" href="/{{.MsgId}}#{{.MsgId}}">#</a><span class="subj"> <a href="/{{. | repto}}#{{. | repto}}">{{with .Subj}}{{.}}{{else}}No subject{{end}}</a></span><br>
 <span class="echo"><a href="/{{.Echo}}">{{.Echo}}</a></span><br>
 <span class="info">{{.From}}({{.Addr}}) &mdash; {{.To}}<br>{{.Date | fdate}}</span><br>

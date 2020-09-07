@@ -33,6 +33,7 @@ type WebContext struct {
 	Echolist *ii.EDB
 	Selected string
 	Ref      string
+	Info     string
 	www      *WWW
 }
 
@@ -100,6 +101,12 @@ func www_profile(ctx *WebContext, w http.ResponseWriter, r *http.Request) error 
 		return errors.New("Access denied")
 	}
 	ctx.Selected = fmt.Sprintf("%s,%d", ctx.www.db.Name, ctx.User.Id)
+	ava, _ := ctx.User.Tags.Get("avatar")
+	if ava != "" {
+		if data, err := base64.URLEncoding.DecodeString(ava); err == nil {
+			ctx.Info = string(data)
+		}
+	}
 	err := ctx.www.tpl.ExecuteTemplate(w, "profile.tpl", ctx)
 	return err
 }
@@ -123,16 +130,65 @@ func www_index(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 	return err
 }
 
+func parse_ava(txt string) *image.RGBA {
+	txt = msg_clean(txt)
+	lines := strings.Split(txt, "\n")
+	img, _ := ParseXpm(lines)
+	return img
+}
+
 func www_avatar(ctx *WebContext, w http.ResponseWriter, r *http.Request, user string) error {
-	ava, _ := ctx.User.Tags.Get("avatar")
+	if r.Method == "POST" { /* upload avatar */
+		if ctx.User.Name == "" || ctx.User.Name != user {
+			ii.Error.Printf("Access denied")
+			return errors.New("Access denied")
+		}
+		if err := r.ParseForm(); err != nil {
+			ii.Error.Printf("Error in POST request: %s", err)
+			return err
+		}
+		ava := r.FormValue("avatar")
+		if len(ava) > 2048 {
+			ii.Error.Printf("Avatar is too big.")
+			return errors.New("Avatar is too big")
+		}
+		img := parse_ava(ava)
+		if img == nil {
+			ii.Error.Printf("Wrong xpm format for avatar: " + user)
+			return errors.New("Wrong xpm format")
+		}
+		b64 := base64.URLEncoding.EncodeToString([]byte(ava))
+		ii.Trace.Printf("New avatar for %s: %s", ctx.User.Name, b64)
+		ctx.User.Tags.Add("avatar/" + b64)
+		if err := ctx.www.udb.Edit(ctx.User); err != nil {
+			ii.Error.Printf("Error saving avatar: " + user)
+			return errors.New("Error saving avatar")
+		}
+		http.Redirect(w, r, "/profile", http.StatusSeeOther)
+		return nil
+	}
+	// var id int32
+	// if !strings.HasPrefix(user, ctx.www.db.Name) {
+	// 	return nil
+	// }
+	// user = strings.TrimPrefix(user, ctx.www.db.Name)
+	// user = strings.TrimPrefix(user, ",")
+	// if _, err := fmt.Sscanf(user, "%d", &id); err != nil {
+	// 	return nil
+	// }
+	// u := ctx.www.udb.UserInfoId(id)
+	u := ctx.www.udb.UserInfoName(user)
+	if u == nil {
+		return nil
+	}
+	ava, _ := u.Tags.Get("avatar")
 	if ava == "" {
 		return nil
 	}
-	if data, err := base64.StdEncoding.DecodeString(ava); err != nil {
-		txt := msg_clean(string(data))
-		lines := strings.Split(txt, "\n")
-		img, _ := ParseXpm(lines)
+	if data, err := base64.URLEncoding.DecodeString(ava); err == nil {
+		img := parse_ava(string(data))
 		if img == nil {
+			ii.Error.Printf("Wrong xpm in avatar: %s\n", u.Name)
 			return nil
 		}
 		b := new(bytes.Buffer)
@@ -144,6 +200,9 @@ func www_avatar(ctx *WebContext, w http.ResponseWriter, r *http.Request, user st
 			}
 			return nil
 		}
+		ii.Error.Printf("Can't encode avatar in png: %s\n", u.Name)
+	} else {
+		ii.Error.Printf("Can't decode avatar: %s\n", u.Name)
 	}
 	return nil
 }
@@ -650,6 +709,14 @@ func WebInit(www *WWW) {
 		"unescape": func(s string) template.HTML {
 			return template.HTML(s)
 		},
+		"has_avatar": func(user string) bool {
+			ui := www.udb.UserInfoName(user)
+			if ui != nil {
+				_, ok := ui.Tags.Get("avatar")
+				return ok
+			}
+			return false
+		},
 	}
 	www.tpl = template.Must(template.New("main").Funcs(funcMap).ParseGlob("tpl/*.tpl"))
 }
@@ -701,7 +768,7 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 	} else if path == "register" {
 		ctx.BasePath = "register"
 		return www_register(ctx, w, r)
-	} else if path == "avatar" {
+	} else if args[0] == "avatar" {
 		ctx.BasePath = "avatar"
 		if len(args) < 2 {
 			return errors.New("Wrong request")

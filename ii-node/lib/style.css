@@ -149,7 +149,7 @@ body {
     border: 1px solid #55aaaa;
 }
 
-#edit textarea, #edit input {
+#edit textarea, #edit input, #profile textarea {
     font-size: larger;
     margin: 10px;
     padding: 10px;
@@ -158,8 +158,10 @@ body {
     width: 90%;
     border: 1px solid #55aaaa;
 }
-
-#edit textarea {
+#profile textarea {
+    width: auto;
+}
+#edit textarea, #profile textarea {
     background-color: #ffffea;
     min-height: 20em;
     font-size: x-large;
@@ -242,6 +244,17 @@ body {
     image-rendering: auto;
     image-rendering: crisp-edges;
     image-rendering: pixelated;
+}
+
+.avatar {
+    width: 4em;
+    float: left;
+    height: auto;
+    margin: 0.5em;
+    image-rendering: auto;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+    border: solid 1px #555555;
 }
 
 .comment {

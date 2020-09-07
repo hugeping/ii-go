@@ -193,6 +193,9 @@ func (t *Tags) Add(str string) error {
 	if len(tags)%2 != 0 {
 		return errors.New("Wrong tags")
 	}
+	if t.Hash == nil {
+		t.Hash = make(map[string]string)
+	}
 	for i := 0; i < len(tags); i += 2 {
 		t.Hash[tags[i]] = tags[i+1]
 		t.List = append(t.List, tags[i])

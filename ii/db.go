@@ -655,6 +655,7 @@ type User struct {
 type UDB struct {
 	Path    string
 	Names   map[string]User
+	ById    map[int32]string
 	Secrets map[string]string
 	List    []string
 	Sync    sync.RWMutex
@@ -727,6 +728,27 @@ func (db *UDB) UserInfo(Secret string) *User {
 	Error.Printf("No user for secret: %s", Secret)
 	return nil
 }
+func (db *UDB) UserInfoId(id int32) *User {
+	db.Sync.RLock()
+	defer db.Sync.RUnlock()
+	name, ok := db.ById[id]
+	if ok {
+		v := db.Names[name]
+		return &v
+	}
+	Error.Printf("No user for Id: %d", id)
+	return nil
+}
+func (db *UDB) UserInfoName(name string) *User {
+	db.Sync.RLock()
+	defer db.Sync.RUnlock()
+	v, ok := db.Names[name]
+	if ok {
+		return &v
+	}
+	Error.Printf("No user: %s", name)
+	return nil
+}
 
 func (db *UDB) Id(Secret string) int32 {
 	db.Sync.RLock()
@@ -786,6 +808,27 @@ func OpenUsers(path string) *UDB {
 	db.Path = path
 	return &db
 }
+func (db *UDB) Edit(u *User) error {
+	db.Sync.Lock()
+	defer db.Sync.Unlock()
+	if _, ok := db.Names[u.Name]; !ok {
+		return errors.New("No such user")
+	}
+	db.Names[u.Name] = *u // new version
+	os.Remove(db.Path + ".tmp")
+	for _, Name := range db.List {
+		ui := db.Names[Name]
+		if err := append_file(db.Path + ".tmp", fmt.Sprintf("%d:%s:%s:%s:%s",
+			ui.Id, Name, ui.Mail, ui.Secret, ui.Tags.String())); err != nil {
+			return err
+		}
+	}
+	if err := os.Rename(db.Path + ".tmp", db.Path); err != nil {
+		return err
+	}
+	db.FileSize = 0 // force to reload
+	return nil
+}
 
 func (db *UDB) LoadUsers() error {
 	db.Sync.Lock()
@@ -811,6 +854,7 @@ func (db *UDB) LoadUsers() error {
 	}
 	db.Names = make(map[string]User)
 	db.Secrets = make(map[string]string)
+	db.ById = make(map[int32]string)
 	err = file_lines(db.Path, func(line string) bool {
 		a := strings.Split(line, ":")
 		if len(a) < 4 {
@@ -828,6 +872,7 @@ func (db *UDB) LoadUsers() error {
 		u.Mail = a[2]
 		u.Secret = a[3]
 		u.Tags = NewTags(a[4])
+		db.ById[u.Id] = u.Name
 		db.Names[u.Name] = u
 		db.Secrets[u.Secret] = u.Name
 		db.List = append(db.List, u.Name)
