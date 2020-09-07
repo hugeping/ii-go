@@ -449,6 +449,7 @@ func www_edit(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 		err := ctx.www.tpl.ExecuteTemplate(w, "edit.tpl", ctx)
 		return err
 	case "POST":
+		ctx.BasePath = ""
 		return www_new(ctx, w, r)
 	}
 	return nil
