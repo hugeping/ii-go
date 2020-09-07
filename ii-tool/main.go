@@ -21,9 +21,9 @@ func open_db(path string) *ii.DB {
 }
 
 func open_users_db(path string) *ii.UDB {
-	db := ii.LoadUsers(path)
-	if db == nil {
-		fmt.Printf("Can no open db: %s\n", path)
+	db := ii.OpenUsers(path)
+	if err := db.LoadUsers(); err != nil {
+		fmt.Printf("Can no load db: %s\n", path)
 		os.Exit(1)
 	}
 	return db
