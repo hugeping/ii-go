@@ -197,10 +197,32 @@ func (t *Tags) Add(str string) error {
 		t.Hash = make(map[string]string)
 	}
 	for i := 0; i < len(tags); i += 2 {
+		_, ok := t.Hash[tags[i]]
 		t.Hash[tags[i]] = tags[i+1]
-		t.List = append(t.List, tags[i])
+		if !ok { /* new tag */
+			t.List = append(t.List, tags[i])
+		}
 	}
 	return nil
+}
+func (t *Tags) Del(tag string) bool {
+	if t.Hash == nil {
+		return false
+	}
+	_, ok := t.Hash[tag]
+	if !ok {
+		return false
+	}
+	delete(t.Hash, tag)
+	for k, v := range t.List {
+		if v == tag {
+			copy(t.List[k:], t.List[k+1:])
+			t.List[len(t.List) - 1] = ""
+			t.List = t.List[:len(t.List) - 1]
+			return true
+		}
+	}
+	return false
 }
 
 func (t Tags) String() string {

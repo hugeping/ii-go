@@ -34,6 +34,8 @@ type WebContext struct {
 	Selected string
 	Ref      string
 	Info     string
+	Sysname  string
+	Host     string
 	www      *WWW
 }
 
@@ -152,14 +154,19 @@ func www_avatar(ctx *WebContext, w http.ResponseWriter, r *http.Request, user st
 			ii.Error.Printf("Avatar is too big.")
 			return errors.New("Avatar is too big")
 		}
-		img := parse_ava(ava)
-		if img == nil {
-			ii.Error.Printf("Wrong xpm format for avatar: " + user)
-			return errors.New("Wrong xpm format")
+		if ava == "" {
+			ii.Trace.Printf("Delete avatar for %s", ctx.User.Name)
+			ctx.User.Tags.Del("avatar")
+		} else {
+			img := parse_ava(ava)
+			if img == nil {
+				ii.Error.Printf("Wrong xpm format for avatar: " + user)
+				return errors.New("Wrong xpm format")
+			}
+			b64 := base64.URLEncoding.EncodeToString([]byte(ava))
+			ii.Trace.Printf("New avatar for %s: %s", ctx.User.Name, b64)
+			ctx.User.Tags.Add("avatar/" + b64)
 		}
-		b64 := base64.URLEncoding.EncodeToString([]byte(ava))
-		ii.Trace.Printf("New avatar for %s: %s", ctx.User.Name, b64)
-		ctx.User.Tags.Add("avatar/" + b64)
 		if err := ctx.www.udb.Edit(ctx.User); err != nil {
 			ii.Error.Printf("Error saving avatar: " + user)
 			return errors.New("Error saving avatar")
@@ -731,6 +738,8 @@ func handleWWW(www *WWW, w http.ResponseWriter, r *http.Request) {
 	var user *ii.User = &ii.User{}
 	ctx.User = user
 	ctx.www = www
+	ctx.Sysname = www.db.Name
+	ctx.Host = www.Host
 	www.udb.LoadUsers()
 	err := _handleWWW(&ctx, w, r)
 	if err != nil {

@@ -6,14 +6,14 @@
 <meta name="viewport" content="width=device-width; initial-scale=1.0">
 <link rel="icon" href="/lib/icon.png" type="image/png">
 <link rel="stylesheet" type="text/css" href="/lib/style.css">
-<title>go-ii</title>
+<title>{{.Sysname}}</title>
 </head>
 <body>
 <div id="body">
 <table id="header">
   <tr>
     <td class="title">
-      <span class="logo"><a href="/">ii-go</a></span>
+      <span class="logo"><a href="/">{{.Sysname}}</a></span>
       <span class="info">II/IDEC networks {{ with .Echo }} :: <a href="/echo/{{.}}">{{.}}</a> <span class="info">{{index $.Echolist.Info .}}</span>{{end}}
 </span>
     </td>
