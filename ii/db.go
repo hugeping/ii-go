@@ -746,7 +746,6 @@ func (db *UDB) UserInfoName(name string) *User {
 	if ok {
 		return &v
 	}
-	Error.Printf("No user: %s", name)
 	return nil
 }
 
