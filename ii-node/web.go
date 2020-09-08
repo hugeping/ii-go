@@ -318,6 +318,9 @@ func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Que
 	db := ctx.www.db
 	req := ctx.BasePath
 
+	if rss {
+		q.Start = -100
+	}
 	mis := db.LookupIDS(db.SelectIDS(q))
 	ii.Trace.Printf("www query")
 
@@ -325,9 +328,6 @@ func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Que
 		return mis[i].Off > mis[j].Off
 	})
 	count := len(mis)
-	if rss && count > 100 {
-		count = 100
-	}
 	start := makePager(ctx, count, page)
 	nr := PAGE_SIZE
 	for i := start; i < count && nr > 0; i++ {
