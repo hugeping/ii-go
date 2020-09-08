@@ -38,6 +38,10 @@ func IsMsgId(id string) bool {
 	return len(id) == 20 && !strings.Contains(id, ".")
 }
 
+func IsPrivate(e string) bool {
+	return strings.HasPrefix(e, ".")
+}
+
 func IsEcho(e string) bool {
 	l := len(e)
 	return l >= 3 && l <= 120 && strings.Contains(e, ".") && !strings.Contains(e, ":")

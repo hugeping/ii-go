@@ -127,7 +127,7 @@ func www_logout(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 
 func www_index(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 	ii.Trace.Printf("www index")
-	ctx.Echoes = ctx.www.db.Echoes(nil)
+	ctx.Echoes = ctx.www.db.Echoes(nil, ii.Query { User: *ctx.User })
 	err := ctx.www.tpl.ExecuteTemplate(w, "index.tpl", ctx)
 	return err
 }
@@ -314,6 +314,17 @@ func makePager(ctx *WebContext, count int, page int) int {
 	return start
 }
 
+func Select(ctx *WebContext, q ii.Query) []string {
+	if ii.IsPrivate(q.Echo) { /* private */
+		if ctx.User.Name == "" {
+			var l []string
+			return l
+		}
+		q.User = *ctx.User
+	}
+	return ctx.www.db.SelectIDS(q)
+}
+
 func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Query, page int, rss bool) error {
 	db := ctx.www.db
 	req := ctx.BasePath
@@ -321,7 +332,7 @@ func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Que
 	if rss {
 		q.Start = -100
 	}
-	mis := db.LookupIDS(db.SelectIDS(q))
+	mis := db.LookupIDS(Select(ctx, q))
 	ii.Trace.Printf("www query")
 
 	sort.SliceStable(mis, func(i, j int) bool {
@@ -380,7 +391,7 @@ func www_topics(ctx *WebContext, w http.ResponseWriter, r *http.Request,  page i
 	db := ctx.www.db
 	echo := ctx.BasePath
 	ctx.Echo = echo
-	mis := db.LookupIDS(db.SelectIDS(ii.Query{Echo: echo}))
+	mis := db.LookupIDS(Select(ctx, ii.Query{Echo: echo}))
 	ii.Trace.Printf("www topics: %s", echo)
 	topicsIds := db.GetTopics(mis)
 	var topics []*Topic
@@ -437,7 +448,7 @@ func www_topic(ctx *WebContext, w http.ResponseWriter, r *http.Request, page int
 		ctx.Selected = id
 	}
 	ctx.Echo = mi.Echo
-	mis := db.LookupIDS(db.SelectIDS(ii.Query{Echo: mi.Echo}))
+	mis := db.LookupIDS(Select(ctx, ii.Query{Echo: mi.Echo}))
 
 	topic := mi.Id
 	for p := mi; p != nil; p = db.LookupFast(p.Repto, false) {

@@ -370,6 +370,8 @@ type Query struct {
 	Start       int
 	Lim         int
 	Blacklisted bool
+	User        User
+	Match       func(mi MsgInfo, q Query) bool
 }
 
 func prependStr(x []string, y string) []string {
@@ -383,6 +385,9 @@ func (db *DB) Match(info MsgInfo, r Query) bool {
 	if r.Blacklisted {
 		return info.Off < 0
 	}
+	if r.Match != nil {
+		return r.Match(info, r)
+	}
 	if r.Echo != "" && r.Echo != info.Echo {
 		return false
 	}
@@ -395,6 +400,14 @@ func (db *DB) Match(info MsgInfo, r Query) bool {
 	if r.From != "" && r.From != info.From {
 		return false
 	}
+	if IsPrivate(info.Echo) {
+		if r.User.Name == "" {
+			return false
+		}
+		if info.To != "All" && info.From != r.User.Name && info.To != r.User.Name {
+			return false
+		}
+	}
 	return true
 }
 
@@ -406,7 +419,7 @@ type Echo struct {
 	Msg    *Msg
 }
 
-func (db *DB) Echoes(names []string) []*Echo {
+func (db *DB) Echoes(names []string, q Query) []*Echo {
 	db.Sync.Lock()
 	defer db.Sync.Unlock()
 	db.Lock()
@@ -431,6 +444,9 @@ func (db *DB) Echoes(names []string) []*Echo {
 		id := db.Idx.List[i]
 		info := db.Idx.Hash[id]
 		if info.Off < 0 {
+			continue
+		}
+		if !db.Match(info, q) {
 			continue
 		}
 		e := info.Echo

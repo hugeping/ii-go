@@ -87,9 +87,11 @@ func main() {
 	http.Handle("/lib/", http.StripPrefix("/lib/", fs))
 
 	http.HandleFunc("/list.txt", func(w http.ResponseWriter, r *http.Request) {
-		echoes := db.Echoes(nil)
+		echoes := db.Echoes(nil, ii.Query {})
 		for _, v := range echoes {
-			fmt.Fprintf(w, "%s:%d:%s\n", v.Name, v.Count, www.edb.Info[v.Name])
+			if !ii.IsPrivate(v.Name) {
+				fmt.Fprintf(w, "%s:%d:%s\n", v.Name, v.Count, www.edb.Info[v.Name])
+			}
 		}
 	})
 	http.HandleFunc("/blacklist.txt", func(w http.ResponseWriter, r *http.Request) {
@@ -135,9 +137,11 @@ func main() {
 	})
 	http.HandleFunc("/x/c/", func(w http.ResponseWriter, r *http.Request) {
 		enames := strings.Split(r.URL.Path[5:], "/")
-		echoes := db.Echoes(enames)
+		echoes := db.Echoes(enames, ii.Query {})
 		for _, v := range echoes {
-			fmt.Fprintf(w, "%s:%d:\n", v.Name, v.Count)
+			if !ii.IsPrivate(v.Name) {
+				fmt.Fprintf(w, "%s:%d:\n", v.Name, v.Count)
+			}
 		}
 	})
 	http.HandleFunc("/u/m/", func(w http.ResponseWriter, r *http.Request) {
@@ -163,7 +167,7 @@ func main() {
 		}
 
 		for _, e := range echoes {
-			if !ii.IsEcho(e) {
+			if !ii.IsEcho(e) || ii.IsPrivate(e) {
 				continue
 			}
 			fmt.Fprintf(w, "%s\n", e)
@@ -186,7 +190,7 @@ func main() {
 	})
 	http.HandleFunc("/e/", func(w http.ResponseWriter, r *http.Request) {
 		e := r.URL.Path[3:]
-		if !ii.IsEcho(e) {
+		if !ii.IsEcho(e) || ii.IsPrivate(e) {
 			return
 		}
 		ids := db.SelectIDS(ii.Query{Echo: e})
