@@ -385,9 +385,6 @@ func (db *DB) Match(info MsgInfo, r Query) bool {
 	if r.Blacklisted {
 		return info.Off < 0
 	}
-	if r.Match != nil {
-		return r.Match(info, r)
-	}
 	if r.Echo != "" && r.Echo != info.Echo {
 		return false
 	}
@@ -407,6 +404,9 @@ func (db *DB) Match(info MsgInfo, r Query) bool {
 		if info.To != "All" && info.From != r.User.Name && info.To != r.User.Name {
 			return false
 		}
+	}
+	if r.Match != nil {
+		return r.Match(info, r)
 	}
 	return true
 }

@@ -315,13 +315,7 @@ func makePager(ctx *WebContext, count int, page int) int {
 }
 
 func Select(ctx *WebContext, q ii.Query) []string {
-	if ii.IsPrivate(q.Echo) { /* private */
-		if ctx.User.Name == "" {
-			var l []string
-			return l
-		}
-		q.User = *ctx.User
-	}
+	q.User = *ctx.User
 	return ctx.www.db.SelectIDS(q)
 }
 
