@@ -220,6 +220,10 @@ body {
     font-weight: bold;
 }
 
+#header .title .info a {
+    color: #333377;
+}
+
 #header .links {
     padding: 0 1em 0.5em 0;
     text-align: right;

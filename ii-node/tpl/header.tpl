@@ -17,16 +17,16 @@
       {{ if eq .BasePath "" }}
       <span class="info">II/IDEC networks :: <a href="/echo/all">New posts</a>
       {{ else if gt (len .Topics) 0}}
-      <span class="info">II/IDEC networks {{ with .Echo }} :: <a href="/echo/{{.}}">{{.}}</a> <span class="info">{{index $.Echolist.Info .}}</span>{{end}}
+      <span class="info">II/IDEC networks {{ with .Echo }} :: <a href="/echo/{{.}}">{{.}}</a> :: <span class="info">{{index $.Echolist.Info .}}</span>{{end}}
 {{ else }}
-      <span class="info">II/IDEC networks {{ with .Echo }} :: <a href="/{{.}}">{{.}}</a> <span class="info">{{index $.Echolist.Info .}}</span>{{end}}
+      <span class="info">II/IDEC networks {{ with .Echo }} :: <a href="/{{.}}">{{.}}</a> :: <span class="info">{{index $.Echolist.Info .}}</span>{{end}}
 {{ end }}
 </span>
     </td>
     <td class="links">
       <span>
+      {{ template "links.tpl" }}
       {{ if .User.Name }}
-
       {{ if eq .BasePath "profile" }}
       <a href="/logout">Logout</a>
       {{ else }}
