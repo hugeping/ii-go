@@ -936,12 +936,13 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 				fmt.Sscanf(args[2], "%d", &page)
 			}
 		}
-		e := args[1]
+		q := ii.Query { Echo: args[1] }
 		if args[1] == "all" {
-			e = ""
+			q.Echo = ""
+			q.Start = -100
 		}
 		ctx.BasePath = "echo/" + args[1]
-		return www_query(ctx, w, r, ii.Query { Echo: e }, page, rss)
+		return www_query(ctx, w, r, q, page, rss)
 	} else if ii.IsEcho(args[0]) {
 		page := 1
 		if len(args) > 1 {
