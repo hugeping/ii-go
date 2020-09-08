@@ -166,7 +166,19 @@ func www_base64(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 	start := false
 	b64 := ""
 	fname := ""
+	pre := false
 	for _, v := range lines {
+		if !start && strings.Trim(v, " ") == "====" {
+			if !pre {
+				pre = true
+				continue
+			}
+			pre = false
+			continue
+		}
+		if pre {
+			continue
+		}
 		if !start && !strings.HasPrefix(v, "@base64:") {
 			continue
 		}
