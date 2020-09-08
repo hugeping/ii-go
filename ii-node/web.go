@@ -776,7 +776,7 @@ func msg_text(m *ii.Msg) string {
 			if fname == "" {
 				fname = "file"
 			}
-			f += fmt.Sprintf("<a class=\"attach\" href=\"%s/base64\">%s</a><br>\n", m.MsgId, str_esc(fname))
+			f += fmt.Sprintf("<a class=\"attach\" href=\"/%s/base64\">%s</a><br>\n", m.MsgId, str_esc(fname))
 			return f
 		} else {
 			l = msg_esc(l)
