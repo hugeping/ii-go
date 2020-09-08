@@ -8,9 +8,7 @@
 <span class="info">{{.From}}({{.Addr}}) &mdash; {{.To}}<br>{{.Date | fdate}}</span><br>
 <div class="text">
 <br>
-{{with .Text}}
-{{. | msg_format}}
-{{end}}
+{{. | msg_text}}
 <br>
 </div>
 </div>
@@ -29,6 +27,7 @@
 <input type="text" name="to" class="to" placeholder="{{.To}}" value="{{.To}}"><br>
 <input type="text" name="subj" class="subj" placeholder="{{.Subj}}" value="{{.Subj}}"><br>
 <input type="hidden" name="repto" value="{{ . | repto}}">
+<input type="hidden" name="id" value="{{ .MsgId }}">
 <textarea type="text" name="msg" class="message" cols=60 row=16 placeholder="Hi, All!">{{.Text}}</textarea>
 </td></tr>
 

@@ -139,6 +139,74 @@ func parse_ava(txt string) *image.RGBA {
 	return img
 }
 
+var magicTable = map[string]string {
+	"\xff\xd8\xff":      "image/jpeg",
+	"\x89PNG\r\n\x1a\n": "image/png",
+	"GIF87a":            "image/gif",
+	"GIF89a":            "image/gif",
+}
+
+func check_image(incipit []byte) string {
+	incipitStr := string(incipit)
+	for magic, mime := range magicTable {
+		if strings.HasPrefix(incipitStr, magic) {
+			return mime
+		}
+	}
+	return ""
+}
+
+func www_base64(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
+	id := ctx.BasePath
+	m := ctx.www.db.Get(id)
+	if m == nil {
+		return errors.New("No such message")
+	}
+	lines := strings.Split(msg_clean(m.Text), "\n")
+	start := false
+	b64 := ""
+	fname := ""
+	for _, v := range lines {
+		if !start && !strings.HasPrefix(v, "@base64:") {
+			continue
+		}
+		if start {
+			v = strings.Replace(v, " ", "", -1)
+			if !base64Regex.MatchString(v) {
+				break
+			}
+			b64 += v
+			continue
+		}
+		v = strings.TrimPrefix(v, "@base64:")
+		v = strings.Trim(v, " ")
+		fname = v
+		if fname == "" {
+			fname = "file"
+		}
+		start = true
+	}
+	if b64 == "" {
+		return nil
+	}
+	b, err := base64.RawStdEncoding.DecodeString(b64)
+	if err != nil {
+		if b, err = base64.StdEncoding.DecodeString(b64); err != nil {
+			if b, err = base64.URLEncoding.DecodeString(b64); err != nil {
+				return err
+			}
+		}
+	}
+	//	w.Header().Set("Content-Type", "image/jpeg")
+	if check_image(b) != "" {
+		w.Header().Set("Content-Disposition", "inline")
+	} else {
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", fname))
+	}
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(b)))
+	_, err = w.Write(b)
+	return err
+}
 func www_avatar(ctx *WebContext, w http.ResponseWriter, r *http.Request, user string) error {
 	if r.Method == "POST" { /* upload avatar */
 		if ctx.User.Name == "" || ctx.User.Name != user {
@@ -152,7 +220,7 @@ func www_avatar(ctx *WebContext, w http.ResponseWriter, r *http.Request, user st
 		ava := r.FormValue("avatar")
 		if len(ava) > 2048 {
 			ii.Error.Printf("Avatar is too big.")
-			return errors.New("Avatar is too big")
+			return errors.New("Avatar is too big (>2048 bytes)")
 		}
 		if ava == "" {
 			ii.Trace.Printf("Delete avatar for %s", ctx.User.Name)
@@ -289,13 +357,14 @@ func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Que
 	<guid>%s</guid>
 	<link>%s/%s#%s</link>
 	<pubDate>%s</pubDate>
-	<description>%s</description>
+	<description>%s\n\n%s</description>
 	<author>%s</author>
 </item>
 `,
 				str_esc(m.Subj), m.MsgId, ctx.www.Host, m.MsgId, m.MsgId,
 				time.Unix(m.Date, 0).Format("2006-01-02 15:04:05"),
-				str_esc(msg_format(fmt.Sprintf("%s -> %s\n\n%s", m.From, m.To, m.Text))),
+				str_esc(fmt.Sprintf("%s -> %s\n\n", m.From, m.To)),
+				str_esc(msg_text(m)),
 				str_esc(m.From))
 		}
 		fmt.Fprintf(w,
@@ -564,6 +633,7 @@ var quoteRegex = regexp.MustCompile("^[^ >]*>")
 var urlRegex = regexp.MustCompile(`(http|ftp|https)://[^ <>"]+`)
 var url2Regex = regexp.MustCompile(`{{{href=[0-9]+}}}`)
 var urlIIRegex = regexp.MustCompile(`ii://[a-zA-Z0-9]{20}`)
+var base64Regex = regexp.MustCompile(`^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$`)
 
 func msg_clean(txt string) string {
 	txt = strings.Replace(txt, "\r", "", -1)
@@ -629,7 +699,11 @@ func msg_esc(l string) string {
 	return l
 }
 
-func msg_format(txt string) string {
+func msg_text(m *ii.Msg) string {
+	if m == nil {
+		return ""
+	}
+	txt := m.Text
 	txt = msg_clean(txt)
 	f := ""
 	pre := false
@@ -675,10 +749,18 @@ func msg_format(txt string) string {
 			strings.HasPrefix(l, "//") || strings.HasPrefix(l, "#") ||
 			strings.HasPrefix(l, "+++ ") {
 			l = fmt.Sprintf("<span class=\"comment\">%s</span>", str_esc(l))
-		} else if strings.HasPrefix(l, "spoiler:") {
+		} else if strings.HasPrefix(l, "@spoiler:") {
 			l = fmt.Sprintf("<span class=\"spoiler\">%s</span>", str_esc(ReverseStr(l)))
 		} else if quoteRegex.MatchString(l) {
 			l = fmt.Sprintf("<span class=\"quote\">%s</span>", str_esc(l))
+		} else if strings.HasPrefix(l, "@base64:") {
+			fname := strings.TrimPrefix(l, "@base64:")
+			fname = strings.Trim(fname, " ")
+			if fname == "" {
+				fname = "file"
+			}
+			f += fmt.Sprintf("<a class=\"attach\" href=\"%s/base64\">%s</a><br>\n", m.MsgId, str_esc(fname))
+			return f
 		} else {
 			l = msg_esc(l)
 		}
@@ -704,8 +786,8 @@ func WebInit(www *WWW) {
 			}
 			return template.HTML(time.Unix(date, 0).Format("2006-01-02 15:04:05"))
 		},
-		"msg_format": func(s string) template.HTML {
-			return template.HTML(msg_format(s))
+		"msg_text": func(m *ii.Msg) template.HTML {
+			return template.HTML(msg_text(m))
 		},
 		"repto": func(m ii.Msg) string {
 			r, _ := m.Tag("repto")
@@ -800,6 +882,9 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 			} else if args[1] == "blacklist" {
 				ctx.BasePath = args[0]
 				return www_blacklist(ctx, w, r)
+			} else if args[1] == "base64" {
+				ctx.BasePath = args[0]
+				return www_base64(ctx, w, r)
 			}
 			fmt.Sscanf(args[1], "%d", &page)
 		}

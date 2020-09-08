@@ -12,12 +12,11 @@
 <span class="info">{{.From}}({{.Addr}}) &mdash; {{.To}}<br>{{.Date | fdate}}</span><br>
 <div class="text">
 <br>
-{{with .Text}}
-{{. | msg_format}}
-{{end}}
+{{. | msg_text}}
 <br>
 {{if $.User.Name}}
-<span class="reply"><a href="/{{.MsgId}}/reply">Reply</a></span>
+<span class="reply"><a href="/{{.MsgId}}/reply/new">Reply</a> :: </span>
+<span class="reply"><a href="/{{.MsgId}}/reply">Quote</a></span>
 {{end}}
 {{ if msg_access . $.User }}
  :: <span class="reply"><a href="/{{.MsgId}}/edit">Edit</a></span>
