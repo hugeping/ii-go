@@ -14,7 +14,9 @@
   <tr>
     <td class="title">
       <span class="logo"><a href="/">{{.Sysname}}</a></span>
-{{if gt (len .Topics) 0}}
+      {{ if eq .BasePath "" }}
+      <span class="info">II/IDEC networks :: <a href="/echo/all">All posts</a>
+      {{ else if gt (len .Topics) 0}}
       <span class="info">II/IDEC networks {{ with .Echo }} :: <a href="/echo/{{.}}">{{.}}</a> <span class="info">{{index $.Echolist.Info .}}</span>{{end}}
 {{ else }}
       <span class="info">II/IDEC networks {{ with .Echo }} :: <a href="/{{.}}">{{.}}</a> <span class="info">{{index $.Echolist.Info .}}</span>{{end}}

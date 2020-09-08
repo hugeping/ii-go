@@ -325,7 +325,7 @@ func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Que
 		return mis[i].Off > mis[j].Off
 	})
 	count := len(mis)
-	if rss {
+	if rss && count > 100 {
 		count = 100
 	}
 	start := makePager(ctx, count, page)
@@ -936,8 +936,12 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 				fmt.Sscanf(args[2], "%d", &page)
 			}
 		}
+		e := args[1]
+		if args[1] == "all" {
+			e = ""
+		}
 		ctx.BasePath = "echo/" + args[1]
-		return www_query(ctx, w, r, ii.Query { Echo: args[1] }, page, rss)
+		return www_query(ctx, w, r, ii.Query { Echo: e }, page, rss)
 	} else if ii.IsEcho(args[0]) {
 		page := 1
 		if len(args) > 1 {
