@@ -62,7 +62,30 @@ type WWW struct {
 	edb *ii.EDB
 	udb *ii.UDB
 }
+func get_ue(echoes []string, db *ii.DB, user ii.User, w http.ResponseWriter, r *http.Request) {
+	if len(echoes) == 0 {
+		return
+	}
+	slice := echoes[len(echoes)-1:][0]
+	var idx, lim int
+	if _, err := fmt.Sscanf(slice, "%d:%d", &idx, &lim); err == nil {
+		echoes = echoes[:len(echoes)-1]
+	} else {
+		idx, lim = 0, 0
+	}
 
+	for _, e := range echoes {
+		if !ii.IsEcho(e) {
+			continue
+		}
+		fmt.Fprintf(w, "%s\n", e)
+		ids := db.SelectIDS(ii.Query{Echo: e, Start: idx, Lim: lim, User: user})
+		for _, id := range ids {
+			fmt.Fprintf(w, "%s\n", id)
+		}
+	}
+
+}
 func main() {
 	var www WWW
 	ii.OpenLog(ioutil.Discard, os.Stdout, os.Stderr)
@@ -107,7 +130,20 @@ func main() {
 		var pauth, tmsg string
 		switch r.Method {
 		case "GET":
+			udb.LoadUsers()
 			args := strings.Split(r.URL.Path[9:], "/")
+			if len(args) >= 3 && args[1] == "u" && args[2] == "e" {
+				pauth = args[0]
+				if !udb.Access(pauth) {
+					ii.Info.Printf("Access denied for pauth: %s", pauth)
+					return
+				}
+				echoes := args[3:]
+				if user := udb.UserInfo(pauth); user != nil {
+					get_ue(echoes, db, *user, w, r)
+				}
+				return
+			}
 			if len(args) != 2 {
 				ii.Error.Printf("Wrong /u/point/ get request: %s", r.URL.Path[9:])
 				return
@@ -155,27 +191,7 @@ func main() {
 	})
 	http.HandleFunc("/u/e/", func(w http.ResponseWriter, r *http.Request) {
 		echoes := strings.Split(r.URL.Path[5:], "/")
-		if len(echoes) == 0 {
-			return
-		}
-		slice := echoes[len(echoes)-1:][0]
-		var idx, lim int
-		if _, err := fmt.Sscanf(slice, "%d:%d", &idx, &lim); err == nil {
-			echoes = echoes[:len(echoes)-1]
-		} else {
-			idx, lim = 0, 0
-		}
-
-		for _, e := range echoes {
-			if !ii.IsEcho(e) || ii.IsPrivate(e) {
-				continue
-			}
-			fmt.Fprintf(w, "%s\n", e)
-			ids := db.SelectIDS(ii.Query{Echo: e, Start: idx, Lim: lim})
-			for _, id := range ids {
-				fmt.Fprintf(w, "%s\n", id)
-			}
-		}
+		get_ue(echoes, db, ii.User {}, w, r)
 	})
 	http.HandleFunc("/m/", func(w http.ResponseWriter, r *http.Request) {
 		id := r.URL.Path[3:]
