@@ -73,11 +73,11 @@ Commands:
 	send <server> <pauth> <msg|-> - send message
 	fetch <url> [echofile|-]      - fetch
 	store <bundle|->              - import bundle to database
-        get <msgid>                   - show message from database
-        select <echo> [[start]:lim]   - get slice from echo
-        cc <name> [[start]:lim]       - get msgs to name
-        index                         - recreate index
-        blacklist <msgid>             - blacklist msg
+	get <msgid>                   - show message from database
+	select <echo> [[start]:lim]   - get slice from echo
+	cc <name> [[start]:lim]       - get msgs to name
+	index                         - recreate index
+	blacklist <msgid>             - blacklist msg
 	useradd <name> <e-mail> <password> - adduser
 Options:
         -db=<path>                    - database path
@@ -177,7 +177,7 @@ Options:
 		if len(args) > 2 {
 			str := GetFile(args[2])
 			for _, v := range strings.Split(str, "\n") {
-				echolist = append(echolist, v)
+				echolist = append(echolist, strings.Split(v, ":")[0])
 			}
 		}
 		err = n.Fetch(db, echolist, *lim_opt)
