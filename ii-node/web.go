@@ -374,13 +374,13 @@ func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Que
 	<guid>%s</guid>
 	<link>%s/%s#%s</link>
 	<pubDate>%s</pubDate>
-	<description>%s\n\n%s</description>
+	<description>%s%s</description>
 	<author>%s</author>
 </item>
 `,
 				str_esc(m.Subj), m.MsgId, ctx.www.Host, m.MsgId, m.MsgId,
 				time.Unix(m.Date, 0).Format("2006-01-02 15:04:05"),
-				str_esc(fmt.Sprintf("%s -> %s\n\n", m.From, m.To)),
+				str_esc(fmt.Sprintf("%s -> %s<br><br>", m.From, m.To)),
 				str_esc(msg_text(m)),
 				str_esc(m.From))
 		}
@@ -656,7 +656,6 @@ func msg_clean(txt string) string {
 	txt = strings.Replace(txt, "\r", "", -1)
 	txt = strings.TrimLeft(txt, "\n")
 	txt = strings.TrimRight(txt, "\n")
-	txt = strings.TrimSuffix(txt, "\n")
 	return txt
 }
 func msg_quote(txt string) string {
