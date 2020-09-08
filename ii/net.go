@@ -221,6 +221,12 @@ func (n *Node) Fetch(db *DB, Echolist []string, limit int) error {
 	num := 0
 	Info.Printf("Start fetcher(s) for %s", n.Host)
 	for _, v := range Echolist {
+		if !IsEcho(v) {
+			if strings.Trim(v, " ") != "" {
+				Trace.Printf("Skip echo: %s", v)
+			}
+			continue
+		}
 		wait.Add(1)
 		num += 1
 		if num >= MaxConnections { /* add per one */
