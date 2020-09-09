@@ -32,11 +32,11 @@ type Index struct {
 }
 
 type DB struct {
-	Path string
-	Idx  Index
-	Sync sync.RWMutex
+	Path    string
+	Idx     Index
+	Sync    sync.RWMutex
 	IdxSync sync.RWMutex
-	Name string
+	Name    string
 }
 
 func append_file(fn string, text string) error {
@@ -219,7 +219,7 @@ func (db *DB) LoadIndex() error {
 			err2 = errors.New("Wrong format on line:" + fmt.Sprintf("%d", linenr))
 			return false
 		}
-		mi := MsgInfo{Id: info[0], Echo: info[1], To: info[3], From: info[4] }
+		mi := MsgInfo{Id: info[0], Echo: info[1], To: info[3], From: info[4]}
 		if _, err := fmt.Sscanf(info[2], "%d", &mi.Off); err != nil {
 			err2 = errors.New("Wrong offset on line: " + fmt.Sprintf("%d", linenr))
 			return false
@@ -543,7 +543,7 @@ func (db *DB) SelectIDS(r Query) []string {
 	return Resp
 }
 
-func (db *DB)GetTopics(mi []*MsgInfo) map[string][]string {
+func (db *DB) GetTopics(mi []*MsgInfo) map[string][]string {
 	db.Sync.RLock()
 	defer db.Sync.RUnlock()
 
@@ -669,13 +669,13 @@ type User struct {
 }
 
 type UDB struct {
-	Path    string
-	Names   map[string]User
-	ById    map[int32]string
-	Secrets map[string]string
-	List    []string
-	Sync    sync.RWMutex
-	FileSize    int64
+	Path     string
+	Names    map[string]User
+	ById     map[int32]string
+	Secrets  map[string]string
+	List     []string
+	Sync     sync.RWMutex
+	FileSize int64
 }
 
 func IsUsername(u string) bool {
@@ -833,12 +833,12 @@ func (db *UDB) Edit(u *User) error {
 	os.Remove(db.Path + ".tmp")
 	for _, Name := range db.List {
 		ui := db.Names[Name]
-		if err := append_file(db.Path + ".tmp", fmt.Sprintf("%d:%s:%s:%s:%s",
+		if err := append_file(db.Path+".tmp", fmt.Sprintf("%d:%s:%s:%s:%s",
 			ui.Id, Name, ui.Mail, ui.Secret, ui.Tags.String())); err != nil {
 			return err
 		}
 	}
-	if err := os.Rename(db.Path + ".tmp", db.Path); err != nil {
+	if err := os.Rename(db.Path+".tmp", db.Path); err != nil {
 		return err
 	}
 	db.FileSize = 0 // force to reload

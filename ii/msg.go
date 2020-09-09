@@ -221,8 +221,8 @@ func (t *Tags) Del(tag string) bool {
 	for k, v := range t.List {
 		if v == tag {
 			copy(t.List[k:], t.List[k+1:])
-			t.List[len(t.List) - 1] = ""
-			t.List = t.List[:len(t.List) - 1]
+			t.List[len(t.List)-1] = ""
+			t.List = t.List[:len(t.List)-1]
 			return true
 		}
 	}

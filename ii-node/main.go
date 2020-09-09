@@ -56,12 +56,13 @@ var verbose_opt *bool = flag.Bool("v", false, "Verbose")
 var echo_opt *string = flag.String("e", "list.txt", "Echoes list")
 
 type WWW struct {
-	Host string;
-	tpl *template.Template
-	db  *ii.DB
-	edb *ii.EDB
-	udb *ii.UDB
+	Host string
+	tpl  *template.Template
+	db   *ii.DB
+	edb  *ii.EDB
+	udb  *ii.UDB
 }
+
 func get_ue(echoes []string, db *ii.DB, user ii.User, w http.ResponseWriter, r *http.Request) {
 	if len(echoes) == 0 {
 		return
@@ -110,7 +111,7 @@ func main() {
 	http.Handle("/lib/", http.StripPrefix("/lib/", fs))
 
 	http.HandleFunc("/list.txt", func(w http.ResponseWriter, r *http.Request) {
-		echoes := db.Echoes(nil, ii.Query {})
+		echoes := db.Echoes(nil, ii.Query{})
 		for _, v := range echoes {
 			if !ii.IsPrivate(v.Name) {
 				fmt.Fprintf(w, "%s:%d:%s\n", v.Name, v.Count, www.edb.Info[v.Name])
@@ -173,7 +174,7 @@ func main() {
 	})
 	http.HandleFunc("/x/c/", func(w http.ResponseWriter, r *http.Request) {
 		enames := strings.Split(r.URL.Path[5:], "/")
-		echoes := db.Echoes(enames, ii.Query {})
+		echoes := db.Echoes(enames, ii.Query{})
 		for _, v := range echoes {
 			if !ii.IsPrivate(v.Name) {
 				fmt.Fprintf(w, "%s:%d:\n", v.Name, v.Count)
@@ -191,7 +192,7 @@ func main() {
 	})
 	http.HandleFunc("/u/e/", func(w http.ResponseWriter, r *http.Request) {
 		echoes := strings.Split(r.URL.Path[5:], "/")
-		get_ue(echoes, db, ii.User {}, w, r)
+		get_ue(echoes, db, ii.User{}, w, r)
 	})
 	http.HandleFunc("/m/", func(w http.ResponseWriter, r *http.Request) {
 		id := r.URL.Path[3:]

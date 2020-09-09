@@ -131,7 +131,7 @@ func www_logout(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 
 func www_index(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 	ii.Trace.Printf("www index")
-	ctx.Echoes = ctx.www.db.Echoes(nil, ii.Query { User: *ctx.User })
+	ctx.Echoes = ctx.www.db.Echoes(nil, ii.Query{User: *ctx.User})
 	ctx.Template = "index.tpl"
 	err := ctx.www.tpl.ExecuteTemplate(w, "index.tpl", ctx)
 	return err
@@ -144,7 +144,7 @@ func parse_ava(txt string) *image.RGBA {
 	return img
 }
 
-var magicTable = map[string]string {
+var magicTable = map[string]string{
 	"\xff\xd8\xff":      "image/jpeg",
 	"\x89PNG\r\n\x1a\n": "image/png",
 	"GIF87a":            "image/gif",
@@ -364,7 +364,7 @@ func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Que
 	if rss {
 		ctx.Topic = db.Name + " :: " + req
 		fmt.Fprintf(w,
-`<?xml version="1.0" encoding="UTF-8"?>
+			`<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
 <title>%s</title>
 <subtitle>RSS feed with last messages</subtitle>
@@ -372,9 +372,9 @@ func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Que
 <id>%s/%s</id>
 `,
 			str_esc(ctx.Topic), ctx.www.Host, ctx.www.Host, ctx.BasePath)
-		for _, m := range(ctx.Msg) {
+		for _, m := range ctx.Msg {
 			fmt.Fprintf(w,
-`<entry>
+				`<entry>
 	<title>%s</title>
 	<id>%s</id>
 	<link href="%s/%s#%s" />
@@ -390,7 +390,7 @@ func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Que
 				str_esc(m.From))
 		}
 		fmt.Fprintf(w,
-`</feed>
+			`</feed>
 `)
 		return nil
 	}
@@ -398,7 +398,7 @@ func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Que
 	return ctx.www.tpl.ExecuteTemplate(w, "query.tpl", ctx)
 }
 
-func www_topics(ctx *WebContext, w http.ResponseWriter, r *http.Request,  page int) error {
+func www_topics(ctx *WebContext, w http.ResponseWriter, r *http.Request, page int) error {
 	db := ctx.www.db
 	echo := ctx.BasePath
 	ctx.Echo = echo
@@ -446,7 +446,6 @@ func www_topics(ctx *WebContext, w http.ResponseWriter, r *http.Request,  page i
 	err := ctx.www.tpl.ExecuteTemplate(w, "topics.tpl", ctx)
 	return err
 }
-
 
 func www_topic(ctx *WebContext, w http.ResponseWriter, r *http.Request, page int) error {
 	id := ctx.BasePath
@@ -578,7 +577,7 @@ func www_new(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 		if newecho != "" {
 			echo = newecho
 		}
-		if !ctx.www.edb.Allowed(echo) && ctx.User.Id != 1{
+		if !ctx.www.edb.Allowed(echo) && ctx.User.Id != 1 {
 			ii.Error.Printf("This echo is disallowed")
 			return errors.New("This echo is disallowed")
 		}
@@ -808,8 +807,8 @@ func msg_access(www *WWW, m ii.Msg, u ii.User) bool {
 func WebInit(www *WWW) {
 	funcMap := template.FuncMap{
 		"fdate": func(date int64) template.HTML {
-			if time.Now().Unix() - date < 60 * 60 * 24 {
-				return template.HTML("<span class='today'>"+time.Unix(date, 0).Format("2006-01-02 15:04:05") + "</span>")
+			if time.Now().Unix()-date < 60*60*24 {
+				return template.HTML("<span class='today'>" + time.Unix(date, 0).Format("2006-01-02 15:04:05") + "</span>")
 			}
 			return template.HTML(time.Unix(date, 0).Format("2006-01-02 15:04:05"))
 		},
@@ -935,7 +934,7 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 			}
 		}
 		ctx.BasePath = "to/" + args[1]
-		return www_query(ctx, w, r, ii.Query { To: args[1] }, page, rss)
+		return www_query(ctx, w, r, ii.Query{To: args[1]}, page, rss)
 	} else if args[0] == "from" {
 		page := 1
 		rss := false
@@ -950,7 +949,7 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 			}
 		}
 		ctx.BasePath = "from/" + args[1]
-		return www_query(ctx, w, r, ii.Query { From: args[1] }, page, rss)
+		return www_query(ctx, w, r, ii.Query{From: args[1]}, page, rss)
 	} else if args[0] == "echo" {
 		page := 1
 		rss := false
@@ -964,7 +963,7 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 				fmt.Sscanf(args[2], "%d", &page)
 			}
 		}
-		q := ii.Query { Echo: args[1] }
+		q := ii.Query{Echo: args[1]}
 		if args[1] == "all" {
 			q.Echo = ""
 			q.Start = -100
