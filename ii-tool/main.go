@@ -72,6 +72,7 @@ func main() {
 Commands:
 	search <string> [echo]        - search in base
 	send <server> <pauth> <msg|-> - send message
+	clean                         - cleanup database
 	fetch <url> [echofile|-]      - fetch
 	store <bundle|->              - import bundle to database
 	get <msgid>                   - show message from database
@@ -164,6 +165,7 @@ Options:
 			os.Exit(1)
 		}
 	case "clean":
+		db := open_db(*db_opt)
 		hash := make(map[string]int)
 		nr := 0
 		dup := 0
@@ -187,17 +189,17 @@ Options:
 			}
 			return true
 		})
-		fmt.Printf("%d lines... %d dups... Pass 2...\n", nr, dup)
+		fmt.Printf("%d lines... %d dups...\n", nr, dup)
 		if dup == 0 {
 			os.Exit(0)
 		}
+		fmt.Printf("Pass 2...\n")
 		nr = 0
 		f, err := os.OpenFile(*db_opt + ".new", os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			fmt.Printf("Error: %s\n", err)
 			os.Exit(1)
 		}
-		defer f.Close()
 		skip := 0
 		err = ii.FileLines(*db_opt, func(line string) bool {
 			nr ++
@@ -227,13 +229,30 @@ Options:
 			}
 			return true
 		})
+		f.Close()
+		if err != nil {
+			fmt.Printf("Error: %s\n")
+			os.Exit(1)
+		}
 		for _, v := range hash {
 			if v != 0 {
 				fmt.Printf("Error. DB shrinked. Aborted.\n")
 				os.Exit(1)
 			}
 		}
-		fmt.Printf("%d messages removed\n", skip)
+		db.Lock()
+		if err := os.Rename(*db_opt + ".new", *db_opt); err != nil {
+			db.Unlock()
+			fmt.Printf("Error: %s\n")
+			os.Exit(1)
+		}
+		fmt.Printf("%d messages removed.\n", skip)
+		fmt.Printf("Create index...\n")
+		db.Unlock()
+		if err := db.CreateIndex(); err != nil {
+			fmt.Printf("Can not rebuild index: %s\n", err)
+			os.Exit(1)
+		}
 	case "fetch":
 		var echolist []string
 		if len(args) < 2 {

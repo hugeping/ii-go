@@ -54,13 +54,13 @@ func append_file(fn string, text string) error {
 func (db *DB) Lock() bool {
 	try := 16
 	for try > 0 {
-		if err := os.Mkdir(db.LockPath(), 0777); err == nil || os.IsExist(err) {
+		if err := os.Mkdir(db.LockPath(), 0777); err == nil {
 			return true
 		}
 		time.Sleep(time.Second)
 		try -= 1
 	}
-	Error.Printf("Can not acquire lock for 16 seconds")
+	Error.Printf("Can not acquire lock for 16 seconds: %s", db.LockPath())
 	return false
 }
 
