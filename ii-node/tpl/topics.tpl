@@ -3,7 +3,7 @@
 <table id="topiclist" cellspacing=0 cellpadding=0>
 <tr class="title">
 <th>Topics</th>
-<th class="extra">Posts</th>
+<th class="extra">Replies</th>
 <th>Last post</th>
 </tr>
 {{range $k, $v := .Topics }}
