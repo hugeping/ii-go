@@ -32,7 +32,7 @@ echo "std.club:this comment will be omitted" | ./ii-tool fecth http://127.0.0.1:
 Options are:
 
 ```
--db <database> -- db by default (db.idx - genetated index)
+-db <database>   -- db by default (db.idx - genetated index)
 -lim=<n>         -- fetch mode, if omitted full sync will be performed if needed
                     if n > 0 - last n messages synced
                     if n < 0 - adaptive fetching with step n will be performed
@@ -61,7 +61,7 @@ db - is file with bundles or '-' for stdin.
 Options are:
 
 ```
--db \<database\> -- db to store/merge in;
+-db <database> -- db to store/merge in;
 ```
 ## Show messages
 
@@ -86,8 +86,8 @@ slice is the start:limit. For example:
 Options are:
 
 ```
--db \<database\> -- db by default (db.idx - genetated index)
--v               -- show message text, not only MsgId
+-db <database> -- db by default (db.idx - genetated index)
+-v             -- show message text, not only MsgId
 ```
 
 You may show selected message:
@@ -105,8 +105,8 @@ Or search message:
 Where options are:
 
 ```
--db \<database\> -- db by default (db.idx - genetated index)
--v               -- show message text, not only MsgId
+-db <database> -- db by default (db.idx - genetated index)
+-v             -- show message text, not only MsgId
 ```
 To show messages adressed to selected user, try:
 
