@@ -165,7 +165,6 @@ Options:
 			os.Exit(1)
 		}
 	case "clean":
-		db := open_db(*db_opt)
 		hash := make(map[string]int)
 		nr := 0
 		dup := 0
@@ -240,19 +239,7 @@ Options:
 				os.Exit(1)
 			}
 		}
-		db.Lock()
-		if err := os.Rename(*db_opt + ".new", *db_opt); err != nil {
-			db.Unlock()
-			fmt.Printf("Error: %s\n")
-			os.Exit(1)
-		}
-		fmt.Printf("%d messages removed.\n", skip)
-		fmt.Printf("Create index...\n")
-		db.Unlock()
-		if err := db.CreateIndex(); err != nil {
-			fmt.Printf("Can not rebuild index: %s\n", err)
-			os.Exit(1)
-		}
+		fmt.Printf("%d messages removed. File %s created.\n", skip, *db_opt + ".new")
 	case "fetch":
 		var echolist []string
 		if len(args) < 2 {
