@@ -43,7 +43,7 @@ If echolist is omitted, fetcher will try to get all echos. It uses list.txt exte
 
 ## Create index
 
-Index file (db.idx by default) is created when needed. If you want force to recreate it, useЖ
+Index file (db.idx by default) is created when needed. If you want force to recreate it, use:
 
 ```
 ./ii-tool index
