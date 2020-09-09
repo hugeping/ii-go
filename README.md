@@ -191,6 +191,6 @@ Web interface supports some non-standart features in message body text:
 
 - @spolier: spoiler
 - @base64: name (base64 data from next line till end of message)
-- xpm2 and xpm3 images embedded
+- xpm2 and xpm3 images embedding
 
 That's all, for now! :)
