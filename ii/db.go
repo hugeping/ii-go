@@ -91,7 +91,7 @@ func (db *DB) CreateIndex() error {
 
 	return db._CreateIndex()
 }
-func file_lines(path string, fn func(string) bool) error {
+func FileLines(path string, fn func(string) bool) error {
 	f, err := os.Open(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -137,7 +137,7 @@ func (db *DB) _CreateIndex() error {
 	}
 	defer fidx.Close()
 	var off int64
-	return file_lines(db.BundlePath(), func(line string) bool {
+	return FileLines(db.BundlePath(), func(line string) bool {
 		msg, _ := DecodeBundle(line)
 		if msg == nil {
 			off += int64(len(line) + 1)
@@ -871,7 +871,7 @@ func (db *UDB) LoadUsers() error {
 	db.Secrets = make(map[string]string)
 	db.ById = make(map[int32]string)
 	db.List = nil
-	err = file_lines(db.Path, func(line string) bool {
+	err = FileLines(db.Path, func(line string) bool {
 		a := strings.Split(line, ":")
 		if len(a) < 4 {
 			Error.Printf("Wrong entry in user DB: %s", line)
@@ -922,7 +922,7 @@ func LoadEcholist(path string) *EDB {
 	db.Path = path
 	db.Info = make(map[string]string)
 
-	err := file_lines(path, func(line string) bool {
+	err := FileLines(path, func(line string) bool {
 		a := strings.SplitN(line, ":", 3)
 		if len(a) < 2 {
 			Error.Printf("Wrong entry in echo DB: %s", line)

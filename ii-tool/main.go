@@ -163,6 +163,77 @@ Options:
 			fmt.Printf("Can not add user: %s\n", err)
 			os.Exit(1)
 		}
+	case "clean":
+		hash := make(map[string]int)
+		nr := 0
+		dup := 0
+		fmt.Printf("Pass 1...\n")
+		err := ii.FileLines(*db_opt, func(line string) bool {
+			nr ++
+			a := strings.Split(line, ":")
+			if len(a) != 2 {
+				ii.Error.Printf("Error in line: %d", nr)
+				return true
+			}
+			if !ii.IsMsgId(a[0]) {
+				ii.Error.Printf("Error in line: %d", nr)
+				return true
+			}
+			if _, ok := hash[a[0]]; ok {
+				hash[a[0]] ++
+				dup ++
+			} else {
+				hash[a[0]] = 1
+			}
+			return true
+		})
+		fmt.Printf("%d lines... %d dups... Pass 2...\n", nr, dup)
+		if dup == 0 {
+			os.Exit(0)
+		}
+		nr = 0
+		f, err := os.OpenFile(*db_opt + ".new", os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			fmt.Printf("Error: %s\n", err)
+			os.Exit(1)
+		}
+		defer f.Close()
+		skip := 0
+		err = ii.FileLines(*db_opt, func(line string) bool {
+			nr ++
+			a := strings.Split(line, ":")
+			if len(a) != 2 {
+				fmt.Printf("Error in line: %d\n", nr)
+				skip ++
+				return true
+			}
+			if !ii.IsMsgId(a[0]) {
+				fmt.Printf("Error in line: %d\n", nr)
+				skip ++
+				return true
+			}
+			if v, ok := hash[a[0]]; !ok || v == 0 {
+				fmt.Printf("Error. DB has changed. Aborted.\n")
+				os.Exit(1)
+			}
+			hash[a[0]] --
+			if hash[a[0]] == 0 {
+				if _, err := f.WriteString(line + "\n"); err != nil {
+					fmt.Printf("Error: %s\n", err)
+					os.Exit(1)
+				}
+			} else {
+				skip ++
+			}
+			return true
+		})
+		for _, v := range hash {
+			if v != 0 {
+				fmt.Printf("Error. DB shrinked. Aborted.\n")
+				os.Exit(1)
+			}
+		}
+		fmt.Printf("%d messages removed\n", skip)
 	case "fetch":
 		var echolist []string
 		if len(args) < 2 {
