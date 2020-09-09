@@ -35,7 +35,7 @@ Options are:
 -db \<database\> -- db by default (db.idx - genetated index)
 -lim=<n>         -- fetch mode, if omitted full sync will be performed if needed
                     if n > 0 - last n messages synced
-					if n < 0 - adaptive fetching with step n will be performed
+                    if n < 0 - adaptive fetching with step n will be performed
 -f               -- do not check last message, perform sync even it is not needed
 ```
 
@@ -148,8 +148,8 @@ Where options are:
 -db <path>       Database, "db" by default
 -e list          Echos list file. This file needs only for descriptions
                  and must be in list.txt format, where 2nd colum is ignored.
-				 When this file is exists, points can not create they own echos.
-			     list.txt by default.
+                 When this file is exists, points can not create they own echos.
+                 list.txt by default.
 -host <string>   Host string for node. For ex. http://hugeping.tk.
                  http://127.0.0.1:8080 by default
 -sys "name"      Node name. "ii-go" by default
