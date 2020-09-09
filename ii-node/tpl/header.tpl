@@ -6,6 +6,8 @@
 <meta name="viewport" content="width=device-width; initial-scale=1.0">
 <link rel="icon" href="/lib/icon.png" type="image/png">
 <link rel="stylesheet" type="text/css" href="/lib/style.css">
+{{ if eq .Template "query.tpl" }}<link href="/{{.BasePath}}/rss" type="application/atom+xml" rel="alternate" title="{{.Sysname}} {{.BasePath}} :: Atom feed" />{{ end }}
+
 <title>{{.Sysname}}</title>
 </head>
 <body>

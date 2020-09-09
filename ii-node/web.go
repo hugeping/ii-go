@@ -32,6 +32,7 @@ type WebContext struct {
 	User     *ii.User
 	Echolist *ii.EDB
 	Selected string
+	Template string
 	Ref      string
 	Info     string
 	Sysname  string
@@ -43,6 +44,7 @@ func www_register(ctx *WebContext, w http.ResponseWriter, r *http.Request) error
 	ii.Trace.Printf("www register")
 	switch r.Method {
 	case "GET":
+		ctx.Template = "register.tpl"
 		err := ctx.www.tpl.ExecuteTemplate(w, "register.tpl", ctx)
 		return err
 	case "POST":
@@ -72,6 +74,7 @@ func www_login(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 	ii.Trace.Printf("www login")
 	switch r.Method {
 	case "GET":
+		ctx.Template = "login.tpl"
 		err := ctx.www.tpl.ExecuteTemplate(w, "login.tpl", ctx)
 		return err
 	case "POST":
@@ -109,6 +112,7 @@ func www_profile(ctx *WebContext, w http.ResponseWriter, r *http.Request) error 
 			ctx.Info = string(data)
 		}
 	}
+	ctx.Template = "profile.tpl"
 	err := ctx.www.tpl.ExecuteTemplate(w, "profile.tpl", ctx)
 	return err
 }
@@ -128,6 +132,7 @@ func www_logout(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 func www_index(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 	ii.Trace.Printf("www index")
 	ctx.Echoes = ctx.www.db.Echoes(nil, ii.Query { User: *ctx.User })
+	ctx.Template = "index.tpl"
 	err := ctx.www.tpl.ExecuteTemplate(w, "index.tpl", ctx)
 	return err
 }
@@ -358,25 +363,25 @@ func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Que
 	}
 	if rss {
 		ctx.Topic = db.Name + " :: " + req
-		fmt.Fprintf(w, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
 		fmt.Fprintf(w,
-`<rss version="2.0">
-<channel>
+`<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
 <title>%s</title>
-<description>RSS feed with last messages</description>
-<link>%s</link>
+<subtitle>RSS feed with last messages</subtitle>
+<link href="%s" rel="self" />
+<id>%s/%s</id>
 `,
-			str_esc(ctx.Topic), ctx.www.Host)
+			str_esc(ctx.Topic), ctx.www.Host, ctx.www.Host, ctx.BasePath)
 		for _, m := range(ctx.Msg) {
 			fmt.Fprintf(w,
-`<item>
+`<entry>
 	<title>%s</title>
-	<guid>%s</guid>
-	<link>%s/%s#%s</link>
-	<pubDate>%s</pubDate>
-	<description>%s%s</description>
-	<author>%s</author>
-</item>
+	<id>%s</id>
+	<link href="%s/%s#%s" />
+	<updated>%s</updated>
+	<content type="html">%s%s</content>
+	<author><name>%s</name></author>
+</entry>
 `,
 				str_esc(m.Subj), m.MsgId, ctx.www.Host, m.MsgId, m.MsgId,
 				time.Unix(m.Date, 0).Format("2006-01-02 15:04:05"),
@@ -385,11 +390,11 @@ func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Que
 				str_esc(m.From))
 		}
 		fmt.Fprintf(w,
-`</channel>
-</rss>
+`</feed>
 `)
 		return nil
 	}
+	ctx.Template = "query.tpl"
 	return ctx.www.tpl.ExecuteTemplate(w, "query.tpl", ctx)
 }
 
@@ -437,6 +442,7 @@ func www_topics(ctx *WebContext, w http.ResponseWriter, r *http.Request,  page i
 		nr--
 	}
 	ii.Trace.Printf("Stop to generate topics")
+	ctx.Template = "topics.tpl"
 	err := ctx.www.tpl.ExecuteTemplate(w, "topics.tpl", ctx)
 	return err
 }
@@ -489,6 +495,7 @@ func www_topic(ctx *WebContext, w http.ResponseWriter, r *http.Request, page int
 		ctx.Msg = append(ctx.Msg, m)
 		nr--
 	}
+	ctx.Template = "topic.tpl"
 	err := ctx.www.tpl.ExecuteTemplate(w, "topic.tpl", ctx)
 	return err
 }
@@ -532,6 +539,7 @@ func www_edit(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 		}
 		msg.Text = msg.Text + "\nP.S. Edited: " + time.Now().Format("2006-01-02 15:04:05")
 		ctx.Msg = append(ctx.Msg, &msg)
+		ctx.Template = "edit.tpl"
 		err := ctx.www.tpl.ExecuteTemplate(w, "edit.tpl", ctx)
 		return err
 	case "POST":
@@ -547,6 +555,7 @@ func www_new(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 
 	switch r.Method {
 	case "GET":
+		ctx.Template = "new.tpl"
 		err := ctx.www.tpl.ExecuteTemplate(w, "new.tpl", ctx)
 		return err
 	case "POST":
@@ -612,6 +621,7 @@ func www_new(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 			m.MsgId = ""
 		}
 		ctx.Msg = append(ctx.Msg, m)
+		ctx.Template = "preview.tpl"
 		err = ctx.www.tpl.ExecuteTemplate(w, "preview.tpl", ctx)
 		return err
 	}
@@ -635,6 +645,7 @@ func www_reply(ctx *WebContext, w http.ResponseWriter, r *http.Request, quote bo
 		msg.Text = ""
 	}
 	ctx.Msg = append(ctx.Msg, &msg)
+	ctx.Template = "reply.tpl"
 	err := ctx.www.tpl.ExecuteTemplate(w, "reply.tpl", ctx)
 	return err
 }
@@ -833,6 +844,7 @@ func WebInit(www *WWW) {
 
 func handleErr(ctx *WebContext, w http.ResponseWriter, err error) {
 	ctx.Error = err.Error()
+	ctx.Template = "error.tpl"
 	ctx.www.tpl.ExecuteTemplate(w, "error.tpl", ctx)
 }
 
