@@ -17,6 +17,7 @@ import (
 type Node struct {
 	Host     string
 	Features map[string]bool
+	Force    bool
 }
 
 func http_req_lines(url string, fn func(string) bool) error {
@@ -63,14 +64,16 @@ func (n *Node) Fetcher(db *DB, Echo string, limit int, wait *sync.WaitGroup, con
 	}()
 	defer wait.Done()
 	if n.IsFeature("u/e") { /* fast path */
-		id, err := http_get_id(n.Host + "/u/e/" + Echo + "/-1:1")
-		if !IsMsgId(id) {
-			Info.Printf("%s: no valid MsgId", Echo)
-			return
-		}
-		if err == nil && db.Exists(id) != nil { /* no sync needed */
-			Info.Printf("%s: no sync needed", Echo)
-			return
+		if !n.Force {
+			id, err := http_get_id(n.Host + "/u/e/" + Echo + "/-1:1")
+			if !IsMsgId(id) {
+				Info.Printf("%s: no valid MsgId", Echo)
+				return
+			}
+			if err == nil && db.Exists(id) != nil { /* no sync needed */
+				Info.Printf("%s: no sync needed", Echo)
+				return
+			}
 		}
 		if limit < 0 {
 			limit = -limit

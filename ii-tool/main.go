@@ -56,6 +56,7 @@ func main() {
 	db_opt := flag.String("db", "./db", "II database path (directory)")
 	lim_opt := flag.Int("lim", 0, "Fetch last N messages")
 	verbose_opt := flag.Bool("v", false, "Verbose")
+	force_opt := flag.Bool("f", false, "Force full sync")
 	users_opt := flag.String("u", "points.txt", "Users database")
 	conns_opt := flag.Int("j", 6, "Maximum parallel jobs")
 
@@ -173,6 +174,9 @@ Options:
 		if err != nil {
 			fmt.Printf("Can not connect to %s: %s\n", args[1], err)
 			os.Exit(1)
+		}
+		if *force_opt {
+			n.Force = true
 		}
 		if len(args) > 2 {
 			str := GetFile(args[2])
