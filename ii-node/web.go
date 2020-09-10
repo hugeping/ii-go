@@ -48,15 +48,31 @@ func www_register(ctx *WebContext, w http.ResponseWriter, r *http.Request) error
 		err := ctx.www.tpl.ExecuteTemplate(w, "register.tpl", ctx)
 		return err
 	case "POST":
+		udb := ctx.www.udb
 		if err := r.ParseForm(); err != nil {
 			ii.Error.Printf("Error in POST request: %s", err)
 			return err
+		}
+		auth := r.FormValue("auth")
+		if auth != "" { /* edit form */
+			u := udb.UserInfo(auth)
+			if u == nil {
+				ii.Error.Printf("Access denied")
+				return errors.New("Access denied")
+			}
+			password := r.FormValue("password")
+			u.Secret = ii.MakeSecret(u.Name + password)
+			if err := udb.Edit(u); err != nil {
+				ii.Info.Printf("Can not edit user %s: %s", ctx.User.Name, err)
+				return err
+			}
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			return nil
 		}
 		user := r.FormValue("username")
 		password := r.FormValue("password")
 		email := r.FormValue("email")
 
-		udb := ctx.www.udb
 		err := udb.Add(user, email, password)
 		if err != nil {
 			ii.Info.Printf("Can not register user %s: %s", user, err)
@@ -892,6 +908,9 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 	} else if path == "register" {
 		ctx.BasePath = "register"
 		return www_register(ctx, w, r)
+	} else if path == "reset" {
+		ctx.Template = "reset.tpl"
+		return ctx.www.tpl.ExecuteTemplate(w, "reset.tpl", ctx)
 	} else if args[0] == "avatar" {
 		ctx.BasePath = "avatar"
 		if len(args) < 2 {
