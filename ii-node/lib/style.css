@@ -209,6 +209,10 @@ body {
     font-weight: bold;
 }
 
+.logo img {
+    max-height: 1em;
+}
+
 #header .logo a {
     text-decoration: none;
     color: black;

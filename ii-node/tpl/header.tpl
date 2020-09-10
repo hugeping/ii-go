@@ -15,7 +15,7 @@
 <table id="header">
   <tr>
     <td class="title">
-      <span class="logo"><a href="/">{{.Sysname}}</a></span>
+      <span class="logo"><a href="/"><img class="logo" src="/lib/icon.png">{{.Sysname}}</a></span>
       {{ if eq .BasePath "" }}
       <span class="info">II/IDEC networks :: <a href="/echo/all">New posts</a>
       {{ else if gt (len .Topics) 0}}
