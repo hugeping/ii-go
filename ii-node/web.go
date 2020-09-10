@@ -644,6 +644,7 @@ func www_reply(ctx *WebContext, w http.ResponseWriter, r *http.Request, quote bo
 		msg.Text = ""
 	}
 	ctx.Msg = append(ctx.Msg, &msg)
+	ctx.Echo = msg.Echo
 	ctx.Template = "reply.tpl"
 	err := ctx.www.tpl.ExecuteTemplate(w, "reply.tpl", ctx)
 	return err
