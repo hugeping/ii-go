@@ -17,7 +17,7 @@
 </td>
 <td class="topics extra">{{.Topics}}</td>
 <td class="count extra">{{.Count}}</td>
-<td class="info">{{with .Msg}}<span class="subj">{{.Subj}}</span><br><a href="/{{.MsgId}}#{{.MsgId}}">{{.Date | fdate}}</a> by {{.From}}{{end}}</td>
+<td class="info">{{with .Msg}}<span class="subj">{{.Subj}}</span><br><a href="/echo/{{.Echo}}">{{.Date | fdate}}</a> by {{.From}}{{end}}</td>
 </tr>
 {{ end }}
 </table>

@@ -341,7 +341,7 @@ func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Que
 	req := ctx.BasePath
 
 	if rss {
-		q.Start = -100
+		q.Start = -PAGE_SIZE
 	}
 	mis := db.LookupIDS(Select(ctx, q))
 	ii.Trace.Printf("www query")
@@ -967,8 +967,9 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 		q := ii.Query{Echo: args[1]}
 		if args[1] == "all" {
 			q.Echo = ""
-			q.Start = -100
 		}
+		ctx.Echo = q.Echo
+		q.Start = -PAGE_SIZE
 		ctx.BasePath = "echo/" + args[1]
 		return www_query(ctx, w, r, q, page, rss)
 	} else if ii.IsEcho(args[0]) {
