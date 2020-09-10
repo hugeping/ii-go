@@ -111,12 +111,12 @@ Where options are:
 To show messages adressed to selected user, try:
 
 ```
-./ii-tool [options] c <user> [slice]
+./ii-tool [options] cc <user> [slice]
 ```
 For example:
 
 ```
-./ii-tool -v c Peter -1:1 # show and print last message
+./ii-tool -v cc Peter -1:1 # show and print last message
 ```
 
 ## Add user (point)
