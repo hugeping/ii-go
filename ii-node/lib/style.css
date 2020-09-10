@@ -207,6 +207,7 @@ body {
 #header .title .logo {
     font-size: xx-large;
     font-weight: bold;
+    vertical-align: bottom;
 }
 
 .logo img {
