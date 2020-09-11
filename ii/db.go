@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -37,6 +38,7 @@ type DB struct {
 	Sync    sync.RWMutex
 	IdxSync sync.RWMutex
 	Name    string
+	LockDepth int32
 }
 
 func append_file(fn string, text string) error {
@@ -52,6 +54,9 @@ func append_file(fn string, text string) error {
 }
 
 func (db *DB) Lock() bool {
+	if atomic.AddInt32(&db.LockDepth, 1) > 1 {
+		return true
+	}
 	try := 16
 	for try > 0 {
 		if err := os.Mkdir(db.LockPath(), 0777); err == nil {
@@ -65,6 +70,9 @@ func (db *DB) Lock() bool {
 }
 
 func (db *DB) Unlock() {
+	if atomic.AddInt32(&db.LockDepth, -1) > 0 {
+		return
+	}
 	os.Remove(db.LockPath())
 }
 
