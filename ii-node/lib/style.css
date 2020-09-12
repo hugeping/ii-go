@@ -75,16 +75,17 @@ body {
 #echolist .echo, #topiclist .topic {
     font-weight: normal;
     text-align: left;
-    width: 100%;
+    width: 60%;
 }
 
 #echolist .count, #echolist .topics, #topiclist .topics, #topiclist .posts {
     text-align: center;
 }
+
 #echolist .info, #topiclist .info {
     color: #555555;
     font-size: smaller;
-    min-width: 16em;
+    min-width: 40%;
 }
 
 .today {
