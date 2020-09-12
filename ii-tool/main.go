@@ -166,6 +166,7 @@ Options:
 		}
 	case "clean":
 		hash := make(map[string]int)
+		last := make(map[string]string)
 		nr := 0
 		dup := 0
 		fmt.Printf("Pass 1...\n")
@@ -183,6 +184,7 @@ Options:
 			if _, ok := hash[a[0]]; ok {
 				hash[a[0]] ++
 				dup ++
+				last[a[0]] = line
 			} else {
 				hash[a[0]] = 1
 			}
@@ -203,28 +205,38 @@ Options:
 		err = ii.FileLines(*db_opt, func(line string) bool {
 			nr ++
 			a := strings.Split(line, ":")
+			id := a[0]
 			if len(a) != 2 {
 				fmt.Printf("Error in line: %d\n", nr)
 				skip ++
 				return true
 			}
-			if !ii.IsMsgId(a[0]) {
+			if !ii.IsMsgId(id) {
 				fmt.Printf("Error in line: %d\n", nr)
 				skip ++
 				return true
 			}
-			if v, ok := hash[a[0]]; !ok || v == 0 {
+			if v, ok := hash[id]; !ok || v == 0 {
 				fmt.Printf("Error. DB has changed. Aborted.\n")
 				os.Exit(1)
 			}
-			hash[a[0]] --
-			if hash[a[0]] == 0 {
-				if _, err := f.WriteString(line + "\n"); err != nil {
+			if hash[id] > 0 { // first record
+				hash[id] = -hash[id]
+				l := line
+				if hash[id] < -1 {
+					l = last[id]
+				}
+				if _, err := f.WriteString(l + "\n"); err != nil {
 					fmt.Printf("Error: %s\n", err)
 					os.Exit(1)
 				}
 			} else {
 				skip ++
+			}
+			hash[id] += 1
+			if hash[id] > 0 {
+				fmt.Printf("Error. DB has changed. Aborted.\n")
+				os.Exit(1)
 			}
 			return true
 		})
