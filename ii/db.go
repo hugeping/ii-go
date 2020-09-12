@@ -18,6 +18,7 @@ import (
 )
 
 type MsgInfo struct {
+	Num   int
 	Id    string
 	Echo  string
 	To    string
@@ -220,6 +221,7 @@ func (db *DB) LoadIndex() error {
 	}
 	var err2 error
 	linenr := 0
+	nr := len(Idx.List)
 	err = f_lines(file, func(line string) bool {
 		linenr++
 		info := strings.Split(line, ":")
@@ -227,14 +229,17 @@ func (db *DB) LoadIndex() error {
 			err2 = errors.New("Wrong format on line:" + fmt.Sprintf("%d", linenr))
 			return false
 		}
-		mi := MsgInfo{Id: info[0], Echo: info[1], To: info[3], From: info[4]}
+		mi := MsgInfo{Num: nr, Id: info[0], Echo: info[1], To: info[3], From: info[4]}
 		if _, err := fmt.Sscanf(info[2], "%d", &mi.Off); err != nil {
 			err2 = errors.New("Wrong offset on line: " + fmt.Sprintf("%d", linenr))
 			return false
 		}
 		mi.Repto = info[5]
-		if _, ok := Idx.Hash[mi.Id]; !ok { // new msg
+		if mm, ok := Idx.Hash[mi.Id]; !ok { // new msg
 			Idx.List = append(Idx.List, mi.Id)
+			nr ++
+		} else {
+			mi.Num = mm.Num
 		}
 		Idx.Hash[mi.Id] = mi
 		// Trace.Printf("Adding %s to index", mi.Id)
@@ -578,7 +583,7 @@ func (db *DB) GetTopics(mi []*MsgInfo) map[string][]string {
 			topics[t.Id] = append(topics[t.Id], t.Id)
 		}
 		sort.SliceStable(l, func(i int, j int) bool {
-			return l[i].Off < l[j].Off
+			return l[i].Num < l[j].Num
 		})
 		for _, i := range l {
 			if i.Id == t.Id {

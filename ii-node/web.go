@@ -363,7 +363,7 @@ func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Que
 	ii.Trace.Printf("www query")
 
 	sort.SliceStable(mis, func(i, j int) bool {
-		return mis[i].Off > mis[j].Off
+		return mis[i].Num > mis[j].Num
 	})
 	count := len(mis)
 	start := makePager(ctx, count, page)
@@ -440,7 +440,7 @@ func www_topics(ctx *WebContext, w http.ResponseWriter, r *http.Request, page in
 	}
 
 	sort.SliceStable(topics, func(i, j int) bool {
-		return topics[i].Last.Off > topics[j].Last.Off
+		return topics[i].Last.Num > topics[j].Last.Num
 	})
 	ctx.BasePath = echo
 	tcount := len(topics)
@@ -615,6 +615,7 @@ func www_new(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 				ii.Error.Printf("Access denied")
 				return errors.New("Access denied")
 			}
+			m.Date = om.Date
 			m.MsgId = id
 			m.From = om.From
 			m.Addr = om.Addr
