@@ -222,9 +222,9 @@ func www_base64(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 	if b64 == "" {
 		return nil
 	}
-	b, err := base64.RawStdEncoding.DecodeString(b64)
+	b, err := base64.StdEncoding.DecodeString(b64)
 	if err != nil {
-		if b, err = base64.StdEncoding.DecodeString(b64); err != nil {
+		if b, err = base64.RawStdEncoding.DecodeString(b64); err != nil {
 			if b, err = base64.URLEncoding.DecodeString(b64); err != nil {
 				return err
 			}

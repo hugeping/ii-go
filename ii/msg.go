@@ -121,6 +121,8 @@ func DecodeBundle(msg string) (*Msg, error) {
 			return nil, errors.New("Wrong MsgId format")
 		}
 	}
+	msg = strings.Replace(msg, "-", "+", -1) /* if it is URL base64 */
+	msg = strings.Replace(msg, "_", "/", -1) /* make it base64 */
 	data, err := base64.StdEncoding.DecodeString(msg)
 	if err != nil {
 		return nil, err
