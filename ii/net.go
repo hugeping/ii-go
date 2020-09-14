@@ -34,6 +34,9 @@ func http_req_lines(url string, fn func(string) bool) error {
 		}
 		line = strings.TrimSuffix(line, "\n")
 		if err == io.EOF {
+			if line != "" { /* node do not send final \n */
+				fn(line)
+			}
 			break
 		}
 		if !fn(line) {

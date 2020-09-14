@@ -171,7 +171,7 @@ Options:
 		dup := 0
 		fmt.Printf("Pass 1...\n")
 		err := ii.FileLines(*db_opt, func(line string) bool {
-			nr ++
+			nr++
 			a := strings.Split(line, ":")
 			if len(a) != 2 {
 				ii.Error.Printf("Error in line: %d", nr)
@@ -182,8 +182,8 @@ Options:
 				return true
 			}
 			if _, ok := hash[a[0]]; ok {
-				hash[a[0]] ++
-				dup ++
+				hash[a[0]]++
+				dup++
 				last[a[0]] = line
 			} else {
 				hash[a[0]] = 1
@@ -196,24 +196,24 @@ Options:
 		}
 		fmt.Printf("Pass 2...\n")
 		nr = 0
-		f, err := os.OpenFile(*db_opt + ".new", os.O_CREATE|os.O_WRONLY, 0644)
+		f, err := os.OpenFile(*db_opt+".new", os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			fmt.Printf("Error: %s\n", err)
 			os.Exit(1)
 		}
 		skip := 0
 		err = ii.FileLines(*db_opt, func(line string) bool {
-			nr ++
+			nr++
 			a := strings.Split(line, ":")
 			id := a[0]
 			if len(a) != 2 {
 				fmt.Printf("Error in line: %d\n", nr)
-				skip ++
+				skip++
 				return true
 			}
 			if !ii.IsMsgId(id) {
 				fmt.Printf("Error in line: %d\n", nr)
-				skip ++
+				skip++
 				return true
 			}
 			if v, ok := hash[id]; !ok || v == 0 {
@@ -231,7 +231,7 @@ Options:
 					os.Exit(1)
 				}
 			} else {
-				skip ++
+				skip++
 			}
 			hash[id] += 1
 			if hash[id] > 0 {
@@ -251,7 +251,7 @@ Options:
 				os.Exit(1)
 			}
 		}
-		fmt.Printf("%d messages removed. File %s created.\n", skip, *db_opt + ".new")
+		fmt.Printf("%d messages removed. File %s created.\n", skip, *db_opt+".new")
 	case "fetch":
 		var echolist []string
 		if len(args) < 2 {

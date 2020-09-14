@@ -34,11 +34,11 @@ type Index struct {
 }
 
 type DB struct {
-	Path    string
-	Idx     Index
-	Sync    sync.RWMutex
-	IdxSync sync.RWMutex
-	Name    string
+	Path      string
+	Idx       Index
+	Sync      sync.RWMutex
+	IdxSync   sync.RWMutex
+	Name      string
 	LockDepth int32
 }
 
@@ -237,7 +237,7 @@ func (db *DB) LoadIndex() error {
 		mi.Repto = info[5]
 		if mm, ok := Idx.Hash[mi.Id]; !ok { // new msg
 			Idx.List = append(Idx.List, mi.Id)
-			nr ++
+			nr++
 		} else {
 			mi.Num = mm.Num
 		}
