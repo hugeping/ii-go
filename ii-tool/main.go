@@ -375,5 +375,4 @@ Options:
 		fmt.Printf("Wrong cmd: %s\n", cmd)
 		os.Exit(1)
 	}
-	os.Exit(0)
 }
