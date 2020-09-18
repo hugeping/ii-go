@@ -1,3 +1,7 @@
+// Message bundles manipulations (encode/decode).
+// Decode message from user (point).
+// Some validation functions.
+
 package ii
 
 import (
@@ -9,11 +13,20 @@ import (
 	"time"
 )
 
+// II-tags, encoded in raw message as key1/value1/key2/value2.. string
+// When message is decoded into Msg,
+// key/value properties of tags associated with it.
+// When encoding Msg, all properties will translated to tags string
+// List - is the names of properties
+// Hash - is the map of properties (Name->Value)
 type Tags struct {
 	Hash map[string]string
 	List []string
 }
 
+// Decoded message.
+// Has all atrributes of message
+// including Tags.
 type Msg struct {
 	MsgId string
 	Tags  Tags
@@ -26,6 +39,10 @@ type Msg struct {
 	Text  string
 }
 
+// Make MsgId from raw text
+// MsgId is unique identificator of message
+// It is supposed that there is no collision of MsgId
+// It is base64(sha256(text)) transformation
 func MsgId(msg string) string {
 	h := sha256.Sum256([]byte(msg))
 	id := base64.StdEncoding.EncodeToString(h[:])
@@ -34,27 +51,42 @@ func MsgId(msg string) string {
 	return id[0:20]
 }
 
+// Check if string is valid MsgId
 func IsMsgId(id string) bool {
 	return len(id) == 20 && !strings.Contains(id, ".")
 }
 
+// Check if Echoarea is private area
+// This is ii-go extension, echoareas
+// that has "." prefix are for private messaging.
+// Those areas can be fetched only with /u/point/auth/u/e/ scheme
 func IsPrivate(e string) bool {
 	return strings.HasPrefix(e, ".")
 }
 
+// Check if string is valid echoarea name
 func IsEcho(e string) bool {
 	l := len(e)
 	return l >= 3 && l <= 120 && strings.Contains(e, ".") && !strings.Contains(e, ":")
 }
 
+// Check if string is valid subject
+// In fact, it is just return true stub :)
 func IsSubject(s string) bool {
 	return true // len(strings.TrimSpace(s)) > 0
 }
 
+// Check if subject is empty string
+// Used when validate msg from points
 func IsEmptySubject(s string) bool {
 	return len(strings.TrimSpace(s)) > 0
 }
 
+// Decode message from point sent with /u/point scheme.
+// Try to use URL save and STD base64.
+// Returns pointrt to decoded Msg or nil (and error)
+// Note: This function adds "ii/ok" to Tags and
+// set Date field with UTC Unix time.
 func DecodeMsgline(msg string, enc bool) (*Msg, error) {
 	var m Msg
 	var data []byte
@@ -108,6 +140,10 @@ func DecodeMsgline(msg string, enc bool) (*Msg, error) {
 	return &m, nil
 }
 
+// Decode bundle line in msgid:message format or just message
+// Returns pointer to decoded Msg or nil, error if fail.
+// Can parse URL safe and STD BASE64.
+// This function does NOT add ii/ok tag and does NOT change Date
 func DecodeBundle(msg string) (*Msg, error) {
 	var m Msg
 	if strings.Contains(msg, ":") {
@@ -160,6 +196,8 @@ func DecodeBundle(msg string) (*Msg, error) {
 	return &m, nil
 }
 
+// Creates Tags from string in key1/value1/key2/value2/... format
+// Can return error (with unfilled Tags) if format is wrong.
 func MakeTags(str string) (Tags, error) {
 	var t Tags
 	str = strings.Trim(str, " ")
@@ -178,11 +216,15 @@ func MakeTags(str string) (Tags, error) {
 	return t, nil
 }
 
+// Create Tags from string in key1/value1/key2/value2/... format
+// igniring errors. This is useful for creating new "ii/ok" tag.
 func NewTags(str string) Tags {
 	t, _ := MakeTags(str)
 	return t
 }
 
+// Returns Tags propertie with name n.
+// Returns "", false if such propertie does not exists in Tags.
 func (t *Tags) Get(n string) (string, bool) {
 	if t == nil || t.Hash == nil {
 		return "", false
@@ -194,6 +236,7 @@ func (t *Tags) Get(n string) (string, bool) {
 	return "", false
 }
 
+// Add tags in key/value/... format to existing Tags.
 func (t *Tags) Add(str string) error {
 	tags := strings.Split(str, "/")
 	if len(tags)%2 != 0 {
@@ -211,6 +254,8 @@ func (t *Tags) Add(str string) error {
 	}
 	return nil
 }
+
+// Remove tag with name tag from Tags.
 func (t *Tags) Del(tag string) bool {
 	if t.Hash == nil {
 		return false
@@ -231,6 +276,7 @@ func (t *Tags) Del(tag string) bool {
 	return false
 }
 
+// Translate Tags to string in key1/value1/key2/value2/... format.
 func (t Tags) String() string {
 	var text string
 	if t.Hash == nil {
@@ -245,6 +291,7 @@ func (t Tags) String() string {
 	return text
 }
 
+// Dump (returns string) decoded message for debug purposes.
 func (m *Msg) Dump() string {
 	if m == nil {
 		return ""
@@ -253,10 +300,12 @@ func (m *Msg) Dump() string {
 		m.MsgId, m.Tags.String(), m.Echo, time.Unix(m.Date, 0), m.From, m.Addr, m.To, m.Subj, m.Text)
 }
 
+// Get if tag property with name n is associated with Msg
 func (m *Msg) Tag(n string) (string, bool) {
 	return m.Tags.Get(n)
 }
 
+// Translate decoded Msg to raw text format ready to encoding.
 func (m *Msg) String() string {
 	tags := m.Tags.String()
 	text := strings.Join([]string{tags, m.Echo,
@@ -270,6 +319,7 @@ func (m *Msg) String() string {
 	return text
 }
 
+// Encode Msg into bundle format (msgid:base64text).
 func (m *Msg) Encode() string {
 	var text string
 	if m == nil || m.Echo == "" {
