@@ -217,7 +217,7 @@ func MakeTags(str string) (Tags, error) {
 }
 
 // Create Tags from string in key1/value1/key2/value2/... format
-// igniring errors. This is useful for creating new "ii/ok" tag.
+// ignoring errors. This is useful for creating new "ii/ok" tag.
 func NewTags(str string) Tags {
 	t, _ := MakeTags(str)
 	return t

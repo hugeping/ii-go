@@ -1,3 +1,6 @@
+// Network operations: fetch, post/get message from point
+// Check node extensions.
+
 package ii
 
 import (
@@ -14,12 +17,18 @@ import (
 	"sync"
 )
 
+// Node object. Use Connect to create it.
+// Host: url node
+// Features: extensions map
+// Force: force sync even last message is not new
 type Node struct {
 	Host     string
 	Features map[string]bool
 	Force    bool
 }
 
+// utility function to make get request and call fn
+// for every line. Stops on EOF or fn return false.
 func http_req_lines(url string, fn func(string) bool) error {
 	resp, err := http.Get(url)
 	if err != nil {
@@ -45,6 +54,9 @@ func http_req_lines(url string, fn func(string) bool) error {
 	}
 	return nil
 }
+
+// short variant of http_get_lines. Read one line and
+// interpret it as message id. Return it.
 func http_get_id(url string) (string, error) {
 	res := ""
 	if err := http_req_lines(url, func(line string) bool {
@@ -59,6 +71,17 @@ func http_get_id(url string) (string, error) {
 	return res, nil
 }
 
+// Fetcher internal goroutine.
+// DB: db to write
+// Echo: echo to fetch
+// wait: sync for Fetch master to detect finishing of work
+// cond: used for wake-up new goroutines
+// Can work in different modes.
+// If limit > 0, just fetch last [limit] messages (-limit:limit slice)
+// if limit < 0, use adaptive mode, probe (-(2*n)* limit:1) messages
+// untill find old message.
+// if node does not support u/e slices, than full sync performed
+// if node connection is not in Force mode, do not perform sync if not needed
 func (n *Node) Fetcher(db *DB, Echo string, limit int, wait *sync.WaitGroup, cond *sync.Cond) {
 	defer func() {
 		cond.L.Lock()
@@ -122,8 +145,12 @@ func (n *Node) Fetcher(db *DB, Echo string, limit int, wait *sync.WaitGroup, con
 	n.Store(db, res)
 }
 
+// Do not run more then MaxConnections goroutines in the same time
 var MaxConnections = 6
 
+// Send point message to node using GET method of /u/point scheme.
+// pauth: secret string. msg - raw message in plaintext
+// returns error
 func (n *Node) Send(pauth string, msg string) error {
 	msg = base64.URLEncoding.EncodeToString([]byte(msg))
 	//	msg = url.QueryEscape(msg)
@@ -146,6 +173,9 @@ func (n *Node) Send(pauth string, msg string) error {
 	return err
 }
 
+// Send point message to node using POST method of /u/point scheme.
+// pauth: secret string. msg - raw message in plaintext
+// returns error
 func (n *Node) Post(pauth string, msg string) error {
 	msg = base64.StdEncoding.EncodeToString([]byte(msg))
 	// msg = url.QueryEscape(msg)
@@ -171,6 +201,9 @@ func (n *Node) Post(pauth string, msg string) error {
 	return err
 }
 
+// Return list.txt in []string if node supports it.
+// WARNING: Only echo names are returned! Each string is just echoarea.
+// Used for fetch all mode.
 func (n *Node) List() ([]string, error) {
 	var list []string
 	if !n.IsFeature("list.txt") {
@@ -185,6 +218,11 @@ func (n *Node) List() ([]string, error) {
 	return list, nil
 }
 
+// Fetch and write selected messages in db.
+// ids: selected message ids.
+// db: Database.
+// This function make /u/m request, decodes bundles, checks,
+// and write them to db (line by line).
 func (n *Node) Store(db *DB, ids []string) error {
 	req := ""
 	var nreq int
@@ -215,6 +253,11 @@ func (n *Node) Store(db *DB, ids []string) error {
 	return nil
 }
 
+// This is Fetcher master function. It makes fetch from node
+// and run goroutines in parralel mode (one goroutine per echo).
+// Echolist: list with echoarea names. If list is empty,
+// function will try to get list via list.txt request.
+// limit: see Fetcher function. Describe fetching mode/limit.
 func (n *Node) Fetch(db *DB, Echolist []string, limit int) error {
 	if len(Echolist) == 0 {
 		Echolist, _ = n.List()
@@ -252,11 +295,15 @@ func (n *Node) Fetch(db *DB, Echolist []string, limit int) error {
 	return nil
 }
 
+// Check if node has feature?
+// Features are gets while Connect call.
 func (n *Node) IsFeature(f string) bool {
 	_, ok := n.Features[f]
 	return ok
 }
 
+// Connect to node, get features and returns
+// pointer to Node object.
 func Connect(addr string) (*Node, error) {
 	var n Node
 	n.Host = strings.TrimSuffix(addr, "/")
@@ -272,6 +319,7 @@ func Connect(addr string) (*Node, error) {
 }
 
 /*
+// commented out routine to send e-mails ;)
 func SendMail(email string, login string, passwd string, server string) error {
 	aserv := strings.Split(server, ":")[0]
 	auth := smtp.PlainAuth("", login, passwd, aserv)
