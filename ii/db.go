@@ -191,8 +191,12 @@ func (db *DB) _CreateIndex() error {
 			return true
 		}
 		repto, _ := msg.Tag("repto")
+		ioff := off
+		if v, _ := msg.Tag("access"); v == "blacklist" {
+			ioff = -1
+		}
 		fidx.WriteString(fmt.Sprintf("%s:%s:%d:%s:%s:%s\n",
-			msg.MsgId, msg.Echo, off, msg.To, msg.From, repto))
+			msg.MsgId, msg.Echo, ioff, msg.To, msg.From, repto))
 		off += int64(len(line) + 1)
 		return true
 	})
@@ -478,7 +482,11 @@ func prependStr(x []string, y string) []string {
 // Default match function for queries.
 func (db *DB) Match(info MsgInfo, r Query) bool {
 	if r.Blacklisted {
-		return info.Off < 0
+		if info.Off >= 0 {
+			return false
+		}
+	} else if info.Off < 0 {
+		return false
 	}
 	if r.Echo != "" && r.Echo != info.Echo {
 		return false
