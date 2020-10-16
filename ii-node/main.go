@@ -20,7 +20,7 @@ func open_db(path string) *ii.DB {
 	return db
 }
 
-func PointMsg(db *ii.DB, udb *ii.UDB, pauth string, tmsg string) string {
+func PointMsg(edb *ii.EDB, db *ii.DB, udb *ii.UDB, pauth string, tmsg string) string {
 	udb.LoadUsers()
 
 	if !udb.Access(pauth) {
@@ -38,6 +38,11 @@ func PointMsg(db *ii.DB, udb *ii.UDB, pauth string, tmsg string) string {
 			return fmt.Sprintf("Receive point msg with wrong repto.")
 		}
 	}
+	if !edb.Allowed(m.Echo) {
+		ii.Error.Printf("This echo is disallowed")
+		return fmt.Sprintf("This echo is disallowed")
+	}
+
 	m.From = udb.Name(pauth)
 	m.Addr = fmt.Sprintf("%s,%d", db.Name, udb.Id(pauth))
 	if err := db.Store(m); err != nil {
@@ -154,7 +159,7 @@ func main() {
 			return
 		}
 		ii.Info.Printf("/u/point/%s/%s GET request", pauth, tmsg)
-		fmt.Fprintf(w, PointMsg(db, udb, pauth, tmsg))
+		fmt.Fprintf(w, PointMsg(edb, db, udb, pauth, tmsg))
 	})
 	http.HandleFunc("/u/point", func(w http.ResponseWriter, r *http.Request) {
 		var pauth, tmsg string
@@ -170,7 +175,7 @@ func main() {
 			return
 		}
 		ii.Info.Printf("/u/point/%s/%s POST request", pauth, tmsg)
-		fmt.Fprintf(w, PointMsg(db, udb, pauth, tmsg))
+		fmt.Fprintf(w, PointMsg(edb, db, udb, pauth, tmsg))
 	})
 	http.HandleFunc("/x/c/", func(w http.ResponseWriter, r *http.Request) {
 		enames := strings.Split(r.URL.Path[5:], "/")
