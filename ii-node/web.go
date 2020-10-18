@@ -790,9 +790,12 @@ func msg_text(m *ii.Msg) string {
 			skip = 0
 			l = msg_esc(l)
 		} else if strings.HasPrefix(l, "P.S.") || strings.HasPrefix(l, "PS:") ||
-			strings.HasPrefix(l, "//") || strings.HasPrefix(l, "#") ||
-			strings.HasPrefix(l, "+++ ") {
+			strings.HasPrefix(l, "//") || strings.HasPrefix(l, "+++ ") {
 			l = fmt.Sprintf("<span class=\"comment\">%s</span>", str_esc(l))
+		} else if strings.HasPrefix(l, "# ") || strings.HasPrefix(l, "= ") ||
+			strings.HasPrefix(l, "## ") || strings.HasPrefix(l, "== ") ||
+			strings.HasPrefix(l, "### ") || strings.HasPrefix(l, "=== ") {
+			l = fmt.Sprintf("<span class=\"header\">%s</span>", str_esc(l))
 		} else if strings.HasPrefix(l, "@spoiler:") {
 			l = fmt.Sprintf("<span class=\"spoiler\">%s</span>", str_esc(ReverseStr(l)))
 		} else if quoteRegex.MatchString(l) {
