@@ -271,6 +271,11 @@ body {
     color: #555555;
     font-style: italic;
 }
+
+.header {
+    font-weight: bold;
+}
+
 .spoiler {
     color: #cccccc;
 }
