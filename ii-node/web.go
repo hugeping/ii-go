@@ -656,7 +656,7 @@ func www_reply(ctx *WebContext, w http.ResponseWriter, r *http.Request, quote bo
 	msg.Subj = "Re: " + strings.TrimPrefix(msg.Subj, "Re: ")
 	msg.Tags.Add("repto/" + id)
 	if quote {
-		msg.Text = msg_quote(msg.Text)
+		msg.Text = msg_quote(msg.Text, msg.From)
 	} else {
 		msg.Text = ""
 	}
@@ -686,18 +686,25 @@ func msg_clean(txt string) string {
 	txt = strings.TrimRight(txt, "\n")
 	return txt
 }
-func msg_quote(txt string) string {
+func msg_quote(txt string, from string) string {
 	txt = msg_clean(txt)
 	f := ""
+	names := strings.Split(from, " ")
+	if len(names) >= 2 {
+		from = fmt.Sprintf("%v%v",
+			string([]rune(names[0])[0]),
+			string([]rune(names[1])[0]))
+	}
 	for _, l := range strings.Split(txt, "\n") {
 		if strings.Trim(l, " ") == "" {
 			f += l + "\n"
 			continue
 		}
-		if strings.HasPrefix(l, ">") {
-			f += ">" + l + "\n"
+		if quoteRegex.MatchString(l) {
+			s := strings.Index(l, ">")
+			f += l[:s] + ">>" + l[s+1:] + "\n"
 		} else {
-			f += "> " + l + "\n"
+			f += from + "> " + l + "\n"
 		}
 	}
 	return f
