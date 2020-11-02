@@ -301,7 +301,7 @@ func www_avatar(ctx *WebContext, w http.ResponseWriter, r *http.Request, user st
 		}
 		b := new(bytes.Buffer)
 		if err := png.Encode(b, img); err == nil {
-			w.Header().Set("Content-Type", "image/jpeg")
+			w.Header().Set("Content-Type", "image/png")
 			w.Header().Set("Content-Length", fmt.Sprintf("%d", len(b.Bytes())))
 			if _, err := w.Write(b.Bytes()); err != nil {
 				return nil
