@@ -418,7 +418,7 @@ func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Que
 `,
 				str_esc(m.Subj), m.MsgId, time.Unix(m.Date, 0).Format("2006-01-02 15:04:05"),
 				str_esc(m.From), ctx.www.Host, m.MsgId,
-				trunc(m.Text, 280),
+				str_esc(trunc(m.Text, 280)),
 				fmt.Sprintf("%s -> %s<br><br>", m.From, m.To),
 				msg_text(m))
 		}
