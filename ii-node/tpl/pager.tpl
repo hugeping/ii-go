@@ -10,7 +10,9 @@ Pages:
 {{ if eq . $.Page }}
 <span class="selected">{{.}}</span>
 {{ else }}
-<a href="/{{$.BasePath}}/{{.}}">{{.}}</a>
+
+<a href="{{$.PfxPath}}/{{$.BasePath}}/{{.}}">{{.}}</a>
+
 {{ end }}
 {{ end }}
 </div>

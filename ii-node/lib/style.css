@@ -174,6 +174,7 @@ body {
 #topic .subj a, #topic .subj a:hover, #topic .subj a:visited {
     color: #000000;
     font-size: large;
+    font-weight: bold;
     text-decoration: none;
 }
 #topic .reply a, #topic .reply a:hover, #topic .reply a:visited  {
@@ -254,6 +255,14 @@ body {
     image-rendering: auto;
     image-rendering: crisp-edges;
     image-rendering: pixelated;
+}
+
+.more {
+    color: black;
+    color: #ea5555;
+    text-decoration: underline;
+    font-weight: bold;
+    font-size: smaller;
 }
 
 .avatar {

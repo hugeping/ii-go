@@ -11,18 +11,18 @@
 {{ if has_avatar .From }}
 <img class="avatar" src="/avatar/{{.From}}">
 {{ end }}
-<a class="msgid" href="/{{.MsgId}}#{{.MsgId}}">#</a><span class="subj"> <a href="/{{. | repto}}#{{. | repto}}">{{with .Subj}}{{.}}{{else}}No subject{{end}}</a></span><br>
-<span class="info"><a href="/from/{{.From}}">{{.From}}</a>({{.Addr}}) &mdash; {{.To}}<br>{{.Date | fdate}}</span><br>
+<a class="msgid" href="{{$.PfxPath}}/{{.MsgId}}#{{.MsgId}}">#</a><span class="subj"> <a href="{{$.PfxPath}}/{{. | repto}}#{{. | repto}}">{{with .Subj}}{{.}}{{else}}No subject{{end}}</a></span><br>
+<span class="info"><a href="{{$.PfxPath}}/from/{{.From}}">{{.From}}</a>({{.Addr}}) &mdash; {{.To}}<br>{{.Date | fdate}}</span><br>
 <div class="text">
 <br>
 {{. | msg_text}}
 <br>
 {{if $.User.Name}}
-<span class="reply"><a href="/{{.MsgId}}/reply/new">Reply</a> :: </span>
-<span class="reply"><a href="/{{.MsgId}}/reply">Quote</a></span>
+<span class="reply"><a href="{{$.PfxPath}}/{{.MsgId}}/reply/new">Reply</a> :: </span>
+<span class="reply"><a href="{{$.PfxPath}}/{{.MsgId}}/reply">Quote</a></span>
 {{end}}
 {{ if msg_access . $.User }}
- :: <span class="reply"><a href="/{{.MsgId}}/edit">Edit</a></span>
+ :: <span class="reply"><a href="{{$.PfxPath}}/{{.MsgId}}/edit">Edit</a></span>
 {{ end }}
 {{if $.User.Name}}
 <br>

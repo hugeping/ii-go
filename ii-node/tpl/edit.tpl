@@ -2,7 +2,7 @@
 {{ $msg := index .Msg 0 }}
 {{ with $msg }}
 <table id="edit">
-<form method="post" enctype="application/x-www-form-urlencoded" action="/{{.MsgId}}/edit">
+<form method="post" enctype="application/x-www-form-urlencoded" action="{{$.PfxPath}}/{{.MsgId}}/edit">
 <tr><td class="odd">
 <input type="hidden" name="id" value="{{.MsgId}}">
 <input type="hidden" name="repto" value="{{ . | repto}}">

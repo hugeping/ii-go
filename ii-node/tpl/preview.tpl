@@ -16,9 +16,9 @@
 
 <table id="edit">
 {{ if eq $.Echo "" }}
-<form method="post" enctype="application/x-www-form-urlencoded" action="/new">
+<form method="post" enctype="application/x-www-form-urlencoded" action="{{$.PfxPath}}/new">
 {{ else }}
-<form method="post" enctype="application/x-www-form-urlencoded" action="/{{.Echo}}/new">
+<form method="post" enctype="application/x-www-form-urlencoded" action="{{$.PfxPath}}/{{.Echo}}/new">
 {{ end }}
 <tr><td class="even">
 {{ if eq $.Echo "" }}
