@@ -12,12 +12,12 @@
 {{ else }}
 <tr class="odd">
 {{ end }}
-<td class="echo"><a href="/{{.Name}}/">{{.Name}}</a><br>
+<td class="echo"><a href="{{$.PfxPath}}/{{.Name}}/">{{.Name}}</a><br>
 <span class="info">{{ index $.Echolist.Info .Name }}</span>
 </td>
 <td class="topics extra">{{.Topics}}</td>
 <td class="count extra">{{.Count}}</td>
-<td class="info">{{with .Msg}}<span class="subj">{{.Subj}}</span><br><a href="/echo/{{.Echo}}">{{.Date | fdate}}</a> by {{.From}}{{end}}</td>
+<td class="info">{{with .Msg}}<span class="subj">{{.Subj}}</span><br><a href="{{$.PfxPath}}/echo/{{.Echo}}">{{.Date | fdate}}</a> by {{.From}}{{end}}</td>
 </tr>
 {{ end }}
 </table>

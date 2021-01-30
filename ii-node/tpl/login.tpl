@@ -1,6 +1,6 @@
 {{template "header.tpl" $}}
 
-<form method="post" enctype="application/x-www-form-urlencoded" action="/login">
+<form method="post" enctype="application/x-www-form-urlencoded" action="{{.PfxPath}}/login">
 <table id="login" cellspacing=0 cellpadding=0>
 
 <tr class="odd"><td>
