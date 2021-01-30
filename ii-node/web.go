@@ -1006,8 +1006,10 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 		q.Start = -PAGE_SIZE
 		if args[0] == "echo+topics" {
 			q.Repto = "!"
+			ctx.BasePath = "echo+topics/" + args[1]
+		} else {
+			ctx.BasePath = "echo/" + args[1]
 		}
-		ctx.BasePath = "echo/" + args[1]
 		return www_query(ctx, w, r, q, page, rss)
 	} else if ii.IsEcho(args[0]) {
 		page := 1
