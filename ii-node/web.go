@@ -861,6 +861,9 @@ func WebInit(www *WWW) {
 		},
 		"repto": func(m ii.Msg) string {
 			r, _ := m.Tag("repto")
+			if r == "" {
+				return m.MsgId
+			}
 			return r
 		},
 		"msg_quote": msg_quote,
