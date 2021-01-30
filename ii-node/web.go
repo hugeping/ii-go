@@ -352,6 +352,14 @@ func Select(ctx *WebContext, q ii.Query) []string {
 	return ctx.www.db.SelectIDS(q)
 }
 
+func trunc(str string, limit int) string {
+	result := []rune(str)
+	if len(result) > limit {
+		return string(result[:limit])
+	}
+	return str
+}
+
 func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Query, page int, rss bool) error {
 	db := ctx.www.db
 	req := ctx.BasePath
@@ -398,6 +406,9 @@ func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Que
 		for _, m := range ctx.Msg {
 			fmt.Fprintf(w,
 			`<item><title>%s</title><guid>%s</guid><pubDate>%s</pubDate><author>%s</author><link>%s/%s</link>
+		<description>
+		%s
+		</description>
 		<content:encoded>
 <![CDATA[
 %s
@@ -407,6 +418,7 @@ func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Que
 `,
 				str_esc(m.Subj), m.MsgId, time.Unix(m.Date, 0).Format("2006-01-02 15:04:05"),
 				str_esc(m.From), ctx.www.Host, m.MsgId,
+				trunc(m.Text, 280),
 				fmt.Sprintf("%s -> %s<br><br>", m.From, m.To),
 				msg_text(m))
 		}
