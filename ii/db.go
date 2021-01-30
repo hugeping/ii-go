@@ -491,7 +491,11 @@ func (db *DB) Match(info MsgInfo, r Query) bool {
 	if r.Echo != "" && r.Echo != info.Echo {
 		return false
 	}
-	if r.Repto != "" && r.Repto != info.Repto {
+	if r.Repto == "!" {
+		if info.Repto != "" {
+			return false
+		}
+	} else if r.Repto != "" && r.Repto != info.Repto {
 		return false
 	}
 	if r.To != "" && r.To != info.To {

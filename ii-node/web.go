@@ -981,7 +981,7 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 		}
 		ctx.BasePath = "from/" + args[1]
 		return www_query(ctx, w, r, ii.Query{From: args[1]}, page, rss)
-	} else if args[0] == "echo" {
+	} else if args[0] == "echo" || args[0] == "echo+topics" {
 		page := 1
 		rss := false
 		if len(args) < 2 {
@@ -1000,6 +1000,9 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 		}
 		ctx.Echo = q.Echo
 		q.Start = -PAGE_SIZE
+		if args[0] == "echo+topics" {
+			q.Repto = "!"
+		}
 		ctx.BasePath = "echo/" + args[1]
 		return www_query(ctx, w, r, q, page, rss)
 	} else if ii.IsEcho(args[0]) {
