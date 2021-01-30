@@ -7,9 +7,6 @@
 <a name="{{.MsgId}}"></a>
 
 <div class="msg">
-{{ if has_avatar .From }}
-<img class="avatar" src="/avatar/{{.From}}">
-{{ end }}
 <a class="msgid" href="/blog/{{.MsgId}}#{{.MsgId}}">#</a><span class="subj"> <a href="/blog/{{. | repto}}#{{. | repto}}">{{with .Subj}}{{.}}{{else}}No subject{{end}}</a></span><br>
 <span class="info"><a href="{{$.PfxPath}}/from/{{.From}}">{{.From}}</a>({{.Addr}}) &mdash; {{.To}}<br>{{.Date | fdate}}</span><br>
 
