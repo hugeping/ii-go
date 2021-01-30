@@ -381,32 +381,36 @@ func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Que
 		ctx.Topic = db.Name + " :: " + req
 		fmt.Fprintf(w,
 			`<?xml version="1.0" encoding="UTF-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom">
-<title>%s</title>
-<subtitle>RSS feed with last messages</subtitle>
-<link href="%s" rel="self" />
-<id>%s/%s</id>
-`,
-			str_esc(ctx.Topic), ctx.www.Host, ctx.www.Host, ctx.BasePath)
+	<rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:media="http://search.yahoo.com/mrss/"
+	xmlns:atom="http://www.w3.org/2005/Atom"
+	xmlns:georss="http://www.georss.org/georss">
+	<channel>
+	<title>%s</title>
+	<link>%s/%s</link>
+	<description>
+	%s
+	</description>
+	<language>ru</language>`,
+			str_esc(ctx.Topic), ctx.www.Host, ctx.BasePath, str_esc(ctx.Topic))
 		for _, m := range ctx.Msg {
 			fmt.Fprintf(w,
-				`<entry>
-	<title>%s</title>
-	<id>%s</id>
-	<link href="%s/%s#%s" />
-	<updated>%s</updated>
-	<content type="html">%s%s</content>
-	<author><name>%s</name></author>
-</entry>
+			`<item><title>%s</title><guid>%s</guid><pubDate>%s</pubDate><author>%s</author><link>%s/%s</link>
+		<content:encoded>
+<![CDATA[
+%s
+%s
+]]>
+</content:encoded></item>
 `,
-				str_esc(m.Subj), m.MsgId, ctx.www.Host, m.MsgId, m.MsgId,
-				time.Unix(m.Date, 0).Format("2006-01-02 15:04:05"),
-				str_esc(fmt.Sprintf("%s -> %s<br><br>", m.From, m.To)),
-				str_esc(msg_text(m)),
-				str_esc(m.From))
+				str_esc(m.Subj), m.MsgId, time.Unix(m.Date, 0).Format("2006-01-02 15:04:05"),
+				str_esc(m.From), ctx.www.Host, m.MsgId,
+				fmt.Sprintf("%s -> %s<br><br>", m.From, m.To),
+				msg_text(m))
 		}
-		fmt.Fprintf(w,
-			`</feed>
+		fmt.Fprintf(w, `</channel></rss>
 `)
 		return nil
 	}
