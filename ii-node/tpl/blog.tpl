@@ -1,6 +1,6 @@
 {{template "header.tpl" $}}
 {{template "pager.tpl" $}}
-<a class="rss" href="{{.PfxPath}}/echo+topics/{{.Echo}}/rss">RSS</a>
+<a class="rss" href="/{{.BasePath}}">Echo</a> :: <a class="rss" href="{{.PfxPath}}/echo+topics/{{.Echo}}/rss">RSS</a>
 <div id="topic">
 {{range $k, $v := .Topics }}
 {{ with .Head }}
