@@ -16,13 +16,17 @@
 <table id="header">
   <tr>
     <td class="title">
-      <span class="logo"><a href="{{$.PfxPath}}/"><img class="logo" src="/lib/icon.png">{{.Sysname}}</a></span>
+      <span class="logo"><a href="/"><img class="logo" src="/lib/icon.png">{{.Sysname}}</a></span>
 {{ if eq .BasePath "" }}
       <span class="info">II/IDEC networks :: <a href="{{ $.PfxPath }}/echo/all">New posts</a>
 {{ else if gt (len .Topics) 0}}
       <span class="info">II/IDEC networks {{ with .Echo }} :: <a href="{{$.PfxPath}}/echo/{{.}}">{{.}}</a> :: <span class="info">{{index $.Echolist.Info .}}</span>{{end}}
 {{ else }}
+      {{ if eq .Template "query.tpl" }}
+      <span class="info">II/IDEC networks {{ with .Echo }} :: <a href="{{$.PfxPath}}/{{.}}">{{.}}</a> :: <span class="info">{{index $.Echolist.Info .}} / feed</span>{{end}}
+      {{ else }}
       <span class="info">II/IDEC networks {{ with .Echo }} :: <a href="{{$.PfxPath}}/{{.}}">{{.}}</a> :: <span class="info">{{index $.Echolist.Info .}}</span>{{end}}
+      {{ end }}
 {{ end }}
 </span>
     </td>
@@ -31,9 +35,9 @@
       {{ template "links.tpl" }}
       {{ if .User.Name }}
       {{ if eq .BasePath "profile" }}
-      <a href="{{$.PfxPath}}/logout">Logout</a>
+      <a href="/logout">Logout</a>
       {{ else }}
-      <a href="{{$.PfxPath}}/profile">{{.User.Name}}</a>
+      <a href="/profile">{{.User.Name}}</a>
       {{ end }}
 
       {{ with .Echo }}
@@ -45,9 +49,9 @@
       {{ end }}
 
       {{ else if eq .BasePath "login" }}
-      <a href="{{$.PfxPath}}/register">Register</a>
+      <a href="/register">Register</a>
       {{ else }}
-      <a href="{{$.PfxPath}}/login">Login</a>
+      <a href="/login">Login</a>
       {{ end }}
 
       </span>
