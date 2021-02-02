@@ -675,7 +675,7 @@ func str_esc(l string) string {
 }
 
 var quoteRegex = regexp.MustCompile("^[^ >]*>")
-var urlRegex = regexp.MustCompile(`(http|ftp|https)://[^ <>"]+`)
+var urlRegex = regexp.MustCompile(`(http|ftp|https|gemini)://[^ <>"]+`)
 var url2Regex = regexp.MustCompile(`{{{href=[0-9]+}}}`)
 var urlIIRegex = regexp.MustCompile(`ii://[a-zA-Z0-9_\-.]+`)
 var base64Regex = regexp.MustCompile(`^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$`)
