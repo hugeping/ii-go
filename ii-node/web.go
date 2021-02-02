@@ -25,6 +25,7 @@ type WebContext struct {
 	Msg      []*ii.Msg
 	Error    string
 	Echo     string
+	PfxPath  string
 	Page     int
 	Pages    int
 	Pager    []int
@@ -66,7 +67,7 @@ func www_register(ctx *WebContext, w http.ResponseWriter, r *http.Request) error
 				ii.Info.Printf("Can not edit user %s: %s", ctx.User.Name, err)
 				return err
 			}
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			http.Redirect(w, r, ctx.PfxPath + "/login", http.StatusSeeOther)
 			return nil
 		}
 		user := r.FormValue("username")
@@ -79,7 +80,7 @@ func www_register(ctx *WebContext, w http.ResponseWriter, r *http.Request) error
 			return err
 		}
 		ii.Info.Printf("Registered user: %s", user)
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		http.Redirect(w, r, ctx.PfxPath + "/login", http.StatusSeeOther)
 	default:
 		return nil
 	}
@@ -109,7 +110,7 @@ func www_login(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 		cookie := http.Cookie{Name: "pauth", Value: udb.Secret(user), Expires: exp}
 		http.SetCookie(w, &cookie)
 		ii.Info.Printf("User logged in: %s\n", user)
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Redirect(w, r, ctx.PfxPath + "/", http.StatusSeeOther)
 		return nil
 	}
 	return errors.New("Wrong method")
@@ -141,7 +142,7 @@ func www_logout(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 	}
 	cookie := http.Cookie{Name: "pauth", Value: "", Expires: time.Unix(0, 0)}
 	http.SetCookie(w, &cookie)
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, ctx.PfxPath + "/", http.StatusSeeOther)
 	return nil
 }
 
@@ -272,7 +273,7 @@ func www_avatar(ctx *WebContext, w http.ResponseWriter, r *http.Request, user st
 			ii.Error.Printf("Error saving avatar: " + user)
 			return errors.New("Error saving avatar")
 		}
-		http.Redirect(w, r, "/profile", http.StatusSeeOther)
+		http.Redirect(w, r, ctx.PfxPath + "/profile", http.StatusSeeOther)
 		return nil
 	}
 	// var id int32
@@ -352,6 +353,14 @@ func Select(ctx *WebContext, q ii.Query) []string {
 	return ctx.www.db.SelectIDS(q)
 }
 
+func trunc(str string, limit int) string {
+	result := []rune(str)
+	if len(result) > limit {
+		return string(result[:limit])
+	}
+	return str
+}
+
 func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Query, page int, rss bool) error {
 	db := ctx.www.db
 	req := ctx.BasePath
@@ -381,32 +390,40 @@ func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Que
 		ctx.Topic = db.Name + " :: " + req
 		fmt.Fprintf(w,
 			`<?xml version="1.0" encoding="UTF-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom">
-<title>%s</title>
-<subtitle>RSS feed with last messages</subtitle>
-<link href="%s" rel="self" />
-<id>%s/%s</id>
-`,
-			str_esc(ctx.Topic), ctx.www.Host, ctx.www.Host, ctx.BasePath)
+	<rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:media="http://search.yahoo.com/mrss/"
+	xmlns:atom="http://www.w3.org/2005/Atom"
+	xmlns:georss="http://www.georss.org/georss">
+	<channel>
+	<title>%s</title>
+	<link>%s/%s</link>
+	<description>
+	%s
+	</description>
+	<language>ru</language>`,
+			str_esc(ctx.Topic), ctx.www.Host, ctx.BasePath, str_esc(ctx.Topic))
 		for _, m := range ctx.Msg {
 			fmt.Fprintf(w,
-				`<entry>
-	<title>%s</title>
-	<id>%s</id>
-	<link href="%s/%s#%s" />
-	<updated>%s</updated>
-	<content type="html">%s%s</content>
-	<author><name>%s</name></author>
-</entry>
+			`<item><title>%s</title><guid>%s</guid><pubDate>%s</pubDate><author>%s</author><link>%s/%s</link>
+		<description>
+		%s...
+		</description>
+		<content:encoded>
+<![CDATA[
+%s
+%s
+]]>
+</content:encoded></item>
 `,
-				str_esc(m.Subj), m.MsgId, ctx.www.Host, m.MsgId, m.MsgId,
-				time.Unix(m.Date, 0).Format("2006-01-02 15:04:05"),
-				str_esc(fmt.Sprintf("%s -> %s<br><br>", m.From, m.To)),
-				str_esc(msg_text(m)),
-				str_esc(m.From))
+				str_esc(m.Subj), m.MsgId, time.Unix(m.Date, 0).Format("2006-01-02 15:04:05"),
+				str_esc(m.From), ctx.www.Host + ctx.PfxPath, m.MsgId,
+				str_esc(trunc(m.Text, 280)),
+				fmt.Sprintf("%s -> %s<br><br>", m.From, m.To),
+				msg_text(m))
 		}
-		fmt.Fprintf(w,
-			`</feed>
+		fmt.Fprintf(w, `</channel></rss>
 `)
 		return nil
 	}
@@ -416,8 +433,7 @@ func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Que
 
 func www_topics(ctx *WebContext, w http.ResponseWriter, r *http.Request, page int) error {
 	db := ctx.www.db
-	echo := ctx.BasePath
-	ctx.Echo = echo
+	echo := ctx.Echo
 	mis := db.LookupIDS(Select(ctx, ii.Query{Echo: echo}))
 	ii.Trace.Printf("www topics: %s", echo)
 	topicsIds := db.GetTopics(mis)
@@ -431,18 +447,20 @@ func www_topics(ctx *WebContext, w http.ResponseWriter, r *http.Request, page in
 		topic := Topic{}
 		topic.Ids = t
 		topic.Count = len(topic.Ids) - 1
-		topic.Last = db.LookupFast(topic.Ids[topic.Count], false)
+		if ctx.PfxPath == "/blog" {
+			topic.Last = db.LookupFast(topic.Ids[0], false)
+		} else {
+			topic.Last = db.LookupFast(topic.Ids[topic.Count], false)
+		}
 		if topic.Last == nil {
 			ii.Error.Printf("Skip wrong message: %s\n", t[0])
 			continue
 		}
 		topics = append(topics, &topic)
 	}
-
 	sort.SliceStable(topics, func(i, j int) bool {
 		return topics[i].Last.Num > topics[j].Last.Num
 	})
-	ctx.BasePath = echo
 	tcount := len(topics)
 	start := makePager(ctx, tcount, page)
 	nr := PAGE_SIZE
@@ -458,6 +476,12 @@ func www_topics(ctx *WebContext, w http.ResponseWriter, r *http.Request, page in
 		nr--
 	}
 	ii.Trace.Printf("Stop to generate topics")
+
+	if ctx.PfxPath == "/blog" {
+		ctx.Template = "blog.tpl"
+		err := ctx.www.tpl.ExecuteTemplate(w, "blog.tpl", ctx)
+		return err
+	}
 	ctx.Template = "topics.tpl"
 	err := ctx.www.tpl.ExecuteTemplate(w, "topics.tpl", ctx)
 	return err
@@ -479,6 +503,9 @@ func www_topic(ctx *WebContext, w http.ResponseWriter, r *http.Request, page int
 
 	topic := mi.Id
 	for p := mi; p != nil; p = db.LookupFast(p.Repto, false) {
+		if p.Repto == p.Id {
+			break
+		}
 		if p.Echo != mi.Echo {
 			continue
 		}
@@ -532,7 +559,7 @@ func www_blacklist(ctx *WebContext, w http.ResponseWriter, r *http.Request) erro
 		ii.Error.Printf("Error blacklisting: %s", id)
 		return err
 	}
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, ctx.PfxPath + "/", http.StatusSeeOther)
 	return nil
 }
 
@@ -589,6 +616,9 @@ func www_new(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 		msg := r.FormValue("msg")
 		repto := r.FormValue("repto")
 		id := r.FormValue("id")
+		if repto == id {
+			repto = ""
+		}
 		newecho := r.FormValue("echo")
 		if newecho != "" {
 			echo = newecho
@@ -630,7 +660,7 @@ func www_new(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 				ii.Error.Printf("Error while storig new topic %s: %s", m.MsgId, err)
 				return err
 			}
-			http.Redirect(w, r, "/"+m.MsgId+"#"+m.MsgId, http.StatusSeeOther)
+			http.Redirect(w, r, ctx.PfxPath + "/"+m.MsgId+"#"+m.MsgId, http.StatusSeeOther)
 			return nil
 		}
 		if !edit {
@@ -751,6 +781,10 @@ func msg_esc(l string) string {
 }
 
 func msg_text(m *ii.Msg) string {
+	return msg_trunc(m, 0, "")
+}
+
+func msg_trunc(m *ii.Msg, maxlen int, more string) string {
 	if m == nil {
 		return ""
 	}
@@ -818,7 +852,13 @@ func msg_text(m *ii.Msg) string {
 		} else {
 			l = msg_esc(l)
 		}
-		f += l + "<br>\n"
+		f += l
+		if maxlen > 0 && len(f) > maxlen {
+			f += more + "<br>\n"
+			break
+		} else {
+			f += "<br>\n"
+		}
 	}
 	if pre {
 		pre = false
@@ -843,8 +883,14 @@ func WebInit(www *WWW) {
 		"msg_text": func(m *ii.Msg) template.HTML {
 			return template.HTML(msg_text(m))
 		},
+		"msg_trunc": func(m *ii.Msg, len int, more string) template.HTML {
+			return template.HTML(msg_trunc(m, len, more))
+		},
 		"repto": func(m ii.Msg) string {
 			r, _ := m.Tag("repto")
+			if r == "" {
+				return m.MsgId
+			}
 			return r
 		},
 		"msg_quote": msg_quote,
@@ -904,22 +950,26 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 	args := strings.Split(path, "/")
 	ctx.Echolist = ctx.www.edb
 	ctx.Ref = r.Header.Get("Referer")
-	if path == "" {
+	if len(args) > 1 && args[0] == "blog" {
+		ctx.PfxPath = "/blog"
+		args = args[1:]
+	}
+	if args[0] == "" {
 		ctx.BasePath = ""
 		return www_index(ctx, w, r)
-	} else if path == "login" {
+	} else if args[0] == "login" {
 		ctx.BasePath = "login"
 		return www_login(ctx, w, r)
-	} else if path == "logout" {
+	} else if args[0] == "logout" {
 		ctx.BasePath = "logout"
 		return www_logout(ctx, w, r)
-	} else if path == "profile" {
+	} else if args[0] == "profile" {
 		ctx.BasePath = "profile"
 		return www_profile(ctx, w, r)
-	} else if path == "register" {
+	} else if args[0] == "register" {
 		ctx.BasePath = "register"
 		return www_register(ctx, w, r)
-	} else if path == "reset" {
+	} else if args[0] == "reset" {
 		ctx.Template = "reset.tpl"
 		return ctx.www.tpl.ExecuteTemplate(w, "reset.tpl", ctx)
 	} else if args[0] == "avatar" {
@@ -930,25 +980,21 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 		return www_avatar(ctx, w, r, args[1])
 	} else if ii.IsMsgId(args[0]) {
 		page := 0
+		ctx.BasePath = args[0]
 		if len(args) > 1 {
 			if args[1] == "reply" {
-				ctx.BasePath = args[0]
 				return www_reply(ctx, w, r, !(len(args) > 2 && args[2] == "new"))
 			} else if args[1] == "edit" {
-				ctx.BasePath = args[0]
 				return www_edit(ctx, w, r)
 			} else if args[1] == "blacklist" {
-				ctx.BasePath = args[0]
 				return www_blacklist(ctx, w, r)
 			} else if args[1] == "base64" {
-				ctx.BasePath = args[0]
 				return www_base64(ctx, w, r)
 			}
 			fmt.Sscanf(args[1], "%d", &page)
 		}
-		ctx.BasePath = args[0]
 		return www_topic(ctx, w, r, page)
-	} else if path == "new" {
+	} else if args[0] == "new" {
 		ctx.BasePath = ""
 		return www_new(ctx, w, r)
 	} else if args[0] == "to" {
@@ -981,7 +1027,7 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 		}
 		ctx.BasePath = "from/" + args[1]
 		return www_query(ctx, w, r, ii.Query{From: args[1]}, page, rss)
-	} else if args[0] == "echo" {
+	} else if args[0] == "echo" || args[0] == "echo+topics" {
 		page := 1
 		rss := false
 		if len(args) < 2 {
@@ -1000,10 +1046,17 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 		}
 		ctx.Echo = q.Echo
 		q.Start = -PAGE_SIZE
-		ctx.BasePath = "echo/" + args[1]
+		if args[0] == "echo+topics" {
+			q.Repto = "!"
+			ctx.BasePath = "echo+topics/" + args[1]
+		} else {
+			ctx.BasePath = "echo/" + args[1]
+		}
 		return www_query(ctx, w, r, q, page, rss)
 	} else if ii.IsEcho(args[0]) {
 		page := 1
+		ctx.Echo = args[0]
+		ctx.BasePath = args[0]
 		if len(args) > 1 {
 			if args[1] == "new" {
 				ctx.BasePath = args[0]
@@ -1011,7 +1064,6 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 			}
 			fmt.Sscanf(args[1], "%d", &page)
 		}
-		ctx.BasePath = args[0]
 		return www_topics(ctx, w, r, page)
 	} else {
 		w.WriteHeader(http.StatusNotFound)

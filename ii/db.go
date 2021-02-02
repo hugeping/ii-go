@@ -491,7 +491,11 @@ func (db *DB) Match(info MsgInfo, r Query) bool {
 	if r.Echo != "" && r.Echo != info.Echo {
 		return false
 	}
-	if r.Repto != "" && r.Repto != info.Repto {
+	if r.Repto == "!" {
+		if info.Repto != "" {
+			return false
+		}
+	} else if r.Repto != "" && r.Repto != info.Repto {
 		return false
 	}
 	if r.To != "" && r.To != info.To {
@@ -679,6 +683,9 @@ func (db *DB) GetTopics(mi []*MsgInfo) map[string][]string {
 		}
 		var l []*MsgInfo
 		for p := m; p != nil; p = db.LookupFast(p.Repto, false) {
+			if p.Repto == p.Id { // self answer?
+				break
+			}
 			if m.Echo != p.Echo {
 				continue
 			}
@@ -760,6 +767,11 @@ func (db *DB) _Store(m *Msg, edit bool) error {
 
 	if _, ok := db.Idx.Hash[m.MsgId]; ok && !edit { // exist and not edit
 		return errors.New("Already exists")
+	}
+	if repto != "" {
+		if _, ok := db.Idx.Hash[repto]; !ok { // repto is absent, we should avoid loops!
+			return errors.New("Wrong repto")
+		}
 	}
 	fi, err := os.Stat(db.BundlePath())
 	var off int64
