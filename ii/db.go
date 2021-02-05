@@ -768,11 +768,11 @@ func (db *DB) _Store(m *Msg, edit bool) error {
 	if _, ok := db.Idx.Hash[m.MsgId]; ok && !edit { // exist and not edit
 		return errors.New("Already exists")
 	}
-	if repto != "" {
-		if _, ok := db.Idx.Hash[repto]; !ok { // repto is absent, we should avoid loops!
-			return errors.New("Wrong repto: " + repto)
-		}
-	}
+//	if repto != "" {
+//		if _, ok := db.Idx.Hash[repto]; !ok { // repto is absent, we should avoid loops!
+//			return errors.New("Wrong repto: " + repto)
+//		}
+//	}
 	fi, err := os.Stat(db.BundlePath())
 	var off int64
 	if err == nil {
