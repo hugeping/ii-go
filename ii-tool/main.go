@@ -59,6 +59,7 @@ func main() {
 	force_opt := flag.Bool("f", false, "Force full sync")
 	users_opt := flag.String("u", "points.txt", "Users database")
 	conns_opt := flag.Int("j", 6, "Maximum parallel jobs")
+	topics_opt := flag.Bool("t", false, "Select topics only")
 
 	flag.Parse()
 	ii.MaxConnections = *conns_opt
@@ -85,6 +86,7 @@ Options:
         -db=<path>                    - database path
         -lim=<lim>                    - fetch lim last messages
         -u=<path>                     - points account file
+        -t                            - topics only (select,get)
 `, os.Args[0])
 		os.Exit(1)
 	}
@@ -325,6 +327,33 @@ Options:
 			os.Exit(1)
 		}
 		db := open_db(*db_opt)
+
+		if *topics_opt {
+			mi := db.Lookup(args[1])
+			if mi == nil {
+				return
+			}
+			mis := db.LookupIDS(db.SelectIDS(ii.Query{Echo: mi.Echo}))
+			topic := mi.Id
+			for p := mi; p != nil; p = db.LookupFast(p.Repto, false) {
+				if p.Repto == p.Id {
+					break
+				}
+				if p.Echo != mi.Echo {
+					continue
+				}
+				topic = p.Id
+			}
+			ids := db.GetTopics(mis)[topic]
+			if len(ids) == 0 {
+				ids = append(ids, args[1])
+			}
+			for _, m := range ids {
+				fmt.Println(m)
+			}
+			return
+		}
+
 		m := db.Get(args[1])
 		if m != nil {
 			fmt.Println(m)
@@ -354,6 +383,9 @@ Options:
 		}
 		db := open_db(*db_opt)
 		req := ii.Query{Echo: args[1]}
+		if *topics_opt {
+			req.Repto = "!"
+		}
 		if len(args) > 2 {
 			fmt.Sscanf(args[2], "%d:%d", &req.Start, &req.Lim)
 		}
