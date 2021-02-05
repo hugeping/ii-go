@@ -8,7 +8,9 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"sort"
 	"strings"
+	"time"
 )
 
 func open_db(path string) *ii.DB {
@@ -50,6 +52,45 @@ func GetFile(path string) string {
 	return string(b)
 }
 
+func gemini(m *ii.Msg) {
+	fmt.Println("# " + m.Subj)
+	if m.To != "All" {
+		fmt.Printf("To: %s\n\n", m.To)
+	}
+	d := time.Unix(m.Date, 0).Format("2006-01-02 15:04:05")
+	fmt.Printf("by %s on %s\n\n", m.From, d)
+	temp := strings.Split(m.Text, "\n")
+	pre := false
+	xpm := false
+	for _, l := range temp {
+		l = strings.Replace(l, "\r", "", -1)
+		l = l + "\r"
+		if pre {
+			if l == "====\r" {
+				l = "````\r"
+				pre = false
+			}
+		} else if xpm {
+			if strings.HasSuffix(l, "};\r") {
+				xpm = false
+				fmt.Println(l)
+				fmt.Println("```\r")
+				continue
+			}
+		} else {
+			if l == "====\r" {
+				l = "```"
+				pre = true
+			} else if strings.HasPrefix(l, "/* XPM */") {
+				fmt.Println("```\r")
+				xpm = true
+			}
+		}
+		fmt.Println(l)
+	}
+	fmt.Println("")
+}
+
 func main() {
 	ii.OpenLog(ioutil.Discard, os.Stdout, os.Stderr)
 
@@ -59,6 +100,8 @@ func main() {
 	force_opt := flag.Bool("f", false, "Force full sync")
 	users_opt := flag.String("u", "points.txt", "Users database")
 	conns_opt := flag.Int("j", 6, "Maximum parallel jobs")
+	topics_opt := flag.Bool("t", false, "Select topics only")
+	gemini_opt := flag.Bool("g", false, "Gemini format")
 
 	flag.Parse()
 	ii.MaxConnections = *conns_opt
@@ -85,6 +128,7 @@ Options:
         -db=<path>                    - database path
         -lim=<lim>                    - fetch lim last messages
         -u=<path>                     - points account file
+        -t                            - topics only (select,get)
 `, os.Args[0])
 		os.Exit(1)
 	}
@@ -325,9 +369,60 @@ Options:
 			os.Exit(1)
 		}
 		db := open_db(*db_opt)
+
+		if *topics_opt {
+			mi := db.Lookup(args[1])
+			if mi == nil {
+				return
+			}
+			mis := db.LookupIDS(db.SelectIDS(ii.Query{Echo: mi.Echo}))
+			topic := mi.Id
+			for p := mi; p != nil; p = db.LookupFast(p.Repto, false) {
+				if p.Repto == p.Id {
+					break
+				}
+				if p.Echo != mi.Echo {
+					continue
+				}
+				topic = p.Id
+			}
+			ids := db.GetTopics(mis)[topic]
+			if len(ids) == 0 {
+				ids = append(ids, args[1])
+			}
+			for _, m := range ids {
+				fmt.Println(m)
+			}
+			return
+		}
+
 		m := db.Get(args[1])
 		if m != nil {
-			fmt.Println(m)
+			if *gemini_opt {
+				gemini(m)
+			} else {
+				fmt.Println(m)
+			}
+		}
+	case "sort":
+		db := open_db(*db_opt)
+		db.Lock()
+		defer db.Unlock()
+		db.LoadIndex()
+
+		scanner := bufio.NewScanner(os.Stdin)
+		var mis []*ii.MsgInfo
+		for scanner.Scan() {
+			mi := db.LookupFast(scanner.Text(), false)
+			if mi != nil {
+				mis = append(mis, mi)
+			}
+		}
+		sort.SliceStable(mis, func(i, j int) bool {
+			return mis[i].Num > mis[j].Num
+		})
+		for _, v := range mis {
+			fmt.Println(v.Id)
 		}
 	case "cc":
 		if len(args) < 2 {
@@ -354,6 +449,9 @@ Options:
 		}
 		db := open_db(*db_opt)
 		req := ii.Query{Echo: args[1]}
+		if *topics_opt {
+			req.Repto = "!"
+		}
 		if len(args) > 2 {
 			fmt.Sscanf(args[2], "%d:%d", &req.Start, &req.Lim)
 		}
