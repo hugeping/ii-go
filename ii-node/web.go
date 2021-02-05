@@ -501,18 +501,11 @@ func www_topic(ctx *WebContext, w http.ResponseWriter, r *http.Request, page int
 	ctx.Echo = mi.Echo
 	mis := db.LookupIDS(Select(ctx, ii.Query{Echo: mi.Echo}))
 
-	topic := mi.Id
-	for p := mi; p != nil; p = db.LookupFast(p.Repto, false) {
-		if p.Repto == p.Id {
-			break
-		}
-		if p.Echo != mi.Echo {
-			continue
-		}
-		topic = p.Id
-	}
+	topics := db.GetTopics(mis)
+	topic := mi.Topic
 	ctx.Topic = topic
-	ids := db.GetTopics(mis)[topic]
+	ids := topics[topic]
+
 	if len(ids) == 0 {
 		ids = append(ids, id)
 	} else if topic != mi.Id {

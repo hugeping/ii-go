@@ -36,13 +36,14 @@ type MsgInfo struct {
 	Off   int64
 	Repto string
 	From  string
+	Topic string
 }
 
 // Index object. Holds List and Hash for all MsgInfo entries
 // FileSize is used to auto reread new entries if it has changed by
 // someone.
 type Index struct {
-	Hash     map[string]MsgInfo
+	Hash     map[string]*MsgInfo
 	List     []string
 	FileSize int64
 }
@@ -253,6 +254,10 @@ func (db *DB) LoadIndex() error {
 				return err
 			}
 			Idx = db.Idx
+			// rebuild topics
+			for _, v := range Idx.Hash {
+				v.Topic = ""
+			}
 		} else if info.Size() < db.Idx.FileSize {
 			Info.Printf("Index file truncated, rebuild inndex...")
 			file, err = db._ReopenIndex()
@@ -265,7 +270,7 @@ func (db *DB) LoadIndex() error {
 			return nil
 		}
 	} else {
-		Idx.Hash = make(map[string]MsgInfo)
+		Idx.Hash = make(map[string]*MsgInfo)
 	}
 	var err2 error
 	linenr := 0
@@ -289,7 +294,7 @@ func (db *DB) LoadIndex() error {
 		} else {
 			mi.Num = mm.Num
 		}
-		Idx.Hash[mi.Id] = mi
+		Idx.Hash[mi.Id] = &mi
 		// Trace.Printf("Adding %s to index", mi.Id)
 		return true
 	})
@@ -323,7 +328,7 @@ func (db *DB) _Lookup(Id string, bl bool, idx bool) *MsgInfo {
 	if !ok || (!bl && info.Off < 0) {
 		return nil
 	}
-	return &info
+	return info
 }
 
 // Lookup variant, but without locking.
@@ -468,7 +473,7 @@ type Query struct {
 	Lim         int
 	Blacklisted bool
 	User        User
-	Match       func(mi MsgInfo, q Query) bool
+	Match       func(mi *MsgInfo, q Query) bool
 }
 
 // utility function to add string in front of slice
@@ -480,7 +485,7 @@ func prependStr(x []string, y string) []string {
 }
 
 // Default match function for queries.
-func (db *DB) Match(info MsgInfo, r Query) bool {
+func (db *DB) Match(info *MsgInfo, r Query) bool {
 	if r.Blacklisted {
 		if info.Off >= 0 {
 			return false
@@ -527,7 +532,7 @@ type Echo struct {
 	Name   string
 	Count  int
 	Topics int
-	Last   MsgInfo
+	Last   *MsgInfo
 	Msg    *Msg
 }
 
@@ -682,12 +687,26 @@ func (db *DB) GetTopics(mi []*MsgInfo) map[string][]string {
 			continue
 		}
 		var l []*MsgInfo
+		if m.Topic != "" { // fast path
+			if len(topics[m.Topic]) == 0 {
+				topics[m.Topic] = append(topics[m.Topic], m.Topic)
+			}
+			if m.Id != m.Topic {
+				topics[m.Topic] = append(topics[m.Topic], m.Id)
+				intopic[m.Id] = m.Topic
+			}
+			continue
+		}
 		for p := m; p != nil; p = db.LookupFast(p.Repto, false) {
-			if p.Repto == p.Id { // self answer?
+			if p.Repto == p.Id || p.Topic == "visited" { // loop?
+				p.Topic = ""
 				break
 			}
 			if m.Echo != p.Echo {
 				continue
+			}
+			if p.Topic == "" {
+				p.Topic = "visited"
 			}
 			l = append(l, p)
 		}
@@ -703,6 +722,7 @@ func (db *DB) GetTopics(mi []*MsgInfo) map[string][]string {
 		})
 		for _, i := range l {
 			if i.Id == t.Id {
+				i.Topic = t.Id
 				continue
 			}
 			if _, ok := intopic[i.Id]; ok {
@@ -710,8 +730,10 @@ func (db *DB) GetTopics(mi []*MsgInfo) map[string][]string {
 			}
 			topics[t.Id] = append(topics[t.Id], i.Id)
 			intopic[i.Id] = t.Id
+			i.Topic = t.Id
 		}
 	}
+
 	return topics
 }
 
