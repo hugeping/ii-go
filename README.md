@@ -86,6 +86,9 @@ slice is the start:limit. For example:
 Options are:
 
 ```
+-from <user>   -- from user
+-to <user>     -- to user
+-t             -- only topics (w/o repto)
 -db <database> -- db by default (db.idx - genetated index)
 -v             -- show message text, not only MsgId
 ```
@@ -108,10 +111,12 @@ Where options are:
 -db <database> -- db by default (db.idx - genetated index)
 -v             -- show message text, not only MsgId
 ```
-To show messages adressed to selected user, try:
+You can sort ids by date with sort command.
+
+To show last 5 messages adressed to selected user, try:
 
 ```
-./ii-tool [options] cc <user> [slice]
+./ii-tool [options] -to <user> select "" | ./ii-tool sort | tail -n5 | ./ii-tool -v sort
 ```
 For example:
 

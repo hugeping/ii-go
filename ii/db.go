@@ -775,7 +775,7 @@ func (db *DB) _Store(m *Msg, edit bool) error {
 	}
 	if repto != "" {
 		if _, ok := db.Idx.Hash[repto]; !ok { // repto is absent, we should avoid loops!
-			return errors.New("Wrong repto")
+			return errors.New("Wrong repto: " + repto)
 		}
 	}
 	fi, err := os.Stat(db.BundlePath())

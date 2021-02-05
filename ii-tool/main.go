@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"sort"
 	"strings"
 )
 
@@ -60,7 +61,8 @@ func main() {
 	users_opt := flag.String("u", "points.txt", "Users database")
 	conns_opt := flag.Int("j", 6, "Maximum parallel jobs")
 	topics_opt := flag.Bool("t", false, "Select topics only")
-
+	from_opt := flag.String("from", "", "Select from")
+	to_opt := flag.String("to", "", "Select to")
 	flag.Parse()
 	ii.MaxConnections = *conns_opt
 	if *verbose_opt {
@@ -77,8 +79,7 @@ Commands:
 	fetch <url> [echofile|-]      - fetch
 	store <bundle|->              - import bundle to database
 	get <msgid>                   - show message from database
-	select <echo> [[start]:lim]   - get slice from echo
-	cc <name> [[start]:lim]       - get msgs to name
+	select [[start]:lim]          - get slice from echo
 	index                         - recreate index
 	blacklist <msgid>             - blacklist msg
 	useradd <name> <e-mail> <password> - adduser
@@ -87,6 +88,9 @@ Options:
         -lim=<lim>                    - fetch lim last messages
         -u=<path>                     - points account file
         -t                            - topics only (select,get)
+        -from=<user>                  - select from
+        -to=<user>                    - select to
+        -echo=echo                    - select echo
 `, os.Args[0])
 		os.Exit(1)
 	}
@@ -358,31 +362,20 @@ Options:
 		if m != nil {
 			fmt.Println(m)
 		}
-	case "cc":
-		if len(args) < 2 {
-			fmt.Printf("No echo supplied\n")
-			os.Exit(1)
-		}
-		db := open_db(*db_opt)
-		req := ii.Query{To: args[1]}
-		if len(args) > 2 {
-			fmt.Sscanf(args[2], "%d:%d", &req.Start, &req.Lim)
-		}
-		resp := db.SelectIDS(req)
-		for _, v := range resp {
-			if *verbose_opt {
-				fmt.Println(db.Get(v))
-			} else {
-				fmt.Println(v)
-			}
-		}
 	case "select":
 		if len(args) < 2 {
 			fmt.Printf("No echo supplied\n")
 			os.Exit(1)
 		}
 		db := open_db(*db_opt)
-		req := ii.Query{Echo: args[1]}
+		req := ii.Query{ Echo: args[1] }
+		if *from_opt != "" {
+			req.From = *from_opt
+		}
+		if *to_opt != "" {
+			req.To = *to_opt
+		}
+
 		if *topics_opt {
 			req.Repto = "!"
 		}
@@ -395,6 +388,27 @@ Options:
 				fmt.Println(db.Get(v))
 			} else {
 				fmt.Println(v)
+			}
+		}
+	case "sort":
+		db := open_db(*db_opt)
+		db.LoadIndex()
+		scanner := bufio.NewScanner(os.Stdin)
+		var mm []*ii.Msg
+		for scanner.Scan() {
+			mi := db.LookupFast(scanner.Text(), false)
+			if mi != nil {
+				mm = append(mm, db.Get(mi.Id))
+			}
+		}
+		sort.SliceStable(mm, func(i, j int) bool {
+			return mm[i].Date < mm[j].Date
+		})
+		for _, v := range mm {
+			if *verbose_opt {
+				fmt.Println(v)
+			} else {
+				fmt.Println(v.MsgId)
 			}
 		}
 	case "index":
