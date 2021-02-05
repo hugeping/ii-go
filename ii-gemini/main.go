@@ -56,23 +56,23 @@ func gemini(f io.Writer, m *ii.Msg) {
 	for _, l := range temp {
 		l = strings.Replace(l, "\r", "", -1)
 		if pre {
-			if l == "====\r" {
-				l = "````\r"
+			if l == "====" {
+				l = "````"
 				pre = false
 			}
 		} else if xpm {
-			if strings.HasSuffix(l, "};\r") {
+			if strings.HasSuffix(l, "};") {
 				xpm = false
 				fmt.Fprintln(f, l)
-				fmt.Fprintln(f, "```\r")
+				fmt.Fprintln(f, "```")
 				continue
 			}
 		} else {
-			if l == "====\r" {
+			if l == "====" {
 				l = "```"
 				pre = true
 			} else if strings.HasPrefix(l, "/* XPM */") {
-				fmt.Fprintln(f, "```\r")
+				fmt.Fprintln(f, "```")
 				xpm = true
 			}
 		}
