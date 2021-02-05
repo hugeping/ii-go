@@ -86,9 +86,9 @@ func gemini(f io.Writer, m *ii.Msg) {
 				func(line []byte) []byte {
 					link ++
 					s := string(line)
-					links = append(links, fmt.Sprintf("=> %s [%d]",
-						s, link))
-				return []byte(fmt.Sprintf("%s[%d]", s, link))
+					links = append(links, fmt.Sprintf("=> %s %s [%d]",
+						s, s, link))
+				return []byte(fmt.Sprintf("%s [%d]", s, link))
 			}))
 		}
 		fmt.Fprintln(f, l)
