@@ -79,6 +79,7 @@ Commands:
 	get <msgid>                   - show message from database
 	select <echo> [[start]:lim]   - get slice from echo
 	cc <name> [[start]:lim]       - get msgs to name
+	from <name> [[start]:lim]     - get msg from name
 	index                         - recreate index
 	blacklist <msgid>             - blacklist msg
 	useradd <name> <e-mail> <password> - adduser
@@ -357,6 +358,27 @@ Options:
 		m := db.Get(args[1])
 		if m != nil {
 			fmt.Println(m)
+		}
+	case "from":
+		if len(args) < 2 {
+			fmt.Printf("No echo supplied\n")
+			os.Exit(1)
+		}
+		db := open_db(*db_opt)
+		req := ii.Query{From: args[1]}
+		if *topics_opt {
+			req.Repto = "!"
+		}
+		if len(args) > 2 {
+			fmt.Sscanf(args[2], "%d:%d", &req.Start, &req.Lim)
+		}
+		resp := db.SelectIDS(req)
+		for _, v := range resp {
+			if *verbose_opt {
+				fmt.Println(db.Get(v))
+			} else {
+				fmt.Println(v)
+			}
 		}
 	case "cc":
 		if len(args) < 2 {
