@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -43,6 +44,8 @@ func GetFile(path string) string {
 	return string(b)
 }
 
+var urlRegex = regexp.MustCompile(`(http|ftp|https|gemini)://[^ <>"]+`)
+
 func gemini(f io.Writer, m *ii.Msg) {
 	fmt.Fprintln(f, "# " + m.Subj)
 	if m.To != "All" {
@@ -53,6 +56,8 @@ func gemini(f io.Writer, m *ii.Msg) {
 	temp := strings.Split(m.Text, "\n")
 	pre := false
 	xpm := false
+	link := 0
+	var links []string
 	for _, l := range temp {
 		l = strings.Replace(l, "\r", "", -1)
 		if pre {
@@ -76,7 +81,20 @@ func gemini(f io.Writer, m *ii.Msg) {
 				xpm = true
 			}
 		}
+		if !pre && !xpm {
+			l = string(urlRegex.ReplaceAllFunc([]byte(l),
+				func(line []byte) []byte {
+					link ++
+					s := string(line)
+					links = append(links, fmt.Sprintf("=> %s [%d]",
+						s, link))
+				return []byte(fmt.Sprintf("%s[%d]", s, link))
+			}))
+		}
 		fmt.Fprintln(f, l)
+	}
+	for _, v := range links {
+		fmt.Fprintln(f, v)
 	}
 	fmt.Fprintln(f, "")
 	fmt.Fprintf(f, "=> https://hugeping.tk/"+m.MsgId + " Ссылка на статью на станции ping\n")
