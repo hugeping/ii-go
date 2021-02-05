@@ -718,6 +718,11 @@ func (db *DB) GetTopics(mi []*MsgInfo) map[string][]string {
 // Store decoded message in database
 // If message exists, returns error
 func (db *DB) Store(m *Msg) error {
+	if r, _ := m.Tag("repto"); r == "" { //  new one!
+		if m.Echo == "std.hugeping" && m.Addr != "ping,1" {
+			return errors.New("Access denied")
+		}
+	}
 	return db._Store(m, false)
 }
 
