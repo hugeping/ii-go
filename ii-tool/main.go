@@ -8,9 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"sort"
 	"strings"
-	"time"
 )
 
 func open_db(path string) *ii.DB {
@@ -52,45 +50,6 @@ func GetFile(path string) string {
 	return string(b)
 }
 
-func gemini(m *ii.Msg) {
-	fmt.Println("# " + m.Subj)
-	if m.To != "All" {
-		fmt.Printf("To: %s\n\n", m.To)
-	}
-	d := time.Unix(m.Date, 0).Format("2006-01-02 15:04:05")
-	fmt.Printf("by %s on %s\n\n", m.From, d)
-	temp := strings.Split(m.Text, "\n")
-	pre := false
-	xpm := false
-	for _, l := range temp {
-		l = strings.Replace(l, "\r", "", -1)
-		l = l + "\r"
-		if pre {
-			if l == "====\r" {
-				l = "````\r"
-				pre = false
-			}
-		} else if xpm {
-			if strings.HasSuffix(l, "};\r") {
-				xpm = false
-				fmt.Println(l)
-				fmt.Println("```\r")
-				continue
-			}
-		} else {
-			if l == "====\r" {
-				l = "```"
-				pre = true
-			} else if strings.HasPrefix(l, "/* XPM */") {
-				fmt.Println("```\r")
-				xpm = true
-			}
-		}
-		fmt.Println(l)
-	}
-	fmt.Println("")
-}
-
 func main() {
 	ii.OpenLog(ioutil.Discard, os.Stdout, os.Stderr)
 
@@ -101,7 +60,6 @@ func main() {
 	users_opt := flag.String("u", "points.txt", "Users database")
 	conns_opt := flag.Int("j", 6, "Maximum parallel jobs")
 	topics_opt := flag.Bool("t", false, "Select topics only")
-	gemini_opt := flag.Bool("g", false, "Gemini format")
 
 	flag.Parse()
 	ii.MaxConnections = *conns_opt
@@ -398,31 +356,7 @@ Options:
 
 		m := db.Get(args[1])
 		if m != nil {
-			if *gemini_opt {
-				gemini(m)
-			} else {
-				fmt.Println(m)
-			}
-		}
-	case "sort":
-		db := open_db(*db_opt)
-		db.Lock()
-		defer db.Unlock()
-		db.LoadIndex()
-
-		scanner := bufio.NewScanner(os.Stdin)
-		var mis []*ii.MsgInfo
-		for scanner.Scan() {
-			mi := db.LookupFast(scanner.Text(), false)
-			if mi != nil {
-				mis = append(mis, mi)
-			}
-		}
-		sort.SliceStable(mis, func(i, j int) bool {
-			return mis[i].Num > mis[j].Num
-		})
-		for _, v := range mis {
-			fmt.Println(v.Id)
+			fmt.Println(m)
 		}
 	case "cc":
 		if len(args) < 2 {
