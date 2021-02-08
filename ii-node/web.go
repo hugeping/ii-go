@@ -803,7 +803,7 @@ func msg_trunc(m *ii.Msg, maxlen int, more string) string {
 			continue
 		}
 		if pre {
-			f += l + "\n"
+			f += str_esc(l) + "\n"
 			continue
 		}
 		if strings.HasPrefix(l, "/* XPM */") || strings.HasPrefix(l, "! XPM2") {
