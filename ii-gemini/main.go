@@ -155,7 +155,7 @@ Options:
 			return
 		}
 		defer atom.Close()
-		fmt.Fprintf(atom, `<?xml version="1.0" encoding="utf-8"?>
+		fmt.Fprintf(atom, `<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
   <title>%s</title>
   <link href="gemini://%s/atom.xml" rel="self"/>
