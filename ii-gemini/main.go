@@ -48,7 +48,7 @@ var urlRegex = regexp.MustCompile(`(http|ftp|https|gemini)://[^ <>"]+`)
 
 func gemini(f io.Writer, m *ii.Msg) {
 	fmt.Fprintln(f, "# " + m.Subj)
-	if m.To != "All" {
+	if m.To != "All" && m.To != m.From {
 		fmt.Fprintf(f, "To: %s\n\n", m.To)
 	}
 	d := time.Unix(m.Date, 0).Format("2006-01-02 15:04:05")
