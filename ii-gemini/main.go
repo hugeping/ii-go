@@ -155,17 +155,17 @@ Options:
 			return
 		}
 		defer atom.Close()
-		fmt.Fprintf(atom, `<?xml version="1.0" encoding="UTF-8"?>
+		fmt.Fprintf(atom, `<?xml version='1.0' encoding='UTF-8'?>
 <feed xmlns="http://www.w3.org/2005/Atom">
+  <id>gemini://%s/</id>
   <title>%s</title>
-  <link href="gemini://%s/atom.xml" rel="self"/>
-  <link href="gemini://%s/" rel="alternate"/>
   <updated>%s</updated>
   <author>
     <name>%s</name>
   </author>
-  <id>gemini://%s/</id>
-`, *title_opt, *url_opt, *url_opt, time.Now().Format(time.RFC3339), *author_opt, *url_opt)
+  <link href="gemini://%s/atom.xml" rel="self"/>
+  <link href="gemini://%s/" rel="alternate"/>
+`, *url_opt, *title_opt, time.Now().Format(time.RFC3339), *author_opt, *url_opt, *url_opt)
 		for _, v := range mis {
 			m := v
 			if m != nil {
@@ -177,13 +177,13 @@ Options:
 				}
 				f.Close()
 				fmt.Fprintf(atom, `<entry>
-<title>%s</title>
-<link href="gemini://%s/%s.gmi" rel="alternate"/>
-<id>gemini://%s/%s.gmi</id>
-<updated>%s</updated>
+  <id>gemini://%s/%s.gmi</id>
+  <title>%s</title>
+  <updated>%s</updated>
+  <link href="gemini://%s/%s.gmi" rel="alternate"/>
 </entry>
-`, str_esc(m.Subj), *url_opt, m.MsgId,
-	*url_opt, m.MsgId, time.Unix(m.Date, 0).Format(time.RFC3339))
+`, *url_opt, m.MsgId, str_esc(m.Subj),
+	time.Unix(m.Date, 0).Format(time.RFC3339), *url_opt, m.MsgId)
 			}
 		}
 		fmt.Fprintf(atom, `</feed>
