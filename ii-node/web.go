@@ -390,14 +390,20 @@ func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Que
 		ctx.Topic = db.Name + " :: " + req
 		fmt.Fprintf(w,
 			`<?xml version="1.0" encoding="UTF-8"?>
-	<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+	<rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:media="http://search.yahoo.com/mrss/"
+	xmlns:atom="http://www.w3.org/2005/Atom"
+	xmlns:georss="http://www.georss.org/georss">
 	<channel>
 	<title>%s</title>
 	<link>%s/%s</link>
 	<description>
 	%s
 	</description>
-	<language>ru</language>`,
+	<language>ru</language>
+`,
 			str_esc(ctx.Topic), ctx.www.Host, ctx.BasePath, str_esc(ctx.Topic))
 		for _, m := range ctx.Msg {
 			fmt.Fprintf(w,
