@@ -407,7 +407,7 @@ func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Que
 			str_esc(ctx.Topic), ctx.www.Host, ctx.BasePath, str_esc(ctx.Topic))
 		for _, m := range ctx.Msg {
 			fmt.Fprintf(w,
-			`<item><title>%s</title><guid>%s</guid><pubDate>%s</pubDate><author>%s</author><link>%s/%s</link>
+			`<item><title>%s</title><guid>%s</guid><pubDate>%s</pubDate><author>%s</author><link>%s/%s#%s</link>
 		<description>
 		%s...
 		</description>
@@ -419,7 +419,7 @@ func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Que
 </content:encoded></item>
 `,
 				str_esc(m.Subj), m.MsgId, time.Unix(m.Date, 0).Format("2006-01-02 15:04:05"),
-				str_esc(m.From), ctx.www.Host + ctx.PfxPath, m.MsgId,
+				str_esc(m.From), ctx.www.Host + ctx.PfxPath, m.MsgId, m.MsgId,
 				str_esc(trunc(m.Text, 280)),
 				fmt.Sprintf("%s -> %s<br><br>", m.From, m.To),
 				msg_text(m))
