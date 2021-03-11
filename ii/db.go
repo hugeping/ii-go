@@ -484,6 +484,19 @@ func prependStr(x []string, y string) []string {
 	return x
 }
 
+// Check if message is private
+func (db *DB) Access(info *MsgInfo, user *User) bool {
+	if IsPrivate(info.Echo) {
+		if user.Name == "" {
+			return false
+		}
+		if info.To != "All" && info.From != user.Name && info.To != user.Name {
+			return false
+		}
+	}
+	return true
+}
+
 // Default match function for queries.
 func (db *DB) Match(info *MsgInfo, r Query) bool {
 	if r.Blacklisted {
@@ -509,13 +522,8 @@ func (db *DB) Match(info *MsgInfo, r Query) bool {
 	if r.From != "" && r.From != info.From {
 		return false
 	}
-	if IsPrivate(info.Echo) {
-		if r.User.Name == "" {
-			return false
-		}
-		if info.To != "All" && info.From != r.User.Name && info.To != r.User.Name {
-			return false
-		}
+	if !db.Access(info, &r.User) {
+		return false
 	}
 	if r.Match != nil {
 		return r.Match(info, r)
