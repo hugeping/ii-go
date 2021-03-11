@@ -387,22 +387,22 @@ func (db *DB) LookupIDS(Ids []string) []*MsgInfo {
 // If idx is true: load/create index.
 // Returns: msgid:base64 bundle.
 // Does not lock!
-func (db *DB) _GetBundle(Id string, idx bool) string {
+func (db *DB) _GetBundle(Id string, idx bool) (string, *MsgInfo) {
 	info := db._Lookup(Id, false, idx)
 	if info == nil {
 		Info.Printf("Can not find bundle: %s\n", Id)
-		return ""
+		return "", nil
 	}
 	f, err := os.Open(db.BundlePath())
 	if err != nil {
 		Error.Printf("Can not open DB: %s\n", err)
-		return ""
+		return "", nil
 	}
 	defer f.Close()
 	_, err = f.Seek(info.Off, 0)
 	if err != nil {
 		Error.Printf("Can not seek DB: %s\n", err)
-		return ""
+		return "", nil
 	}
 	var bundle string
 	err = f_lines(f, func(line string) bool {
@@ -411,15 +411,25 @@ func (db *DB) _GetBundle(Id string, idx bool) string {
 	})
 	if err != nil {
 		Error.Printf("Can not get %s from DB: %s\n", Id, err)
-		return ""
+		return "", nil
 	}
-	return bundle
+	return bundle, info
 }
 
 // Get bundle line by message id from db.
 // Does lock!
 // Loads/create index if needed.
 func (db *DB) GetBundle(Id string) string {
+	db.Sync.RLock()
+	defer db.Sync.RUnlock()
+	db.Lock()
+	defer db.Unlock()
+
+	b, _ := db._GetBundle(Id, true)
+	return b
+}
+
+func (db *DB) GetBundleInfo(Id string) (string, *MsgInfo) {
 	db.Sync.RLock()
 	defer db.Sync.RUnlock()
 	db.Lock()
@@ -446,7 +456,7 @@ func (db *DB) Get(Id string) *Msg {
 // Get decoded message from db by message id.
 // Does NOT lock! Loads/create index if needed.
 func (db *DB) GetFast(Id string) *Msg {
-	bundle := db._GetBundle(Id, false)
+	bundle, _ := db._GetBundle(Id, false)
 	if bundle == "" {
 		return nil
 	}
