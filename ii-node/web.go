@@ -496,6 +496,11 @@ func www_topic(ctx *WebContext, w http.ResponseWriter, r *http.Request, page int
 	if mi == nil {
 		return errors.New("No such message")
 	}
+
+	if !db.Access(mi, ctx.User) {
+		return errors.New("Access denied")
+	}
+
 	if page == 0 {
 		ctx.Selected = id
 	}
