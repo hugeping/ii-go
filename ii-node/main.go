@@ -138,16 +138,34 @@ func main() {
 		case "GET":
 			udb.LoadUsers()
 			args := strings.Split(r.URL.Path[9:], "/")
-			if len(args) >= 3 && args[1] == "u" && args[2] == "e" {
+
+			if len(args) >= 3 && args[1] == "u" {
 				pauth = args[0]
 				if !udb.Access(pauth) {
 					ii.Info.Printf("Access denied for pauth: %s", pauth)
 					return
 				}
-				echoes := args[3:]
-				if user := udb.UserInfo(pauth); user != nil {
-					get_ue(echoes, db, *user, w, r)
+				user := udb.UserInfo(pauth)
+				if user == nil {
+					return
 				}
+				if args[2] == "e" {
+					echoes := args[3:]
+					get_ue(echoes, db, *user, w, r)
+					return
+				}
+				if args[2] == "m" {
+					ids := args[3:]
+					for _, i := range ids {
+						m, info := db.GetBundleInfo(i)
+						if m == "" || !db.Access(info, user) {
+							continue
+						}
+						fmt.Fprintf(w, "%s\n", m)
+					}
+					return
+				}
+				ii.Error.Printf("Wrong /u/point/ get request: %s", r.URL.Path[9:])
 				return
 			}
 			if len(args) != 2 {
@@ -189,8 +207,8 @@ func main() {
 	http.HandleFunc("/u/m/", func(w http.ResponseWriter, r *http.Request) {
 		ids := strings.Split(r.URL.Path[5:], "/")
 		for _, i := range ids {
-			m := db.GetBundle(i)
-			if m != "" {
+			m, info := db.GetBundleInfo(i)
+			if m != "" && !ii.IsPrivate(info.Echo) {
 				fmt.Fprintf(w, "%s\n", m)
 			}
 		}
@@ -206,7 +224,7 @@ func main() {
 		}
 		m := db.Get(id)
 		ii.Info.Printf("/m/%s %s", id, m)
-		if m != nil {
+		if m != nil && !ii.IsPrivate(m.Echo) {
 			fmt.Fprintf(w, "%s", m.String())
 		}
 	})
