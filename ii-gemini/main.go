@@ -62,7 +62,7 @@ func gemini(f io.Writer, m *ii.Msg) {
 		l = strings.Replace(l, "\r", "", -1)
 		if pre {
 			if l == "====" {
-				l = "````"
+				l = "```"
 				pre = false
 			}
 		} else if xpm {
