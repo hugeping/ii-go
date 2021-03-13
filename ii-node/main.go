@@ -243,9 +243,12 @@ func main() {
 	})
 	ii.Info.Printf("Listening on %s", *listen_opt)
 
-	http.HandleFunc("syscall.ru/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "//hugeping.tk/std.hugeping", http.StatusSeeOther)
-	})
+//	http.HandleFunc("hugeping.ru/", func(w http.ResponseWriter, r *http.Request) {
+//		http.Redirect(w, r, "//club.hugeping.ru/blog/std.hugeping", http.StatusSeeOther)
+//	})
+
+	http.Handle("hugeping.ru/", http.FileServer(http.Dir("/home/pi/Devel/gemini/www")))
+	http.Handle("syscall.ru/", http.FileServer(http.Dir("/home/pi/Devel/gemini/www")))
 
 	if err := http.ListenAndServe(*listen_opt, nil); err != nil {
 		ii.Error.Printf("Error running web server: %s", err)
