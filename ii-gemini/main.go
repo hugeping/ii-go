@@ -62,7 +62,7 @@ func gemini(f io.Writer, m *ii.Msg) {
 		l = strings.Replace(l, "\r", "", -1)
 		if pre {
 			if l == "====" {
-				l = "````"
+				l = "```"
 				pre = false
 			}
 		} else if xpm {
@@ -96,8 +96,6 @@ func gemini(f io.Writer, m *ii.Msg) {
 	for _, v := range links {
 		fmt.Fprintln(f, v)
 	}
-	fmt.Fprintln(f, "")
-	fmt.Fprintf(f, "=> https://hugeping.tk/"+m.MsgId + " Ссылка на статью на станции ping\n")
 }
 
 func str_esc(l string) string {
