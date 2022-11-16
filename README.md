@@ -1,6 +1,6 @@
 # Intro
 
-II-GO is [idec](https://ii-net.tk/) node realization written in golang.
+II-GO is [idec](https://github.com/idec-net/new-docs/blob/master/main.md) node realization written in golang.
 
 It has no dependencies and very compact. You can easy setup it and make your own ii/idec node.
 
