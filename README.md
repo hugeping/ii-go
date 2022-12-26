@@ -7,7 +7,7 @@ It has no dependencies and very compact. You can easy setup it and make your own
 How to build?
 
 ```
-git clone https://github.com/gl00my/ii-go
+git clone https://github.com/hugeping/ii-go
 cd ii-go
 cd ii-tool
 go build

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"../ii"
+	"github.com/hugeping/ii-go/ii"
 	"bytes"
 	"encoding/base64"
 	"errors"
