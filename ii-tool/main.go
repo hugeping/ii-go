@@ -79,18 +79,17 @@ Commands:
 	fetch <url> [echofile|-]      - fetch
 	store <bundle|->              - import bundle to database
 	get <msgid>                   - show message from database
-	select [[start]:lim]          - get slice from echo
+	select <echo> [[start]:lim]          - get slice from echo
 	index                         - recreate index
 	blacklist <msgid>             - blacklist msg
 	useradd <name> <e-mail> <password> - adduser
 Options:
-        -db=<path>                    - database path
-        -lim=<lim>                    - fetch lim last messages
-        -u=<path>                     - points account file
-        -t                            - topics only (select,get)
-        -from=<user>                  - select from
-        -to=<user>                    - select to
-        -echo=echo                    - select echo
+	-db=<path>                    - database path
+	-lim=<lim>                    - fetch lim last messages
+	-u=<path>                     - points account file
+	-t                            - topics only (select,get)
+	-from=<user>                  - select from
+	-to=<user>                    - select to
 `, os.Args[0])
 		os.Exit(1)
 	}

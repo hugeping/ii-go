@@ -121,7 +121,7 @@ To show last 5 messages adressed to selected user, try:
 For example:
 
 ```
-./ii-tool -v cc Peter -1:1 # show and print last message
+./ii-tool -v -to Peter "" -1:1 # show and print last message to Peter
 ```
 
 ## Add user (point)
