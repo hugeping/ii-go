@@ -247,8 +247,7 @@ func main() {
 //		http.Redirect(w, r, "//club.hugeping.ru/blog/std.hugeping", http.StatusSeeOther)
 //	})
 
-	http.Handle("hugeping.ru/", http.FileServer(http.Dir("/home/pi/Devel/gemini/www")))
-	http.Handle("syscall.ru/", http.FileServer(http.Dir("/home/pi/Devel/gemini/www")))
+//	http.Handle("hugeping.ru/", http.FileServer(http.Dir("/home/pi/Devel/gemini/www")))
 
 	if err := http.ListenAndServe(*listen_opt, nil); err != nil {
 		ii.Error.Printf("Error running web server: %s", err)

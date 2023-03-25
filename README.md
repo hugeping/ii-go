@@ -177,7 +177,6 @@ And open http://127.0.0.1:8080 in your browser.
 - u/e
 - list.txt
 - x/c
-- list.txt
 - blacklist.txt
 - m/
 - e/
