@@ -11,6 +11,8 @@ import (
 	"strings"
 )
 
+const QuarantineMsgMax = 1
+
 func open_db(path string) *ii.DB {
 	db := ii.OpenDB(path)
 	if db == nil {
@@ -43,7 +45,21 @@ func PointMsg(edb *ii.EDB, db *ii.DB, udb *ii.UDB, pauth string, tmsg string) st
 		return fmt.Sprintf("This echo is disallowed")
 	}
 
-	m.From = udb.Name(pauth)
+	ui := udb.UserInfo(pauth)
+	if ui == nil {
+		ii.Error.Printf("Internal error (can't get userinfo)")
+		return fmt.Sprintf("Internal error (can't get userinfo)")
+	}
+	m.From = ui.Name
+
+	if v, _ := ui.Tags.Get("status"); v == "new" {
+		mis := db.LookupIDS(db.SelectIDS(ii.Query{From: m.From, Lim: QuarantineMsgMax}))
+		if len(mis) >= QuarantineMsgMax {
+			ii.Error.Printf("Not verified account! Wait for the administrator.")
+			return fmt.Sprintf("Not verified account! Wait for the administrator.")
+		}
+	}
+
 	m.Addr = fmt.Sprintf("%s,%d", db.Name, udb.Id(pauth))
 	if err := db.Store(m); err != nil {
 		ii.Error.Printf("Store point msg: %s", err)

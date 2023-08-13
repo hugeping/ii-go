@@ -21,6 +21,8 @@ import (
 	"time"
 )
 
+const NewUsersMax = 3
+
 // This is index entry. Information about message that is loaded in memory.
 // So, the index could not be very huge.
 // Num: sequence number.
@@ -877,6 +879,7 @@ type UDB struct {
 	List     []string
 	Sync     sync.RWMutex
 	FileSize int64
+	Locked   bool
 }
 
 // Check username if it is valid
@@ -1015,6 +1018,9 @@ func (db *UDB) Add(Name string, Mail string, Passwd string) error {
 	if !emailRegex.MatchString(Mail) {
 		return errors.New("Wrong email")
 	}
+	if db.Locked {
+		return errors.New("Maximum new users reached")
+	}
 	var id int32 = 0
 	for _, v := range db.Names {
 		if v.Id > id {
@@ -1026,7 +1032,7 @@ func (db *UDB) Add(Name string, Mail string, Passwd string) error {
 	u.Name = Name
 	u.Mail = Mail
 	u.Secret = MakeSecret(Name + Passwd)
-	u.Tags = NewTags("")
+	u.Tags = NewTags("status/new")
 	db.List = append(db.List, u.Name)
 	if err := append_file(db.Path, fmt.Sprintf("%d:%s:%s:%s:%s",
 		id, Name, Mail, u.Secret, u.Tags.String())); err != nil {
@@ -1095,6 +1101,7 @@ func (db *UDB) LoadUsers() error {
 	db.Secrets = make(map[string]string)
 	db.ById = make(map[int32]string)
 	db.List = nil
+	new_users := 0
 	err = FileLines(db.Path, func(line string) bool {
 		a := strings.Split(line, ":")
 		if len(a) < 4 {
@@ -1112,6 +1119,13 @@ func (db *UDB) LoadUsers() error {
 		u.Mail = a[2]
 		u.Secret = a[3]
 		u.Tags = NewTags(a[4])
+		if status, _ := u.Tags.Get("status"); status == "new" {
+			new_users += 1;
+		}
+		if new_users >= NewUsersMax && !db.Locked {
+			db.Locked = true
+			Error.Printf("Maximum new users reached. Registrarion locked.\n")
+		}
 		db.ById[u.Id] = u.Name
 		db.Names[u.Name] = u
 		db.Secrets[u.Secret] = u.Name
