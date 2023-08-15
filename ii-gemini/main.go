@@ -111,6 +111,7 @@ func main() {
 	db_opt := flag.String("db", "./db", "II database path (directory)")
 	data_opt := flag.String("data", "./data", "Output path (directory)")
 	url_opt := flag.String("url", "localhost", "Url of station")
+	base_opt := flag.String("base-url", "/", "Base Url for msgs")
 	verbose_opt := flag.Bool("v", false, "Verbose")
 	title_opt := flag.String("title", "ii/idec networks", "Title")
 	author_opt := flag.String("author", "anonymous", "Author")
@@ -171,17 +172,17 @@ Options:
 				if err == nil {
 					gemini(f, m)
 					d := time.Unix(m.Date, 0).Format("2006-01-02")
-					fmt.Println("=> /"+ m.MsgId + ".gmi " + d + " - " + m.Subj)
+					fmt.Println("=> " + *base_opt + m.MsgId + ".gmi " + d + " - " + m.Subj)
 				}
 				f.Close()
 				fmt.Fprintf(atom, `<entry>
-  <id>gemini://%s/%s.gmi</id>
+  <id>gemini://%s%s%s.gmi</id>
   <title>%s</title>
   <updated>%s</updated>
-  <link href="gemini://%s/%s.gmi" rel="alternate"/>
+  <link href="gemini://%s%s%s.gmi" rel="alternate"/>
 </entry>
-`, *url_opt, m.MsgId, str_esc(m.Subj),
-	time.Unix(m.Date, 0).Format(time.RFC3339), *url_opt, m.MsgId)
+`, *url_opt, *base_opt, m.MsgId, str_esc(m.Subj),
+	time.Unix(m.Date, 0).Format(time.RFC3339), *url_opt, *base_opt, m.MsgId)
 			}
 		}
 		fmt.Fprintf(atom, `</feed>
