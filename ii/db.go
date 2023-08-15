@@ -761,9 +761,9 @@ func (db *DB) GetTopics(mi []*MsgInfo) map[string][]string {
 // If message exists, returns error
 func (db *DB) Store(m *Msg) error {
 	if r, _ := m.Tag("repto"); r == "" { //  new one!
-		if m.Echo == "std.hugeping" && m.Addr != "ping,1" {
-			return errors.New("Access denied")
-		}
+//		if strings.HasPrefix(m.Echo, "std.hugeping") && m.Addr != "ping,1" {
+//			return errors.New("Access denied")
+//		}
 	}
 	return db._Store(m, false)
 }
@@ -1002,7 +1002,7 @@ var emailRegex = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z
 
 // Add (register) user in database
 // Mail is optional but someday it will be used in registration process
-func (db *UDB) Add(Name string, Mail string, Passwd string) error {
+func (db *UDB) Add(Name string, Mail string, Passwd string, Info string) error {
 	db.Sync.Lock()
 	defer db.Sync.Unlock()
 
@@ -1032,7 +1032,7 @@ func (db *UDB) Add(Name string, Mail string, Passwd string) error {
 	u.Name = Name
 	u.Mail = Mail
 	u.Secret = MakeSecret(Name + Passwd)
-	u.Tags = NewTags("status/new")
+	u.Tags = NewTags("status/new/info/" + Info)
 	db.List = append(db.List, u.Name)
 	if err := append_file(db.Path, fmt.Sprintf("%d:%s:%s:%s:%s",
 		id, Name, Mail, u.Secret, u.Tags.String())); err != nil {

@@ -39,6 +39,7 @@ type WebContext struct {
 	Sysname  string
 	Host     string
 	www      *WWW
+	Ip       string
 }
 
 func www_register(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
@@ -74,7 +75,7 @@ func www_register(ctx *WebContext, w http.ResponseWriter, r *http.Request) error
 		password := r.FormValue("password")
 		email := r.FormValue("email")
 
-		err := udb.Add(user, email, password)
+		err := udb.Add(user, email, password, ctx.Ip)
 		if err != nil {
 			ii.Info.Printf("Can not register user %s: %s", user, err)
 			return err
@@ -953,7 +954,12 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 			}
 		}
 	}
-	ii.Trace.Printf("[%s] GET %s", ctx.User.Name, r.URL.Path)
+	ipaddr := r.Header.Get("X-Forwarded-For")
+	if ipaddr == "" {
+		ipaddr = r.RemoteAddr
+	}
+	ctx.Ip = strings.Replace(ipaddr, ":", "_", -1)
+	ii.Trace.Printf("%s [%s] GET %s", ipaddr, ctx.User.Name, r.URL.Path)
 	path := strings.TrimPrefix(r.URL.Path, "/")
 	args := strings.Split(path, "/")
 	ctx.Echolist = ctx.www.edb
