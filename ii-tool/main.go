@@ -165,7 +165,7 @@ Options:
 			os.Exit(1)
 		}
 		db := open_users_db(*users_opt)
-		if err := db.Add(args[1], args[2], args[3]); err != nil {
+		if err := db.Add(args[1], args[2], args[3], "ii-tool"); err != nil {
 			fmt.Printf("Can not add user: %s\n", err)
 			os.Exit(1)
 		}
