@@ -636,7 +636,7 @@ func www_new(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 		}
 		m.From = ctx.User.Name
 
-		if v, _ := ctx.User.Tags.Get("status"); v == "new" {
+		if v, _ := ctx.User.Tags.Get("status"); v == "new" || v == "moderated" {
 			mis := ctx.www.db.LookupIDS(ctx.www.db.SelectIDS(ii.Query{From: m.From, Lim: QuarantineMsgMax}))
 			if len(mis) >= QuarantineMsgMax {
 				ii.Error.Printf("Not verified account! Wait for the administrator.")

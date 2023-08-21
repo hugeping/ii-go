@@ -52,7 +52,7 @@ func PointMsg(edb *ii.EDB, db *ii.DB, udb *ii.UDB, pauth string, tmsg string) st
 	}
 	m.From = ui.Name
 
-	if v, _ := ui.Tags.Get("status"); v == "new" {
+	if v, _ := ui.Tags.Get("status"); v == "new" || v == "moderated" {
 		mis := db.LookupIDS(db.SelectIDS(ii.Query{From: m.From, Lim: QuarantineMsgMax}))
 		if len(mis) >= QuarantineMsgMax {
 			ii.Error.Printf("Not verified account! Wait for the administrator.")
