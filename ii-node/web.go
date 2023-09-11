@@ -451,12 +451,16 @@ func www_topics(ctx *WebContext, w http.ResponseWriter, r *http.Request, page in
 		topic.Count = len(topic.Ids) - 1
 		if ctx.PfxPath == "/blog" {
 			topic.Last = db.LookupFast(topic.Ids[0], false)
+			if topic.Last == nil || topic.Last.Repto != "" {
+				ii.Error.Printf("Skip wrong message: %s\n", t[0])
+				continue
+			}
 		} else {
 			topic.Last = db.LookupFast(topic.Ids[topic.Count], false)
-		}
-		if topic.Last == nil {
-			ii.Error.Printf("Skip wrong message: %s\n", t[0])
-			continue
+			if topic.Last == nil {
+				ii.Error.Printf("Skip wrong message: %s\n", t[0])
+				continue
+			}
 		}
 		topics = append(topics, &topic)
 	}
@@ -959,6 +963,7 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 		ipaddr = r.RemoteAddr
 	}
 	ctx.Ip = strings.Replace(ipaddr, ":", "_", -1)
+	ctx.Ip = strings.Replace(ctx.Ip, "/", "_", -1)
 	ii.Trace.Printf("%s [%s] GET %s", ipaddr, ctx.User.Name, r.URL.Path)
 	path := strings.TrimPrefix(r.URL.Path, "/")
 	args := strings.Split(path, "/")
