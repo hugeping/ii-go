@@ -12,6 +12,7 @@
 <img class="avatar" src="/avatar/{{.From}}">
 {{ end }}
 <span class="subj"> <a href="{{$.PfxPath}}/echo/{{.Echo}}/{{.MsgId}}#{{.MsgId}}">{{with .Subj}}{{.}}{{else}}No subject{{end}}</a></span><br>
+<span class="echo"><a href="{{$.PfxPath}}/{{ .Echo }}">{{.Echo}}</a></span><br>
 <span class="info">{{.From}}({{.Addr}}) &mdash; {{.To}}<br>{{.Date | fdate}}</span><br>
 <div class="text">
 <br>
