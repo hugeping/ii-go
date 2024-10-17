@@ -215,7 +215,7 @@ func (db *DB) _CreateIndex() error {
 		repto, _ := msg.Tag("repto")
 		ioff := off
 		if v, _ := msg.Tag("access"); v == "blacklist" {
-			ioff = -1
+			ioff = -off
 		}
 		fidx.WriteString(fmt.Sprintf("%s:%s:%d:%s:%s:%s\n",
 			msg.MsgId, msg.Echo, ioff, msg.To, msg.From, repto))
@@ -406,10 +406,11 @@ func (db *DB) LookupIDS(Ids []string) []*MsgInfo {
 
 // Internal function. Gets bundle by message id.
 // If idx is true: load/create index.
+// If bl is true: return blacklisted.
 // Returns: msgid:base64 bundle.
 // Does not lock!
-func (db *DB) _GetBundle(Id string, idx bool) (string, *MsgInfo) {
-	info := db._Lookup(Id, false, idx)
+func (db *DB) _GetBundle(Id string, idx bool, bl bool) (string, *MsgInfo) {
+	info := db._Lookup(Id, bl, idx)
 	if info == nil {
 		Info.Printf("Can not find bundle: %s\n", Id)
 		return "", nil
@@ -420,7 +421,11 @@ func (db *DB) _GetBundle(Id string, idx bool) (string, *MsgInfo) {
 		return "", nil
 	}
 	defer f.Close()
-	_, err = f.Seek(info.Off, 0)
+	off := info.Off
+	if off < 0 { /* blacklisted? */
+		off = -off
+	}
+	_, err = f.Seek(off, 0)
 	if err != nil {
 		Error.Printf("Can not seek DB: %s\n", err)
 		return "", nil
@@ -446,7 +451,20 @@ func (db *DB) GetBundle(Id string) string {
 	db.Lock()
 	defer db.Unlock()
 
-	b, _ := db._GetBundle(Id, true)
+	b, _ := db._GetBundle(Id, true, false)
+	return b
+}
+
+// Get bundle line by message id from db. Including blacklisted
+// Does lock!
+// Loads/create index if needed.
+func (db *DB) GetBundleAll(Id string) string {
+	db.Sync.RLock()
+	defer db.Sync.RUnlock()
+	db.Lock()
+	defer db.Unlock()
+
+	b, _ := db._GetBundle(Id, true, true)
 	return b
 }
 
@@ -456,7 +474,7 @@ func (db *DB) GetBundleInfo(Id string) (string, *MsgInfo) {
 	db.Lock()
 	defer db.Unlock()
 
-	return db._GetBundle(Id, true)
+	return db._GetBundle(Id, true, false)
 }
 
 // Get decoded message from db by message id.
@@ -477,7 +495,7 @@ func (db *DB) Get(Id string) *Msg {
 // Get decoded message from db by message id.
 // Does NOT lock! Loads/create index if needed.
 func (db *DB) GetFast(Id string) *Msg {
-	bundle, _ := db._GetBundle(Id, false)
+	bundle, _ := db._GetBundle(Id, false, false)
 	if bundle == "" {
 		return nil
 	}
@@ -493,6 +511,8 @@ func (db *DB) GetFast(Id string) *Msg {
 // fields will be matched with MsgInfo entry (logical AND).
 // If Match function is not nil, this function will be used for matching.
 // Blacklisted: search in blacklisted messages if true.
+// NoAccess: do not skip private and blacklisted
+// Invert: inverse result
 // User: authorized access to private areas.
 // Start & Lim: slice of query. For example: -1, 1 -- get last message in db. 0, 1 -- first.
 type Query struct {
@@ -503,7 +523,9 @@ type Query struct {
 	Start       int
 	Lim         int
 	Blacklisted bool
+	NoAccess    bool
 	User        User
+	Invert      bool
 	Match       func(mi *MsgInfo, q Query) bool
 }
 
@@ -528,36 +550,43 @@ func (db *DB) Access(info *MsgInfo, user *User) bool {
 	return true
 }
 
+func matchRet(r Query, ret bool) bool {
+	if r.Invert {
+		return !ret
+	}
+	return ret
+}
+
 // Default match function for queries.
 func (db *DB) Match(info *MsgInfo, r Query) bool {
 	if r.Blacklisted {
 		if info.Off >= 0 {
-			return false
+			return matchRet(r, false)
 		}
-	} else if info.Off < 0 {
-		return false
+	} else if info.Off < 0 && !r.NoAccess {
+		return matchRet(r, false)
 	}
 	if r.Echo != "" && r.Echo != info.Echo {
-		return false
+		return matchRet(r, false)
 	}
 	if r.Repto == "!" {
 		if info.Repto != "" {
-			return false
+			return matchRet(r, false)
 		}
 	} else if r.Repto != "" && r.Repto != info.Repto {
-		return false
+		return matchRet(r, false)
 	}
 	if r.To != "" && r.To != info.To {
-		return false
+		return matchRet(r, false)
 	}
 	if r.From != "" && r.From != info.From {
-		return false
+		return matchRet(r, false)
 	}
-	if !db.Access(info, &r.User) {
-		return false
+	if !r.NoAccess && !db.Access(info, &r.User) {
+		return matchRet(r, false)
 	}
 	if r.Match != nil {
-		return r.Match(info, r)
+		return matchRet(r, r.Match(info, r))
 	}
 	return true
 }
@@ -840,7 +869,7 @@ func (db *DB) _Store(m *Msg, edit bool) error {
 		off = fi.Size()
 	}
 	if v, _ := m.Tag("access"); v == "blacklist" {
-		off = -1
+		off = -off
 	}
 	if err := append_file(db.BundlePath(), m.Encode()); err != nil {
 		return err

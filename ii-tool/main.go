@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 )
@@ -57,6 +58,8 @@ func main() {
 	db_opt := flag.String("db", "./db", "II database path (directory)")
 	lim_opt := flag.Int("lim", 0, "Fetch last N messages")
 	verbose_opt := flag.Bool("v", false, "Verbose")
+	bundle_opt := flag.Bool("b", false, "Show bundle")
+	invert_opt := flag.Bool("i", false, "Invert select")
 	force_opt := flag.Bool("f", false, "Force full sync")
 	users_opt := flag.String("u", "points.txt", "Users database")
 	conns_opt := flag.Int("j", 6, "Maximum parallel jobs")
@@ -107,6 +110,11 @@ Options:
 		db.Lock()
 		defer db.Unlock()
 		db.LoadIndex()
+		re, _ := regexp.Compile(args[1])
+		if re == nil {
+			fmt.Printf("Wrong regexp\n")
+			os.Exit(1)
+		}
 		for _, v := range db.Idx.List {
 			if echo != "" {
 				mi := db.Idx.Hash[v]
@@ -118,7 +126,7 @@ Options:
 			if m == nil {
 				continue
 			}
-			if strings.Contains(m.Text, args[1]) {
+			if re.Match([]byte(m.String())) {
 				fmt.Printf("%s\n", v)
 				if *verbose_opt {
 					fmt.Printf("%s\n", m)
@@ -164,8 +172,8 @@ Options:
 			fmt.Printf("No argumnet(s) supplied\nShould be: name, e-mail and password.\n")
 			os.Exit(1)
 		}
-		db := open_users_db(*users_opt, *policy_opt)
-		if err := db.Add(args[1], args[2], args[3], "ii-tool"); err != nil {
+		db := open_users_db(*users_opt)
+		if err := db.Add(args[1], args[2], args[3], "status/verified/info/ii-tool"); err != nil {
 			fmt.Printf("Can not add user: %s\n", err)
 			os.Exit(1)
 		}
@@ -367,7 +375,7 @@ Options:
 			os.Exit(1)
 		}
 		db := open_db(*db_opt)
-		req := ii.Query{ Echo: args[1] }
+		req := ii.Query{ Echo: args[1], NoAccess: true, Invert: *invert_opt }
 		if *from_opt != "" {
 			req.From = *from_opt
 		}
@@ -385,6 +393,8 @@ Options:
 		for _, v := range resp {
 			if *verbose_opt {
 				fmt.Println(db.Get(v))
+			} else if *bundle_opt {
+				fmt.Println(db.GetBundleAll(v))
 			} else {
 				fmt.Println(v)
 			}
