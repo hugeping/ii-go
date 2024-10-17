@@ -550,45 +550,47 @@ func (db *DB) Access(info *MsgInfo, user *User) bool {
 	return true
 }
 
-func matchRet(r Query, ret bool) bool {
-	if r.Invert {
-		return !ret
+// internal match function
+func (db *DB) _Match(info *MsgInfo, r Query) bool {
+	if r.Blacklisted {
+		if info.Off >= 0 {
+			return false
+		}
+	} else if info.Off < 0 && !r.NoAccess {
+		return false
 	}
-	return ret
+	if r.Echo != "" && r.Echo != info.Echo {
+		return false
+	}
+	if r.Repto == "!" {
+		if info.Repto != "" {
+			return false
+		}
+	} else if r.Repto != "" && r.Repto != info.Repto {
+		return false
+	}
+	if r.To != "" && r.To != info.To {
+		return false
+	}
+	if r.From != "" && r.From != info.From {
+		return false
+	}
+	if !r.NoAccess && !db.Access(info, &r.User) {
+		return false
+	}
+	if r.Match != nil {
+		return r.Match(info, r)
+	}
+	return true
 }
 
 // Default match function for queries.
 func (db *DB) Match(info *MsgInfo, r Query) bool {
-	if r.Blacklisted {
-		if info.Off >= 0 {
-			return matchRet(r, false)
-		}
-	} else if info.Off < 0 && !r.NoAccess {
-		return matchRet(r, false)
+	ret := db._Match(info, r)
+	if r.Invert {
+		return !ret
 	}
-	if r.Echo != "" && r.Echo != info.Echo {
-		return matchRet(r, false)
-	}
-	if r.Repto == "!" {
-		if info.Repto != "" {
-			return matchRet(r, false)
-		}
-	} else if r.Repto != "" && r.Repto != info.Repto {
-		return matchRet(r, false)
-	}
-	if r.To != "" && r.To != info.To {
-		return matchRet(r, false)
-	}
-	if r.From != "" && r.From != info.From {
-		return matchRet(r, false)
-	}
-	if !r.NoAccess && !db.Access(info, &r.User) {
-		return matchRet(r, false)
-	}
-	if r.Match != nil {
-		return matchRet(r, r.Match(info, r))
-	}
-	return true
+	return ret
 }
 
 // Used to get information about echoarea
