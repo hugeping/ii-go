@@ -1,5 +1,4 @@
 {{template "header.tpl" $}}
-<a class="rss" href="{{.PfxPath}}/echo/{{.Echo}}">Echo</a>
 {{template "pager.tpl" $}}
 <div id="topic">
 {{ range .Msg }}
