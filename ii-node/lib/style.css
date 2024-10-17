@@ -165,13 +165,13 @@ body {
 #edit textarea, #profile textarea {
     background-color: #ffffea;
     min-height: 20em;
-    font-size: x-large;
+    //font-size: x-large;
 }
 
 #topic .selected {
     background: #eaffff;
 }
-#topic .subj a, #topic .subj a:hover, #topic .subj a:visited {
+#topic .subj, #topic .subj a, #topic .subj a:hover, #topic .subj a:visited {
     color: #000000;
     font-size: large;
     font-weight: bold;
