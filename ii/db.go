@@ -1262,7 +1262,10 @@ type EDB struct {
 // Check if we can create message in DB
 func (db *EDB) Access(m *Msg) bool {
 	perm := db.Perm[m.Echo]
-	if perm != nil && len(perm.Allow) != 0 {
+	if perm == nil {
+		return true
+	}
+	if len(perm.Allow) != 0 {
 		for _, v := range perm.Allow {
 			if m.Addr == v {
 				return true

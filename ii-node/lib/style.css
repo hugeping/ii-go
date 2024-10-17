@@ -106,6 +106,21 @@ body {
     padding: 0;
     margin: 0;
 }
+
+#topic .title {
+    background: #55aaaa;
+    padding: 0 0.3em 0 0.3em;
+    margin: 0;
+    color: #ffffff;
+    font-weight: bold;
+    font-size: large;
+}
+
+#topic .title a, #topic .title a:visited, #topic .title a:hover {
+    color: #ffffff;
+    text-decoration: none;
+}
+
 .alert {
     background: #ea5555;
     color: white;
@@ -220,6 +235,7 @@ body {
     text-decoration: none;
     color: black;
 }
+
 #header .title .info {
     font-size: small;
     color: #555555;

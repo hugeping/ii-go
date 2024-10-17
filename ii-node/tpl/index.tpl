@@ -1,25 +1,41 @@
 {{template "header.tpl" $}}
-<table id="echolist" cellspacing=0 cellpadding=0>
-<tr class="title">
-<th>Echo</th>
-<th class="extra">Topics</th>
-<th class="extra">Posts</th>
-<th>Last</th>
-</tr>
-{{range $k, $_ := .Echoes }}
-{{ if is_even $k }}
-<tr class="even">
-{{ else }}
-<tr class="odd">
+<a class="rss" href="{{$.PfxPath}}/echo/all/rss">RSS</a>
+{{template "pager.tpl" $}}
+<div id="topic">
+{{ range $k, $_ := .Echoes }}
+{{ $count := .Count }}
+{{ with .Msg }}
+
+
+<span class="title"><a href="{{$.PfxPath}}/{{.Echo}}">{{.Echo}} :: {{ index $.Echolist.Info .Echo }} [{{ $count }}]</a></span><br>
+<div class="msg">
+{{ if has_avatar .From }}
+<img class="avatar" src="/avatar/{{.From}}">
 {{ end }}
-<td class="echo"><a href="{{$.PfxPath}}/{{.Name}}/">{{.Name}}</a><br>
-<span class="info">{{ index $.Echolist.Info .Name }}</span>
-</td>
-<td class="topics extra">{{.Topics}}</td>
-<td class="count extra">{{.Count}}</td>
-<td class="info">{{with .Msg}}<span class="subj">{{.Subj}}</span><br><a href="{{$.PfxPath}}/echo/{{.Echo}}">{{.Date | fdate}}</a> by {{.From}}{{end}}</td>
-</tr>
+<span class="subj"> <a href="{{$.PfxPath}}/echo/{{.Echo}}/{{.MsgId}}#{{.MsgId}}">{{with .Subj}}{{.}}{{else}}No subject{{end}}</a></span><br>
+<span class="info">{{.From}}({{.Addr}}) &mdash; {{.To}}<br>{{.Date | fdate}}</span><br>
+<div class="text">
+<br>
+{{ msg_text . }}
+<br>
+
+{{if $.User.Name}}
+<span class="reply"><a href="{{$.PfxPath}}/{{.MsgId}}/reply/new">Reply</a> :: </span>
+<span class="reply"><a href="{{$.PfxPath}}/{{.MsgId}}/reply">Quote</a></span>
+{{end}}
+{{ if msg_access . $.User }}
+ :: <span class="reply"><a href="{{$.PfxPath}}/{{.MsgId}}/edit">Edit</a></span>
 {{ end }}
-</table>
+{{if $.User.Name}}
+<br>
+{{end}}
+
+</div>
+</div>
+
+{{ end }}
+{{ end }}
+</div>
+{{template "pager.tpl" $}}
 
 {{template "footer.tpl"}}

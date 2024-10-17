@@ -1,23 +1,40 @@
 {{template "header.tpl" $}}
+<a class="rss" href="{{.PfxPath}}/echo/{{.Echo}}">Echo</a> :: <a class="rss" href="{{.PfxPath}}/blog/{{.Echo}}">Blog</a> :: <a class="rss" href="{{.PfxPath}}/echo/{{.Echo}}/rss">RSS</a>
 {{template "pager.tpl" $}}
-<a class="rss" href="/blog/{{.BasePath}}">Blog</a> :: <a class="rss" href="/echo/{{.BasePath}}">Feed</a>
-<table id="topiclist" cellspacing=0 cellpadding=0>
-<tr class="title">
-<th>Topics</th>
-<th class="extra">Replies</th>
-<th>Last post</th>
-</tr>
-{{range $k, $v := .Topics }}
-{{ if is_even $k }}
-<tr class="even">
-{{ else }}
-<tr class="odd">
+
+<div id="topic">
+{{ range $k, $_ := .Topics }}
+
+<span class="title"><a href="{{$.PfxPath}}/{{.Head.MsgId}}#{{.Head.MsgId}}">{{ .Head.Subj }} [{{ .Count }}]</a></span><br>
+{{ with .Tail }}
+<div class="msg">
+{{ if has_avatar .From }}
+<img class="avatar" src="/avatar/{{.From}}">
 {{ end }}
-<td class="topic"><a href="/{{.Head.MsgId}}/1">{{with .Head.Subj}}{{.}}{{else}}No subject{{end}}</a></td>
-<td class="posts extra">{{.Count}}</td>
-<td class="info"><span class="subj">{{.Tail.Subj}}</span><br><a href="/{{.Tail.MsgId}}#{{.Tail.MsgId}}">{{.Tail.Date | fdate}}</a><br>by {{.Tail.From}}</td>
-</tr>
+<span class="subj"> <a href="{{$.PfxPath}}/echo/{{.Echo}}/{{.MsgId}}#{{.MsgId}}">{{with .Subj}}{{.}}{{else}}No subject{{end}}</a></span><br>
+<span class="info">{{.From}}({{.Addr}}) &mdash; {{.To}}<br>{{.Date | fdate}}</span><br>
+<div class="text">
+<br>
+{{ msg_text . }}
+<br>
+
+{{if $.User.Name}}
+<span class="reply"><a href="{{$.PfxPath}}/{{.MsgId}}/reply/new">Reply</a> :: </span>
+<span class="reply"><a href="{{$.PfxPath}}/{{.MsgId}}/reply">Quote</a></span>
+{{end}}
+{{ if msg_access . $.User }}
+ :: <span class="reply"><a href="{{$.PfxPath}}/{{.MsgId}}/edit">Edit</a></span>
 {{ end }}
-</table>
+{{if $.User.Name}}
+<br>
+{{end}}
+
+</div>
+</div>
+
+{{ end }}
+{{ end }}
+</div>
 {{template "pager.tpl" $}}
+
 {{template "footer.tpl"}}

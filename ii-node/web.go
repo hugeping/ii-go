@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-const PAGE_SIZE = 100
+const PAGE_SIZE = 50
 
 type WebContext struct {
 	Echoes   []*ii.Echo
@@ -75,7 +75,7 @@ func www_register_verify(ctx *WebContext, w http.ResponseWriter, r *http.Request
 
 func Whois(domain string)(result string) {
 	var server string
-	result, err := query(domain, "whois.iana.org:43")
+	result, err := whois_query(domain, "whois.iana.org:43")
 	if err != nil {
 		return ""
 	}
@@ -83,7 +83,7 @@ func Whois(domain string)(result string) {
 	if server == "" {
 		return ""
 	}
-	result, err = query(domain, server+":43")
+	result, err = whois_query(domain, server+":43")
 	if err != nil {
 		return
 	}
@@ -91,7 +91,7 @@ func Whois(domain string)(result string) {
 	if refServer == "" || refServer == server {
 		return
 	}
-	data, err := query(domain, refServer)
+	data, err := whois_query(domain, refServer)
 	if err == nil {
 		result += data
 	}
@@ -118,7 +118,7 @@ func getServer(data string) string {
 }
 
 
-func query(domain, server string) (string, error) {
+func whois_query(domain, server string) (string, error) {
 	conn, err := net.DialTimeout("tcp", server, time.Second*10)
 	if err != nil {
 		return "", fmt.Errorf("whois: connect to whois server failed: %v", err)
@@ -499,10 +499,24 @@ func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Que
 	mis := db.LookupIDS(Select(ctx, q))
 	ii.Trace.Printf("www query")
 
-	sort.SliceStable(mis, func(i, j int) bool {
-		return mis[i].Num > mis[j].Num
-	})
+	if q.Start < 0 {
+		sort.SliceStable(mis, func(i, j int) bool {
+			return mis[i].Num > mis[j].Num
+		})
+	}
 	count := len(mis)
+
+	if page == 0 {
+		for k, v := range mis {
+			if v.Id == ctx.Selected {
+				page = k/PAGE_SIZE + 1
+				break
+			}
+		}
+		if page == 0 {
+			page = (count - 1) / PAGE_SIZE + 1
+		}
+	}
 	start := makePager(ctx, count, page)
 	nr := PAGE_SIZE
 	for i := start; i < count && nr > 0; i++ {
@@ -646,7 +660,7 @@ func www_topic(ctx *WebContext, w http.ResponseWriter, r *http.Request, page int
 
 	if len(ids) == 0 {
 		ids = append(ids, id)
-	} else if topic != mi.Id {
+	} else if topic != mi.Id && page == 0 {
 		for k, v := range ids {
 			if v == mi.Id {
 				page = k/PAGE_SIZE + 1
@@ -1085,6 +1099,25 @@ func handleWWW(www *WWW, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func parseQueryArgs(args []string, ctx *WebContext, page *int, rss *bool) error {
+	*page = 0
+	*rss = false
+	ctx.Selected = ""
+	if len(args) < 2 {
+		return errors.New("Wrong request")
+	}
+	if len(args) > 2 {
+		if args[2] == "rss" {
+			*rss = true
+		} else if ii.IsMsgId(args[2]) {
+			ctx.Selected = args[2]
+		} else {
+			fmt.Sscanf(args[2], "%d", page)
+		}
+	}
+	return nil
+}
+
 func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 	cookie, err := r.Cookie("pauth")
 	if err == nil {
@@ -1157,54 +1190,43 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 		ctx.BasePath = ""
 		return www_new(ctx, w, r)
 	} else if args[0] == "to" {
-		page := 1
+		page := 0
 		rss := false
-		if len(args) < 2 {
-			return errors.New("Wrong request")
-		}
-		if len(args) > 2 {
-			if args[2] == "rss" {
-				rss = true
-			} else {
-				fmt.Sscanf(args[2], "%d", &page)
-			}
+		ctx.Selected = ""
+
+		err := parseQueryArgs(args, ctx, &page, &rss)
+		if err != nil {
+			return err
 		}
 		ctx.BasePath = "to/" + args[1]
 		return www_query(ctx, w, r, ii.Query{To: args[1]}, page, rss)
 	} else if args[0] == "from" {
-		page := 1
+		page := 0
 		rss := false
-		if len(args) < 2 {
-			return errors.New("Wrong request")
-		}
-		if len(args) > 2 {
-			if args[2] == "rss" {
-				rss = true
-			} else {
-				fmt.Sscanf(args[2], "%d", &page)
-			}
+		ctx.Selected = ""
+
+		err := parseQueryArgs(args, ctx, &page, &rss)
+		if err != nil {
+			return err
 		}
 		ctx.BasePath = "from/" + args[1]
 		return www_query(ctx, w, r, ii.Query{From: args[1]}, page, rss)
 	} else if args[0] == "echo" || args[0] == "echo+topics" {
-		page := 1
+		page := 0
 		rss := false
-		if len(args) < 2 {
-			return errors.New("Wrong request")
+		ctx.Selected = ""
+		err := parseQueryArgs(args, ctx, &page, &rss)
+		if err != nil {
+			return err
 		}
-		if len(args) > 2 {
-			if args[2] == "rss" {
-				rss = true
-			} else {
-				fmt.Sscanf(args[2], "%d", &page)
-			}
-		}
+
 		q := ii.Query{Echo: args[1]}
+
 		if args[1] == "all" {
 			q.Echo = ""
+			q.Start = -PAGE_SIZE
 		}
 		ctx.Echo = q.Echo
-		q.Start = -PAGE_SIZE
 		if args[0] == "echo+topics" {
 			q.Repto = "!"
 			ctx.BasePath = "echo+topics/" + args[1]

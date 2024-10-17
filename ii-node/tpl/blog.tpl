@@ -1,13 +1,13 @@
 {{template "header.tpl" $}}
-{{template "pager.tpl" $}}
 <a class="rss" href="/{{.BasePath}}">Echo</a> :: <a class="rss" href="{{.PfxPath}}/echo+topics/{{.Echo}}/rss">RSS</a>
+{{template "pager.tpl" $}}
 <div id="topic">
 {{range $k, $v := .Topics }}
 {{ with .Head }}
 <a name="{{.MsgId}}"></a>
 
 <div class="msg">
-<a class="msgid" href="/blog/{{.MsgId}}#{{.MsgId}}">#</a><span class="subj"> <a href="/blog/{{. | repto}}#{{. | repto}}">{{with .Subj}}{{.}}{{else}}No subject{{end}}</a></span><br>
+<span class="subj"> <a href="/blog/{{. | repto}}#{{. | repto}}">{{with .Subj}}{{.}}{{else}}No subject{{end}}</a></span><br>
 <span class="info"><a href="{{$.PfxPath}}/from/{{.From}}">{{.From}}</a>({{.Addr}}) &mdash; {{.To}}<br>{{.Date | fdate}}</span><br>
 
 <div class="text">
