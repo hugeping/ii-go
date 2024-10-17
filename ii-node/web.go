@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"image"
 	"image/png"
+	"math"
 	"net/http"
 	"bufio"
 	"io/ioutil"
@@ -21,6 +22,7 @@ import (
 )
 
 const PAGE_SIZE = 50
+const PAGER_RANGE = 8
 
 type WebContext struct {
 	Echoes   []*ii.Echo
@@ -469,8 +471,17 @@ func makePager(ctx *WebContext, count int, page int) int {
 	}
 	ctx.Page = page
 	if ctx.Pages > 1 {
+		nr := 0
 		for i := 1; i <= ctx.Pages; i++ {
-			ctx.Pager = append(ctx.Pager, i)
+			if math.Abs(float64(i - page)) <= PAGER_RANGE ||
+				i <= PAGER_RANGE+1 ||
+					i >= ctx.Pages - PAGER_RANGE {
+				ctx.Pager = append(ctx.Pager, i)
+				nr += 1
+			} else if ctx.Pager[nr-1] != 0 {
+				ctx.Pager = append(ctx.Pager, 0)
+				nr += 1
+			}
 		}
 	}
 	return start

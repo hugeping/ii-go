@@ -9,10 +9,10 @@ Pages:
 {{ range .Pager }}
 {{ if eq . $.Page }}
 <span class="selected">{{.}}</span>
+{{ else if eq . 0 }}
+......
 {{ else }}
-
 <a href="{{$.PfxPath}}/{{$.BasePath}}/{{.}}">{{.}}</a>
-
 {{ end }}
 {{ end }}
 </div>
