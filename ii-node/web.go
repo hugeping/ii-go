@@ -10,8 +10,12 @@ import (
 	"image"
 	"image/png"
 	"net/http"
+	"bufio"
+	"io/ioutil"
+	"net"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -31,6 +35,7 @@ type WebContext struct {
 	Pager    []int
 	BasePath string
 	User     *ii.User
+	Admin    *ii.User
 	Echolist *ii.EDB
 	Selected string
 	Template string
@@ -40,6 +45,113 @@ type WebContext struct {
 	Host     string
 	www      *WWW
 	Ip       string
+}
+
+func www_register_locked(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
+	ii.Trace.Printf("www register")
+	switch r.Method {
+	case "GET":
+		ctx.Template = "register-locked.tpl"
+		err := ctx.www.tpl.ExecuteTemplate(w, "register-locked.tpl", ctx)
+		return err
+	default:
+		return nil
+	}
+	return nil
+}
+
+func www_register_verify(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
+	ii.Trace.Printf("www register verify")
+	switch r.Method {
+	case "POST":
+		ctx.Template = "register-verify.tpl"
+		err := ctx.www.tpl.ExecuteTemplate(w, "register-verify.tpl", ctx)
+		return err
+	default:
+		return nil
+	}
+	return nil
+}
+
+func Whois(domain string)(result string) {
+	var server string
+	result, err := query(domain, "whois.iana.org:43")
+	if err != nil {
+		return ""
+	}
+	server = getServer(result)
+	if server == "" {
+		return ""
+	}
+	result, err = query(domain, server+":43")
+	if err != nil {
+		return
+	}
+	refServer := getServer(result)
+	if refServer == "" || refServer == server {
+		return
+	}
+	data, err := query(domain, refServer)
+	if err == nil {
+		result += data
+	}
+	return
+}
+
+// getServer returns server from whois data
+func getServer(data string) string {
+	tokens := []string{
+		"Registrar WHOIS Server: ",
+		"whois: ",
+	}
+
+	for _, token := range tokens {
+		start := strings.Index(data, token)
+		if start != -1 {
+			start += len(token)
+			end := strings.Index(data[start:], "\n")
+			return strings.TrimSpace(data[start : start+end])
+		}
+	}
+
+	return ""
+}
+
+
+func query(domain, server string) (string, error) {
+	conn, err := net.DialTimeout("tcp", server, time.Second*10)
+	if err != nil {
+		return "", fmt.Errorf("whois: connect to whois server failed: %v", err)
+	}
+	defer conn.Close()
+	_, err = conn.Write([]byte(domain + "\r\n"))
+	if err != nil {
+		return "", fmt.Errorf("whois: send to whois server failed: %v", err)
+	}
+	buffer, err := ioutil.ReadAll(conn)
+	if err != nil {
+		return "", fmt.Errorf("whois: read from whois server failed: %v", err)
+	}
+	return string(buffer), nil
+}
+
+func getHostCountry(ip string) string {
+	if strings.TrimSpace(ip) == "" {
+		return "us"
+	}
+	pos := strings.Index(ip, "_")
+	if pos != -1 {
+		ip = ip[:pos]
+	}
+	text := Whois(ip)
+	scanner := bufio.NewScanner(strings.NewReader(text))
+	for scanner.Scan() {
+		a := strings.Split(scanner.Text(), ":")
+		if a[0] == "country" {
+			return strings.ToLower(strings.TrimSpace(a[1]))
+		}
+	}
+	return "us"
 }
 
 func www_register(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
@@ -74,13 +186,28 @@ func www_register(ctx *WebContext, w http.ResponseWriter, r *http.Request) error
 		user := r.FormValue("username")
 		password := r.FormValue("password")
 		email := r.FormValue("email")
-
-		err := udb.Add(user, email, password, ctx.Ip)
+		country := getHostCountry(ctx.Ip)
+		info := udb.UserStatus(user, email, country)
+		if info == "honeypot" {
+			return www_register_verify(ctx, w, r)
+		}
+		info += "/info/" + ctx.Ip + "," + country
+		ii.Info.Printf("Policy %s: %s", user, info)
+		err := udb.Add(user, email, password, info)
 		if err != nil {
 			ii.Info.Printf("Can not register user %s: %s", user, err)
 			return err
 		}
-		ii.Info.Printf("Registered user: %s", user)
+		ii.Info.Printf("Registered user: %s from: %s", user, country)
+		tags := ii.NewTags(info)
+		tlim, _ := tags.Get("limit")
+		lim := -1
+		if tlim != "" {
+			lim, _ = strconv.Atoi(tlim)
+		}
+		if lim == 0 {
+			return www_register_verify(ctx, w, r)
+		}
 		http.Redirect(w, r, ctx.PfxPath + "/login", http.StatusSeeOther)
 	default:
 		return nil
@@ -457,10 +584,10 @@ func www_topics(ctx *WebContext, w http.ResponseWriter, r *http.Request, page in
 			}
 		} else {
 			topic.Last = db.LookupFast(topic.Ids[topic.Count], false)
-			if topic.Last == nil {
-				ii.Error.Printf("Skip wrong message: %s\n", t[0])
-				continue
-			}
+		}
+		if topic.Last == nil {
+			ii.Error.Printf("Skip wrong message: %s\n", t[0])
+			continue
 		}
 		topics = append(topics, &topic)
 	}
@@ -639,19 +766,12 @@ func www_new(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 			return err
 		}
 		m.From = ctx.User.Name
-
-		if v, _ := ctx.User.Tags.Get("status"); v == "new" || v == "moderated" {
-			mis := ctx.www.db.LookupIDS(ctx.www.db.SelectIDS(ii.Query{From: m.From, Lim: QuarantineMsgMax}))
-			if len(mis) >= QuarantineMsgMax {
-				ii.Error.Printf("Not verified account! Wait for the administrator.")
-				return errors.New("Not verified account! Wait for the administrator.")
-			}
-		}
-
 		m.Addr = fmt.Sprintf("%s,%d", ctx.www.db.Name, ctx.User.Id)
+
 		if repto != "" {
 			m.Tags.Add("repto/" + repto)
 		}
+
 		if id != "" {
 			om := ctx.www.db.Get(id)
 			if (om == nil || m.Addr != om.Addr) && ctx.User.Id != 1 {
@@ -663,6 +783,19 @@ func www_new(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 			m.From = om.From
 			m.Addr = om.Addr
 		}
+
+		if !PointPolicy(ctx.User, ctx.www.db, m) {
+			ii.Error.Printf("Not verified account! Wait for the administrator.")
+			ctx.Template = "register-verify.tpl"
+			err := ctx.www.tpl.ExecuteTemplate(w, "register-verify.tpl", ctx)
+			return err
+		}
+
+		if !ctx.www.edb.Access(m) && ctx.User.Id != 1 {
+			ii.Error.Printf("Access denied")
+			return errors.New("Access denied")
+		}
+
 		if action == "Submit" { // submit
 			if edit {
 				err = ctx.www.db.Edit(m)
@@ -942,6 +1075,10 @@ func handleWWW(www *WWW, w http.ResponseWriter, r *http.Request) {
 	ctx.Sysname = www.db.Name
 	ctx.Host = www.Host
 	www.udb.LoadUsers()
+	ctx.Admin = ctx.www.udb.UserInfoId(1)
+	if ctx.Admin == nil {
+		ctx.Admin = &ii.User{}
+	}
 	err := _handleWWW(&ctx, w, r)
 	if err != nil {
 		handleErr(&ctx, w, err)
@@ -987,6 +1124,9 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 		return www_profile(ctx, w, r)
 	} else if args[0] == "register" {
 		ctx.BasePath = "register"
+		if ctx.www.udb.Locked {
+			return www_register_locked(ctx, w, r)
+		}
 		return www_register(ctx, w, r)
 	} else if args[0] == "reset" {
 		ctx.Template = "reset.tpl"

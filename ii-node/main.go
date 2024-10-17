@@ -8,10 +8,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 )
-
-const QuarantineMsgMax = 1
 
 func open_db(path string) *ii.DB {
 	db := ii.OpenDB(path)
@@ -20,6 +19,23 @@ func open_db(path string) *ii.DB {
 		os.Exit(1)
 	}
 	return db
+}
+
+func PointPolicy(ui *ii.User, db *ii.DB, m *ii.Msg) bool {
+	if v, _ := ui.Tags.Get("status"); v == "new" || v == "moderated" {
+		var lim int
+		tlim, _ := ui.Tags.Get("limit")
+		if tlim == "" {
+			lim = 0
+		} else {
+			lim, _ = strconv.Atoi(tlim)
+		}
+		mis := db.LookupIDS(db.SelectIDS(ii.Query{From: m.From, Lim: lim}))
+		if len(mis) >= lim {
+			return false
+		}
+	}
+	return true
 }
 
 func PointMsg(edb *ii.EDB, db *ii.DB, udb *ii.UDB, pauth string, tmsg string) string {
@@ -40,6 +56,7 @@ func PointMsg(edb *ii.EDB, db *ii.DB, udb *ii.UDB, pauth string, tmsg string) st
 			return fmt.Sprintf("Receive point msg with wrong repto.")
 		}
 	}
+
 	if !edb.Allowed(m.Echo) {
 		ii.Error.Printf("This echo is disallowed")
 		return fmt.Sprintf("This echo is disallowed")
@@ -51,16 +68,18 @@ func PointMsg(edb *ii.EDB, db *ii.DB, udb *ii.UDB, pauth string, tmsg string) st
 		return fmt.Sprintf("Internal error (can't get userinfo)")
 	}
 	m.From = ui.Name
+	m.Addr = fmt.Sprintf("%s,%d", db.Name, udb.Id(pauth))
 
-	if v, _ := ui.Tags.Get("status"); v == "new" || v == "moderated" {
-		mis := db.LookupIDS(db.SelectIDS(ii.Query{From: m.From, Lim: QuarantineMsgMax}))
-		if len(mis) >= QuarantineMsgMax {
-			ii.Error.Printf("Not verified account! Wait for the administrator.")
-			return fmt.Sprintf("Not verified account! Wait for the administrator.")
-		}
+	if !PointPolicy(ui, db, m) {
+		ii.Error.Printf("Not verified account! Wait for the administrator.")
+		return fmt.Sprintf("Not verified account! Wait for the administrator.")
 	}
 
-	m.Addr = fmt.Sprintf("%s,%d", db.Name, udb.Id(pauth))
+	if !edb.Access(m) {
+		ii.Error.Printf("Access denied")
+		return fmt.Sprintf("Access denied")
+	}
+
 	if err := db.Store(m); err != nil {
 		ii.Error.Printf("Store point msg: %s", err)
 		return fmt.Sprintf("%s", err)
@@ -69,6 +88,7 @@ func PointMsg(edb *ii.EDB, db *ii.DB, udb *ii.UDB, pauth string, tmsg string) st
 }
 
 var users_opt *string = flag.String("u", "points.txt", "Users database")
+var policy_opt *string = flag.String("p", "policy.txt", "Users policy")
 var db_opt *string = flag.String("db", "./db", "II database path (directory)")
 var listen_opt *string = flag.String("L", ":8080", "Listen address")
 var sysname_opt *string = flag.String("sys", "ii-go", "Node name")
@@ -116,7 +136,7 @@ func main() {
 
 	db := open_db(*db_opt)
 	edb := ii.LoadEcholist(*echo_opt)
-	udb := ii.OpenUsers(*users_opt)
+	udb := ii.OpenUsers(*users_opt, *policy_opt)
 	if *verbose_opt {
 		ii.OpenLog(os.Stdout, os.Stdout, os.Stderr)
 	}

@@ -15,13 +15,12 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 )
-
-const NewUsersMax = 3
 
 // This is index entry. Information about message that is loaded in memory.
 // So, the index could not be very huge.
@@ -76,6 +75,26 @@ func append_file(fn string, text string) error {
 		return err
 	}
 	return nil
+}
+
+func filesize(fn string)(int64, error) {
+	var fsize int64
+	file, err := os.Open(fn)
+	if err == nil {
+		info, err := file.Stat()
+		file.Close()
+		if err != nil {
+			Error.Printf("Can not stat %s file: %s", fn, err)
+			return -1, err
+		}
+		fsize = info.Size()
+	} else if os.IsNotExist(err) {
+		fsize = 0
+	} else {
+		Error.Printf("Can not open %s file: %s", fn, err)
+		return -1, err
+	}
+	return fsize, nil
 }
 
 // Recursive file lock. Used to avoid conflicts between ii-tool and ii-node.
@@ -760,11 +779,6 @@ func (db *DB) GetTopics(mi []*MsgInfo) map[string][]string {
 // Store decoded message in database
 // If message exists, returns error
 func (db *DB) Store(m *Msg) error {
-	if r, _ := m.Tag("repto"); r == "" { //  new one!
-//		if strings.HasPrefix(m.Echo, "std.hugeping") && m.Addr != "ping,1" {
-//			return errors.New("Access denied")
-//		}
-	}
 	return db._Store(m, false)
 }
 
@@ -865,6 +879,12 @@ type User struct {
 	Tags   Tags
 }
 
+type UserPolicy struct {
+	Name    *regexp.Regexp
+	Mail    *regexp.Regexp
+	Country *regexp.Regexp
+	Status  string
+}
 // User database.
 // FileSize - size of points.txt to detect DB changes.
 // Names: holds User structure by user name
@@ -873,12 +893,16 @@ type User struct {
 // List: holds user names as list
 type UDB struct {
 	Path     string
+	PolicyPath string
 	Names    map[string]User
 	ById     map[int32]string
 	Secrets  map[string]string
 	List     []string
 	Sync     sync.RWMutex
 	FileSize int64
+	Policy   []*UserPolicy
+	PolFileSize int64
+	NewUsersMax int
 	Locked   bool
 }
 
@@ -1032,7 +1056,7 @@ func (db *UDB) Add(Name string, Mail string, Passwd string, Info string) error {
 	u.Name = Name
 	u.Mail = Mail
 	u.Secret = MakeSecret(Name + Passwd)
-	u.Tags = NewTags("status/new/info/" + Info)
+	u.Tags = NewTags(Info)
 	db.List = append(db.List, u.Name)
 	if err := append_file(db.Path, fmt.Sprintf("%d:%s:%s:%s:%s",
 		id, Name, Mail, u.Secret, u.Tags.String())); err != nil {
@@ -1042,9 +1066,10 @@ func (db *UDB) Add(Name string, Mail string, Passwd string, Info string) error {
 }
 
 // Open user database and return pointer to UDB object
-func OpenUsers(path string) *UDB {
+func OpenUsers(path string, policy string) *UDB {
 	var db UDB
 	db.Path = path
+	db.PolicyPath = policy
 	return &db
 }
 
@@ -1073,25 +1098,64 @@ func (db *UDB) Edit(u *User) error {
 	return nil
 }
 
+// Load policy information in memory if it is needed (PolFileSize changed).
+// So, it is safe to call it on every request.
+func (db *UDB) loadPolicy() error {
+	var fsize int64
+	if db.PolicyPath == "" {
+		return nil
+	}
+	fsize, err := filesize(db.PolicyPath)
+	if fsize < 0 {
+		return err
+	}
+	if db.PolFileSize == fsize {
+		return nil
+	}
+	db.PolFileSize = fsize
+	db.Policy = make([]*UserPolicy, 0, 1)
+
+	err = FileLines(db.PolicyPath, func(line string) bool {
+		a := strings.Split(line, ":")
+		if len(a) < 4 {
+			if len(a) == 1 {
+				n, _ := strconv.Atoi(line)
+				db.NewUsersMax = n
+			} else {
+				Error.Printf("Wrong entry in user policy DB: %s", line)
+			}
+			return true
+		}
+		var up UserPolicy
+		up.Name, _ = regexp.Compile(a[0])
+		up.Mail, _ = regexp.Compile(a[1])
+		up.Country, _ = regexp.Compile(a[2])
+		up.Status = a[3]
+		db.Policy = append(db.Policy, &up)
+		return true
+	})
+
+	return nil
+}
+
+func (db *UDB) UserStatus(name string, mail string, country string) string {
+	for _, v := range db.Policy {
+		if (v.Name == nil || v.Name.MatchString(name)) &&
+			(v.Mail == nil || v.Mail.MatchString(mail)) &&
+			(v.Country == nil || v.Country.MatchString(country)) {
+			return v.Status
+		}
+	}
+	return "status/new"
+}
+
 // Load user information in memory if it is needed (FileSize changed).
 // So, it is safe to call it on every request.
 func (db *UDB) LoadUsers() error {
 	db.Sync.Lock()
 	defer db.Sync.Unlock()
-	var fsize int64
-	file, err := os.Open(db.Path)
-	if err == nil {
-		info, err := file.Stat()
-		file.Close()
-		if err != nil {
-			Error.Printf("Can not stat %s file: %s", db.Path, err)
-			return err
-		}
-		fsize = info.Size()
-	} else if os.IsNotExist(err) {
-		fsize = 0
-	} else {
-		Error.Printf("Can not open %s file: %s", db.Path, err)
+	fsize, err := filesize(db.Path)
+	if fsize < 0 {
 		return err
 	}
 	if db.FileSize == fsize {
@@ -1101,8 +1165,17 @@ func (db *UDB) LoadUsers() error {
 	db.Secrets = make(map[string]string)
 	db.ById = make(map[int32]string)
 	db.List = nil
+	db.Locked = false
+	db.NewUsersMax = -1
+
+	db.loadPolicy()
+
 	new_users := 0
 	err = FileLines(db.Path, func(line string) bool {
+		if strings.HasPrefix(line, "!lock") {
+			db.Locked = true
+			return true
+		}
 		a := strings.Split(line, ":")
 		if len(a) < 4 {
 			Error.Printf("Wrong entry in user DB: %s", line)
@@ -1122,7 +1195,7 @@ func (db *UDB) LoadUsers() error {
 		if status, _ := u.Tags.Get("status"); status == "new" {
 			new_users += 1;
 		}
-		if new_users >= NewUsersMax && !db.Locked {
+		if db.NewUsersMax >= 0 && new_users >= db.NewUsersMax && !db.Locked {
 			db.Locked = true
 			Error.Printf("Maximum new users reached. Registrarion locked.\n")
 		}
@@ -1140,13 +1213,36 @@ func (db *UDB) LoadUsers() error {
 	return nil
 }
 
+type EDBPerm struct {
+	Allow []string
+	Write bool
+}
 // Echo database entry
 // Holds echo descriptions in Info hash.
+// Perm - access rights
 // List - names of echoareas.
 type EDB struct {
-	Info map[string]string
+	Perm map[string]*EDBPerm
 	List []string
+	Info map[string]string
 	Path string
+}
+
+// Check if we can create message in DB
+func (db *EDB) Access(m *Msg) bool {
+	perm := db.Perm[m.Echo]
+	if perm != nil && len(perm.Allow) != 0 {
+		for _, v := range perm.Allow {
+			if m.Addr == v {
+				return true
+			}
+		}
+		if r, _ := m.Tag("repto"); r != "" { //  comment
+			return perm.Write
+		}
+		return false
+	}
+	return perm.Write
 }
 
 // Check if echo is exists in echo database
@@ -1154,7 +1250,7 @@ func (db *EDB) Allowed(name string) bool {
 	if len(db.List) == 0 {
 		return true
 	}
-	if _, ok := db.Info[name]; ok {
+	if _, ok := db.Perm[name]; ok {
 		return true
 	}
 	return false
@@ -1165,6 +1261,7 @@ func (db *EDB) Allowed(name string) bool {
 func LoadEcholist(path string) *EDB {
 	var db EDB
 	db.Path = path
+	db.Perm = make(map[string]*EDBPerm)
 	db.Info = make(map[string]string)
 
 	err := FileLines(path, func(line string) bool {
@@ -1173,8 +1270,23 @@ func LoadEcholist(path string) *EDB {
 			Error.Printf("Wrong entry in echo DB: %s", line)
 			return true
 		}
-		db.Info[a[0]] = a[2]
-		db.List = append(db.List, a[0])
+		perm := &EDBPerm { Allow: []string {}, Write: true }
+
+		access := strings.Split(a[0], "!")
+		e := a[0]
+		if len(access) > 0 {
+			e = access[0]
+			for _, v := range access[1:] {
+				perm.Allow = append(perm.Allow, v)
+			}
+		}
+		if strings.HasPrefix(e, "-") {
+			perm.Write = false
+			e = e[1:]
+		}
+		db.Perm[e] = perm
+		db.Info[e] = a[2]
+		db.List = append(db.List, e)
 		return true
 	})
 	if err != nil {

@@ -22,7 +22,7 @@ func open_db(path string) *ii.DB {
 }
 
 func open_users_db(path string) *ii.UDB {
-	db := ii.OpenUsers(path)
+	db := ii.OpenUsers(path, "")
 	if err := db.LoadUsers(); err != nil {
 		fmt.Printf("Can no load db: %s\n", path)
 		os.Exit(1)
@@ -164,7 +164,7 @@ Options:
 			fmt.Printf("No argumnet(s) supplied\nShould be: name, e-mail and password.\n")
 			os.Exit(1)
 		}
-		db := open_users_db(*users_opt)
+		db := open_users_db(*users_opt, *policy_opt)
 		if err := db.Add(args[1], args[2], args[3], "ii-tool"); err != nil {
 			fmt.Printf("Can not add user: %s\n", err)
 			os.Exit(1)
