@@ -284,6 +284,14 @@ func www_index(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 	return err
 }
 
+func www_forum(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
+	ii.Trace.Printf("www forum index")
+	ctx.Echoes = ctx.www.db.Echoes(nil, ii.Query{User: *ctx.User})
+	ctx.Template = "forum.tpl"
+	err := ctx.www.tpl.ExecuteTemplate(w, "forum.tpl", ctx)
+	return err
+}
+
 func parse_ava(txt string) *image.RGBA {
 	txt = msg_clean(txt)
 	lines := strings.Split(txt, "\n")
@@ -1150,9 +1158,15 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 	args := strings.Split(path, "/")
 	ctx.Echolist = ctx.www.edb
 	ctx.Ref = r.Header.Get("Referer")
-	if len(args) > 1 && args[0] == "blog" {
-		ctx.PfxPath = "/blog"
-		args = args[1:]
+	if len(args) > 1 {
+		switch (args[0]) {
+		case "blog":
+			ctx.PfxPath = "/blog"
+			args = args[1:]
+		case "forum":
+			ctx.PfxPath = "/forum"
+			args = args[1:]
+		}
 	}
 	if args[0] == "" {
 		ctx.BasePath = ""
