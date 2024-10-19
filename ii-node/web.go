@@ -22,7 +22,7 @@ import (
 )
 
 const PAGE_SIZE = 50
-const PAGER_RANGE = 8
+const PAGER_RANGE = 10
 
 type WebContext struct {
 	Echoes   []*ii.Echo
@@ -481,9 +481,8 @@ func makePager(ctx *WebContext, count int, page int) int {
 	if ctx.Pages > 1 {
 		nr := 0
 		for i := 1; i <= ctx.Pages; i++ {
-			if math.Abs(float64(i - page)) <= PAGER_RANGE ||
-				i <= PAGER_RANGE+1 ||
-					i >= ctx.Pages - PAGER_RANGE {
+			if i == 1 || math.Abs(float64(i - page)) <= PAGER_RANGE ||
+				i == ctx.Pages {
 				ctx.Pager = append(ctx.Pager, i)
 				nr += 1
 			} else if ctx.Pager[nr-1] != 0 {
