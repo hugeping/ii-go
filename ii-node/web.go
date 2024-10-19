@@ -1087,6 +1087,11 @@ func WebInit(www *WWW) {
 		"unescape": func(s string) template.HTML {
 			return template.HTML(s)
 		},
+		"msg_local": func(m ii.Msg) bool {
+			ui := www.udb.UserInfoName(m.From)
+			return ui != nil &&
+				fmt.Sprintf("%s,%d", www.db.Name, ui.Id) == m.Addr
+		},
 		"has_avatar": func(user string) bool {
 			ui := www.udb.UserInfoName(user)
 			if ui != nil {

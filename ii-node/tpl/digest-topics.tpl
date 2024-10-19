@@ -8,7 +8,7 @@
 <span class="title"><a href="{{$.PfxPath}}/{{.Head.MsgId}}#{{.Head.MsgId}}">{{ .Head.Subj }} [{{ .Count }}]</a></span><br>
 {{ with .Tail }}
 <div class="msg">
-{{ if has_avatar .From }}
+{{ if and (msg_local .) (has_avatar .From)}}
 <img class="avatar" src="/avatar/{{.From}}">
 {{ end }}
 <span class="subj"> <a href="{{$.PfxPath}}/echo/{{.Echo}}/{{.MsgId}}#{{.MsgId}}">{{with .Subj}}{{.}}{{else}}No subject{{end}}</a></span><br>

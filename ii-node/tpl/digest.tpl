@@ -10,7 +10,7 @@
 
 <span class="title"><a href="{{$.PfxPath}}/{{.Echo}}">{{.Echo}} :: {{ index $.Echolist.Info .Echo }} [{{ $count }}]</a></span><br>
 <div class="msg">
-{{ if has_avatar .From }}
+{{ if and (msg_local .) (has_avatar .From)}}
 <img class="avatar" src="/avatar/{{.From}}">
 {{ end }}
 <span class="subj"> <a href="{{$.PfxPath}}/echo/{{.Echo}}/{{.MsgId}}#{{.MsgId}}">{{with .Subj}}{{.}}{{else}}No subject{{end}}</a></span><br>
