@@ -1258,13 +1258,17 @@ type EDB struct {
 	List []string
 	Info map[string]string
 	Path string
+	BlockWords []*regexp.Regexp
 }
 
 // Check if we can create message in DB
 func (db *EDB) Access(m *Msg) bool {
+	if len(db.List) == 0 {
+		return true
+	}
 	perm := db.Perm[m.Echo]
 	if perm == nil {
-		return true
+		return false
 	}
 	if len(perm.Allow) != 0 {
 		for _, v := range perm.Allow {
@@ -1277,18 +1281,29 @@ func (db *EDB) Access(m *Msg) bool {
 		}
 		return false
 	}
+	if !perm.Write {
+		return false
+	}
+	for _, re := range db.BlockWords {
+		if re.Match([]byte(m.Text)) {
+			return false
+		}
+	}
 	return perm.Write
 }
 
-// Check if echo is exists in echo database
-func (db *EDB) Allowed(name string) bool {
-	if len(db.List) == 0 {
+// Loads block words
+// Supposed to be called only once
+func (db *EDB) LoadBlockwords(path string) {
+	db.BlockWords = make([]*regexp.Regexp, 0)
+
+	FileLines(path, func(line string) bool {
+		re, _ := regexp.Compile(line)
+		if re != nil {
+			db.BlockWords = append(db.BlockWords, re)
+		}
 		return true
-	}
-	if _, ok := db.Perm[name]; ok {
-		return true
-	}
-	return false
+	})
 }
 
 // Loads echolist database and returns pointer to EDB

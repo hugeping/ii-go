@@ -57,11 +57,6 @@ func PointMsg(edb *ii.EDB, db *ii.DB, udb *ii.UDB, pauth string, tmsg string) st
 		}
 	}
 
-	if !edb.Allowed(m.Echo) {
-		ii.Error.Printf("This echo is disallowed")
-		return fmt.Sprintf("This echo is disallowed")
-	}
-
 	ui := udb.UserInfo(pauth)
 	if ui == nil {
 		ii.Error.Printf("Internal error (can't get userinfo)")
@@ -75,7 +70,7 @@ func PointMsg(edb *ii.EDB, db *ii.DB, udb *ii.UDB, pauth string, tmsg string) st
 		return fmt.Sprintf("Not verified account! Wait for the administrator.")
 	}
 
-	if !edb.Access(m) {
+	if !edb.Access(m) && ui.Id != 1 {
 		ii.Error.Printf("Access denied")
 		return fmt.Sprintf("Access denied")
 	}
@@ -89,6 +84,7 @@ func PointMsg(edb *ii.EDB, db *ii.DB, udb *ii.UDB, pauth string, tmsg string) st
 
 var users_opt *string = flag.String("u", "points.txt", "Users database")
 var policy_opt *string = flag.String("p", "policy.txt", "Users policy")
+var blackwords_opt *string = flag.String("b", "blackwords.txt", "Blackwords file")
 var db_opt *string = flag.String("db", "./db", "II database path (directory)")
 var listen_opt *string = flag.String("L", ":8080", "Listen address")
 var sysname_opt *string = flag.String("sys", "ii-go", "Node name")
@@ -136,6 +132,7 @@ func main() {
 
 	db := open_db(*db_opt)
 	edb := ii.LoadEcholist(*echo_opt)
+	edb.LoadBlockwords(*blackwords_opt)
 	udb := ii.OpenUsers(*users_opt, *policy_opt)
 	if *verbose_opt {
 		ii.OpenLog(os.Stdout, os.Stdout, os.Stderr)

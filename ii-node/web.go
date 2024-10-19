@@ -787,10 +787,6 @@ func www_new(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 		if newecho != "" {
 			echo = newecho
 		}
-		if !ctx.www.edb.Allowed(echo) && ctx.User.Id != 1 {
-			ii.Error.Printf("This echo is disallowed")
-			return errors.New("This echo is disallowed")
-		}
 		action := r.FormValue("action")
 		text := fmt.Sprintf("%s\n%s\n%s\n\n%s", echo, to, subj, msg)
 		m, err := ii.DecodeMsgline(text, false)
