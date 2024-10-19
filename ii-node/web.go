@@ -989,6 +989,12 @@ func msg_trunc(m *ii.Msg, maxlen int, more string) string {
 		}
 		if pre {
 			f += str_esc(l) + "\n"
+			if maxlen > 0 && len(f) > maxlen {
+				pre = false
+				f += "</pre>\n"
+				f += more + "<br>\n"
+				break
+			}
 			continue
 		}
 		if strings.HasPrefix(l, "/* XPM */") || strings.HasPrefix(l, "! XPM2") {
