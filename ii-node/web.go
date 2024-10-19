@@ -39,6 +39,7 @@ type WebContext struct {
 	User     *ii.User
 	Admin    *ii.User
 	Echolist *ii.EDB
+	Users    *ii.UDB
 	Selected string
 	Template string
 	Ref      string
@@ -1119,6 +1120,7 @@ func handleWWW(www *WWW, w http.ResponseWriter, r *http.Request) {
 	ctx.Host = www.Host
 	www.udb.LoadUsers()
 	ctx.Admin = ctx.www.udb.UserInfoId(1)
+	ctx.Users = www.udb
 	if ctx.Admin == nil {
 		ctx.Admin = &ii.User{}
 	}

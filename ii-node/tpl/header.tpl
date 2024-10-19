@@ -41,6 +41,9 @@
     <td class="links">
       <span>
       {{ template "links.tpl" }}
+      {{ if and (eq .User.Id 1) (gt .Users.NewUsers 0) }}
+      <span class="info">+{{.Users.NewUsers}} users :: </span>
+      {{ end }}
       {{ if .User.Name }}
       {{ if eq .BasePath "profile" }}
       <a href="/logout">Logout</a>

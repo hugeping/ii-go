@@ -934,6 +934,7 @@ type UDB struct {
 	Policy   []*UserPolicy
 	PolFileSize int64
 	NewUsersMax int
+	NewUsers int
 	Locked   bool
 }
 
@@ -1201,7 +1202,7 @@ func (db *UDB) LoadUsers() error {
 
 	db.loadPolicy()
 
-	new_users := 0
+	db.NewUsers = 0
 	err = FileLines(db.Path, func(line string) bool {
 		if strings.HasPrefix(line, "!lock") {
 			db.Locked = true
@@ -1224,9 +1225,9 @@ func (db *UDB) LoadUsers() error {
 		u.Secret = a[3]
 		u.Tags = NewTags(a[4])
 		if status, _ := u.Tags.Get("status"); status == "new" {
-			new_users += 1;
+			db.NewUsers += 1;
 		}
-		if db.NewUsersMax >= 0 && new_users >= db.NewUsersMax && !db.Locked {
+		if db.NewUsersMax >= 0 && db.NewUsers >= db.NewUsersMax && !db.Locked {
 			db.Locked = true
 			Error.Printf("Maximum new users reached. Registrarion locked.\n")
 		}
