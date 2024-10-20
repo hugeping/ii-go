@@ -180,7 +180,9 @@ If you want to lock auto-registration via web just add `!lock` line to this file
 
 Line format:
 
+```
 <id>:<email>:<hash>:<tags>
+```
 
 ## Points policy
 
@@ -192,9 +194,11 @@ as status/new tag).
 
 Line format:
 
+```
 <login regexp>:<email regexp>:<country regexp>:<status>
+```
 
-Status can include limit/<number> tag. This limits the maximum number of
+Status can include `limit/<number>` tag. This limits the maximum number of
 messages for new users.
 
 First line is maximum number of users with status new, after which registration
