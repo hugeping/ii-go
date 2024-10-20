@@ -1,7 +1,7 @@
 {{template "header.tpl" $}}
 <table id="edit">
 {{ with index .Msg 0 }}
-<form method="post" enctype="application/x-www-form-urlencoded" action="{{$.PfxPath}}/{{.Echo}}/new">
+<form method="post" enctype="application/x-www-form-urlencoded" action="{{$.PfxPath}}/topics/{{.Echo}}/new">
 <tr><td class="odd">
 <input type="text" name="to" class="to" placeholder="{{.To}}" value="{{.To}}"><br>
 <input type="text" name="subj" class="subj" placeholder="{{.Subj}}" value="{{.Subj}}"><br>

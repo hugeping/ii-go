@@ -58,7 +58,7 @@
       {{ if $.Topic }}
       :: <a href="{{$.PfxPath}}/{{$.Topic}}/reply/new">New</a>
       {{ else }}
-      :: <a href="{{$.PfxPath}}/{{.}}/new">New</a>
+      :: <a href="{{$.PfxPath}}/topics/{{.}}/new">New</a>
       {{ end }}
       {{ end }}
 
