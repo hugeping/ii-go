@@ -42,7 +42,7 @@
       <span>
       {{ template "links.tpl" }}
       {{ if and (eq .User.Id 1) (gt .Users.NewUsers 0) }}
-      <span class="info">+{{.Users.NewUsers}} users :: </span>
+      <span class="info">+{{.Users.NewUsers}} <a href="{{$.PfxPath}}/points">users</a> :: </span>
       {{ end }}
       {{ if .User.Name }}
       {{ if eq .BasePath "profile" }}

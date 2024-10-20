@@ -246,6 +246,13 @@ func www_login(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 	return errors.New("Wrong method")
 }
 
+func www_points(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
+	ii.Trace.Printf("www points")
+	ctx.Template = "points.tpl"
+	err := ctx.www.tpl.ExecuteTemplate(w, "points.tpl", ctx)
+	return err
+}
+
 func www_profile(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 	ii.Trace.Printf("www profile")
 	if ctx.User.Name == "" {
@@ -1096,6 +1103,16 @@ func WebInit(www *WWW) {
 			}
 			return false
 		},
+		"user_tag": func(user string, t string) string {
+			ui := www.udb.UserInfoName(user)
+			if ui != nil {
+				r, ok := ui.Tags.Get(t)
+				if ok {
+					return r
+				}
+			}
+			return ""
+		},
 	}
 	www.tpl = template.Must(template.New("main").Funcs(funcMap).ParseGlob("tpl/*.tpl"))
 }
@@ -1184,6 +1201,38 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 	} else if args[0] == "logout" {
 		ctx.BasePath = "logout"
 		return www_logout(ctx, w, r)
+	} else if args[0] == "points" {
+		if ctx.User.Id != 1 {
+			ii.Error.Printf("Access denied")
+			return errors.New("Access denied")
+		}
+		ctx.BasePath = "points"
+		if len(args) > 2 {
+			udb := ctx.www.udb
+			u := udb.UserInfoName(args[2])
+			if u == nil {
+				return www_points(ctx, w, r)
+			}
+			switch args[1] {
+			case "moderate":
+				u.Tags.Add("limit/3")
+				u.Tags.Add("status/moderate")
+			case "unblock":
+				u.Tags.Add("status/verified")
+				u.Tags.Del("limit")
+			case "block":
+				u.Tags.Add("status/blocked")
+				u.Tags.Add("limit/0")
+			case "remove":
+				u.Tags.Add("status/remove")
+			case "approve":
+				u.Tags.Del("limit")
+				u.Tags.Add("status/verified")
+			}
+			udb.Edit(u)
+			udb.LoadUsers()
+		}
+		return www_points(ctx, w, r)
 	} else if args[0] == "profile" {
 		ctx.BasePath = "profile"
 		return www_profile(ctx, w, r)

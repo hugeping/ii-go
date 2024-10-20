@@ -1119,9 +1119,12 @@ func (db *UDB) Edit(u *User) error {
 	os.Remove(db.Path + ".tmp")
 	for _, Name := range db.List {
 		ui := db.Names[Name]
-		if err := append_file(db.Path+".tmp", fmt.Sprintf("%d:%s:%s:%s:%s",
-			ui.Id, Name, ui.Mail, ui.Secret, ui.Tags.String())); err != nil {
-			return err
+		status, _ := ui.Tags.Get("status")
+		if status != "remove" {
+			if err := append_file(db.Path+".tmp", fmt.Sprintf("%d:%s:%s:%s:%s",
+				ui.Id, Name, ui.Mail, ui.Secret, ui.Tags.String())); err != nil {
+				return err
+			}
 		}
 	}
 	if err := os.Rename(db.Path+".tmp", db.Path); err != nil {
