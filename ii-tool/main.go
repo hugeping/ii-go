@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/hugeping/ii-go/ii"
 	"bufio"
 	"flag"
 	"fmt"
+	"github.com/hugeping/ii-go/ii"
 	"io"
 	"io/ioutil"
 	"os"
@@ -375,7 +375,7 @@ Options:
 			os.Exit(1)
 		}
 		db := open_db(*db_opt)
-		req := ii.Query{ Echo: args[1], NoAccess: true, Invert: *invert_opt }
+		req := ii.Query{Echo: args[1], NoAccess: true, Invert: *invert_opt}
 		if *from_opt != "" {
 			req.From = *from_opt
 		}

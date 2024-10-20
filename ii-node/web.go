@@ -1,19 +1,19 @@
 package main
 
 import (
-	"github.com/hugeping/ii-go/ii"
+	"bufio"
 	"bytes"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/hugeping/ii-go/ii"
 	"html/template"
 	"image"
 	"image/png"
-	"math"
-	"net/http"
-	"bufio"
 	"io/ioutil"
+	"math"
 	"net"
+	"net/http"
 	"regexp"
 	"sort"
 	"strconv"
@@ -76,7 +76,7 @@ func www_register_verify(ctx *WebContext, w http.ResponseWriter, r *http.Request
 	return nil
 }
 
-func Whois(domain string)(result string) {
+func Whois(domain string) (result string) {
 	var server string
 	result, err := whois_query(domain, "whois.iana.org:43")
 	if err != nil {
@@ -119,7 +119,6 @@ func getServer(data string) string {
 
 	return ""
 }
-
 
 func whois_query(domain, server string) (string, error) {
 	conn, err := net.DialTimeout("tcp", server, time.Second*10)
@@ -183,7 +182,7 @@ func www_register(ctx *WebContext, w http.ResponseWriter, r *http.Request) error
 				ii.Info.Printf("Can not edit user %s: %s", ctx.User.Name, err)
 				return err
 			}
-			http.Redirect(w, r, ctx.PfxPath + "/login", http.StatusSeeOther)
+			http.Redirect(w, r, ctx.PfxPath+"/login", http.StatusSeeOther)
 			return nil
 		}
 		user := r.FormValue("username")
@@ -211,7 +210,7 @@ func www_register(ctx *WebContext, w http.ResponseWriter, r *http.Request) error
 		if lim == 0 {
 			return www_register_verify(ctx, w, r)
 		}
-		http.Redirect(w, r, ctx.PfxPath + "/login", http.StatusSeeOther)
+		http.Redirect(w, r, ctx.PfxPath+"/login", http.StatusSeeOther)
 	default:
 		return nil
 	}
@@ -241,7 +240,7 @@ func www_login(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 		cookie := http.Cookie{Name: "pauth", Value: udb.Secret(user), Expires: exp}
 		http.SetCookie(w, &cookie)
 		ii.Info.Printf("User logged in: %s\n", user)
-		http.Redirect(w, r, ctx.PfxPath + "/", http.StatusSeeOther)
+		http.Redirect(w, r, ctx.PfxPath+"/", http.StatusSeeOther)
 		return nil
 	}
 	return errors.New("Wrong method")
@@ -273,7 +272,7 @@ func www_logout(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 	}
 	cookie := http.Cookie{Name: "pauth", Value: "", Expires: time.Unix(0, 0)}
 	http.SetCookie(w, &cookie)
-	http.Redirect(w, r, ctx.PfxPath + "/", http.StatusSeeOther)
+	http.Redirect(w, r, ctx.PfxPath+"/", http.StatusSeeOther)
 	return nil
 }
 
@@ -412,7 +411,7 @@ func www_avatar(ctx *WebContext, w http.ResponseWriter, r *http.Request, user st
 			ii.Error.Printf("Error saving avatar: " + user)
 			return errors.New("Error saving avatar")
 		}
-		http.Redirect(w, r, ctx.PfxPath + "/profile", http.StatusSeeOther)
+		http.Redirect(w, r, ctx.PfxPath+"/profile", http.StatusSeeOther)
 		return nil
 	}
 	// var id int32
@@ -482,7 +481,7 @@ func makePager(ctx *WebContext, count int, page int) int {
 	if ctx.Pages > 1 {
 		nr := 0
 		for i := 1; i <= ctx.Pages; i++ {
-			if i == 1 || math.Abs(float64(i - page)) <= PAGER_RANGE ||
+			if i == 1 || math.Abs(float64(i-page)) <= PAGER_RANGE ||
 				i == ctx.Pages {
 				ctx.Pager = append(ctx.Pager, i)
 				nr += 1
@@ -533,7 +532,7 @@ func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Que
 			}
 		}
 		if page == 0 {
-			page = (count - 1) / PAGE_SIZE + 1
+			page = (count-1)/PAGE_SIZE + 1
 		}
 	}
 	start := makePager(ctx, count, page)
@@ -568,7 +567,7 @@ func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Que
 			str_esc(ctx.Topic), ctx.www.Host, ctx.BasePath, str_esc(ctx.Topic))
 		for _, m := range ctx.Msg {
 			fmt.Fprintf(w,
-			`<item><title>%s</title><guid>%s</guid><pubDate>%s</pubDate><author>%s</author><link>%s/%s#%s</link>
+				`<item><title>%s</title><guid>%s</guid><pubDate>%s</pubDate><author>%s</author><link>%s/%s#%s</link>
 		<description>
 		%s...
 		</description>
@@ -580,7 +579,7 @@ func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Que
 </content:encoded></item>
 `,
 				str_esc(m.Subj), m.MsgId, time.Unix(m.Date, 0).Format("2006-01-02 15:04:05"),
-				str_esc(m.From), ctx.www.Host + ctx.PfxPath, m.MsgId, m.MsgId,
+				str_esc(m.From), ctx.www.Host+ctx.PfxPath, m.MsgId, m.MsgId,
 				str_esc(trunc(m.Text, 280)),
 				fmt.Sprintf("%s -> %s<br><br>", m.From, m.To),
 				msg_text(m))
@@ -723,7 +722,7 @@ func www_blacklist(ctx *WebContext, w http.ResponseWriter, r *http.Request) erro
 		ii.Error.Printf("Error blacklisting: %s", id)
 		return err
 	}
-	http.Redirect(w, r, ctx.PfxPath + "/", http.StatusSeeOther)
+	http.Redirect(w, r, ctx.PfxPath+"/", http.StatusSeeOther)
 	return nil
 }
 
@@ -835,7 +834,7 @@ func www_new(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 				ii.Error.Printf("Error while storig new topic %s: %s", m.MsgId, err)
 				return err
 			}
-			http.Redirect(w, r, ctx.PfxPath + "/"+m.MsgId+"#"+m.MsgId, http.StatusSeeOther)
+			http.Redirect(w, r, ctx.PfxPath+"/"+m.MsgId+"#"+m.MsgId, http.StatusSeeOther)
 			return nil
 		}
 		if !edit {
@@ -1167,7 +1166,7 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 	ctx.Echolist = ctx.www.edb
 	ctx.Ref = r.Header.Get("Referer")
 	if len(args) > 1 {
-		switch (args[0]) {
+		switch args[0] {
 		case "blog":
 			ctx.PfxPath = "/blog"
 			args = args[1:]

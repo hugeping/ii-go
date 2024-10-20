@@ -77,7 +77,7 @@ func append_file(fn string, text string) error {
 	return nil
 }
 
-func filesize(fn string)(int64, error) {
+func filesize(fn string) (int64, error) {
 	var fsize int64
 	file, err := os.Open(fn)
 	if err == nil {
@@ -860,11 +860,11 @@ func (db *DB) _Store(m *Msg, edit bool) error {
 	if _, ok := db.Idx.Hash[m.MsgId]; ok && !edit { // exist and not edit
 		return errors.New("Already exists")
 	}
-//	if repto != "" {
-//		if _, ok := db.Idx.Hash[repto]; !ok { // repto is absent, we should avoid loops!
-//			return errors.New("Wrong repto: " + repto)
-//		}
-//	}
+	//	if repto != "" {
+	//		if _, ok := db.Idx.Hash[repto]; !ok { // repto is absent, we should avoid loops!
+	//			return errors.New("Wrong repto: " + repto)
+	//		}
+	//	}
 	fi, err := os.Stat(db.BundlePath())
 	var off int64
 	if err == nil {
@@ -916,6 +916,7 @@ type UserPolicy struct {
 	Country *regexp.Regexp
 	Status  string
 }
+
 // User database.
 // FileSize - size of points.txt to detect DB changes.
 // Names: holds User structure by user name
@@ -923,19 +924,19 @@ type UserPolicy struct {
 // Secrets: holds user name by user secret (pauth)
 // List: holds user names as list
 type UDB struct {
-	Path     string
-	PolicyPath string
-	Names    map[string]User
-	ById     map[int32]string
-	Secrets  map[string]string
-	List     []string
-	Sync     sync.RWMutex
-	FileSize int64
-	Policy   []*UserPolicy
+	Path        string
+	PolicyPath  string
+	Names       map[string]User
+	ById        map[int32]string
+	Secrets     map[string]string
+	List        []string
+	Sync        sync.RWMutex
+	FileSize    int64
+	Policy      []*UserPolicy
 	PolFileSize int64
 	NewUsersMax int
-	NewUsers int
-	Locked   bool
+	NewUsers    int
+	Locked      bool
 }
 
 // Check username if it is valid
@@ -1225,7 +1226,7 @@ func (db *UDB) LoadUsers() error {
 		u.Secret = a[3]
 		u.Tags = NewTags(a[4])
 		if status, _ := u.Tags.Get("status"); status == "new" {
-			db.NewUsers += 1;
+			db.NewUsers += 1
 		}
 		if db.NewUsersMax >= 0 && db.NewUsers >= db.NewUsersMax && !db.Locked {
 			db.Locked = true
@@ -1249,15 +1250,16 @@ type EDBPerm struct {
 	Allow []string
 	Write bool
 }
+
 // Echo database entry
 // Holds echo descriptions in Info hash.
 // Perm - access rights
 // List - names of echoareas.
 type EDB struct {
-	Perm map[string]*EDBPerm
-	List []string
-	Info map[string]string
-	Path string
+	Perm       map[string]*EDBPerm
+	List       []string
+	Info       map[string]string
+	Path       string
 	BlockWords []*regexp.Regexp
 }
 
@@ -1320,7 +1322,7 @@ func LoadEcholist(path string) *EDB {
 			Error.Printf("Wrong entry in echo DB: %s", line)
 			return true
 		}
-		perm := &EDBPerm { Allow: []string {}, Write: true }
+		perm := &EDBPerm{Allow: []string{}, Write: true}
 
 		access := strings.Split(a[0], "!")
 		e := a[0]

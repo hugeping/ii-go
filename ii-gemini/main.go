@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/hugeping/ii-go/ii"
 	"bufio"
 	"flag"
 	"fmt"
+	"github.com/hugeping/ii-go/ii"
 	"io"
 	"io/ioutil"
 	"os"
@@ -47,7 +47,7 @@ func GetFile(path string) string {
 var urlRegex = regexp.MustCompile(`(http|ftp|https|gemini)://[^ <>"]+`)
 
 func gemini(f io.Writer, m *ii.Msg) {
-	fmt.Fprintln(f, "# " + m.Subj)
+	fmt.Fprintln(f, "# "+m.Subj)
 	if m.To != "All" && m.To != m.From {
 		fmt.Fprintf(f, "To: %s\n\n", m.To)
 	}
@@ -84,12 +84,12 @@ func gemini(f io.Writer, m *ii.Msg) {
 		if !pre && !xpm {
 			l = string(urlRegex.ReplaceAllFunc([]byte(l),
 				func(line []byte) []byte {
-					link ++
+					link++
 					s := string(line)
 					links = append(links, fmt.Sprintf("=> %s %s [%d]",
 						s, s, link))
-				return []byte(fmt.Sprintf("%s [%d]", s, link))
-			}))
+					return []byte(fmt.Sprintf("%s [%d]", s, link))
+				}))
 		}
 		fmt.Fprintln(f, l)
 	}
@@ -182,7 +182,7 @@ Options:
   <link href="gemini://%s%s%s.gmi" rel="alternate"/>
 </entry>
 `, *url_opt, *base_opt, m.MsgId, str_esc(m.Subj),
-	time.Unix(m.Date, 0).Format(time.RFC3339), *url_opt, *base_opt, m.MsgId)
+					time.Unix(m.Date, 0).Format(time.RFC3339), *url_opt, *base_opt, m.MsgId)
 			}
 		}
 		fmt.Fprintf(atom, `</feed>
