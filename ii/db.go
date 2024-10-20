@@ -665,8 +665,10 @@ func (db *DB) Echoes(names []string, q Query) []*Echo {
 	}
 	if names != nil {
 		for _, v := range names {
-			n := hash[v]
-			list = append(list, &n)
+			n, ok := hash[v]
+			if ok {
+				list = append(list, &n)
+			}
 		}
 	} else {
 		for _, v := range hash {
