@@ -167,7 +167,7 @@ Where options are:
 -sys "name"      Node name. "ii-go" by default
 -u <points>      Points file. "points.txt" by default.
 -p <policy>      Points policy file
--b <blackwords>  Blackwords file
+-b <blockwords>  Blackwords file
 -v               Be verbose (for tracing)
 ```
 
