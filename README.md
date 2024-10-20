@@ -8,8 +8,7 @@ How to build?
 
 ```
 git clone https://github.com/hugeping/ii-go
-cd ii-go
-cd ii-tool
+cd ii-go/ii-tool
 go build
 cd ../ii-node
 go build
@@ -26,7 +25,7 @@ ii-tool [options] fetch [uri] [echolist]
 echolist is the file with echonames (can has : splitted columns, like list.txt) or - -- to load it from stdin. For example:
 
 ```
-echo "std.club:this comment will be omitted" | ./ii-tool fecth http://127.0.0.1:8080 -
+echo "std.club:this comment will be omitted" | ./ii-tool fetch http://127.0.0.1:8080 -
 ```
 
 Options are:
@@ -91,6 +90,8 @@ Options are:
 -t             -- only topics (w/o repto)
 -db <database> -- db by default (db.idx - genetated index)
 -v             -- show message text, not only MsgId
+-b             -- show message bundle
+-i             -- invert select
 ```
 
 You may show selected message:
@@ -122,6 +123,12 @@ For example:
 
 ```
 ./ii-tool -v -to Peter "" -1:1 # show and print last message to Peter
+```
+
+## Remove some echoarea
+
+```
+./ii-tool -i -b select echo.toremove > newdb
 ```
 
 ## Add user (point)
@@ -159,8 +166,73 @@ Where options are:
                  http://127.0.0.1:8080 by default
 -sys "name"      Node name. "ii-go" by default
 -u <points>      Points file. "points.txt" by default.
+-p <policy>      Points policy file
+-b <blackwords>  Blackwords file
 -v               Be verbose (for tracing)
 ```
+
+## Points file
+
+By default -- points.txt.
+
+This file stores information about registered points (users).
+If you want to lock auto-registration via web just add `!lock` line to this file.
+
+Line format:
+
+<id>:<email>:<hash>:<tags>
+
+## Points policy
+
+By default -- policy.txt.
+
+This file defines what status will be for newly registered users.
+By default, all new users receive the status "new" (added to tags in points.txt
+as status/new tag).
+
+Line format:
+
+<login regexp>:<email regexp>:<country regexp>:<status>
+
+Status can include limit/<number> tag. This limits the maximum number of
+messages for new users.
+
+First line is maximum number of users with status new, after which registration
+will be closed. For example:
+
+```
+4
+::ru:status/verified
+:::status/new/limit/0
+```
+
+## Echolist
+
+By default -- list.txt.
+
+This file defines allowed echoareas in ii format. For example:
+
+```
+.private:0:Личные сообщения
+std.favorites:0:Избранное
+```
+
+Counters (0 in the above example) can be any numbers. They will be skipped.
+
+You can define some access policy to areas.
+
+1. if line starts with `-` this means that you can't write in echo;
+2. if echoname contains `!` with the point addresses, then this means that only these points can create new topics in this area;
+3. if 1 and 2 are applied both, then only specified users can create messages in this area (no comments on topics for others allowed).
+
+Example:
+
+```
+-rss.opennet:0:Лента с opennet
+std.hugeping!ping,1:0:Блог hugeping
+std.hugeping.micro!ping,1:0:Микроблог hugeping
+```
+
 ## Example setup
 
 ```
