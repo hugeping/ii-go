@@ -8,7 +8,7 @@
 {{ with .Msg }}
 
 
-<span class="title"><a href="{{$.PfxPath}}/topics/{{.Echo}}">{{.Echo}} :: {{ index $.Echolist.Info .Echo }} [{{ $count }}]</a></span><br>
+<span class="title"><a href="{{$.PfxPath}}/{{.Echo}}">{{.Echo}} :: {{ index $.Echolist.Info .Echo }} [{{ $count }}]</a></span><br>
 <div class="msg">
 {{ if and (msg_local .) (has_avatar .From)}}
 <img class="avatar" src="/avatar/{{.From}}">

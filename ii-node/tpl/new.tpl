@@ -3,7 +3,7 @@
 {{ if eq .Echo "" }}
 <form method="post" enctype="application/x-www-form-urlencoded" action="{{.PfxPath}}/new">
 {{ else }}
-<form method="post" enctype="application/x-www-form-urlencoded" action="{{.PfxPath}}/topics/{{.Echo}}/new">
+<form method="post" enctype="application/x-www-form-urlencoded" action="{{.PfxPath}}/{{.Echo}}/new">
 {{ end }}
 <tr><td class="odd">
 {{ if eq .Echo "" }}

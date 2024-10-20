@@ -1315,16 +1315,15 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 			ctx.BasePath = "echo/" + args[1]
 		}
 		return www_query(ctx, w, r, q, page, rss)
-	} else if args[0] == "topics" && ii.IsEcho(args[1]) {
+	} else if ii.IsEcho(args[0]) {
 		page := 1
-		ctx.Echo = args[1]
-		ctx.BasePath = fmt.Sprintf("%s/%s", args[0], args[1])
-		if len(args) > 2 {
-			if args[2] == "new" {
-				ctx.BasePath = args[1]
+		ctx.Echo = args[0]
+		ctx.BasePath = args[0]
+		if len(args) > 1 {
+			if args[1] == "new" {
 				return www_new(ctx, w, r)
 			}
-			fmt.Sscanf(args[2], "%d", &page)
+			fmt.Sscanf(args[1], "%d", &page)
 		}
 		return www_topics(ctx, w, r, page)
 	} else {
