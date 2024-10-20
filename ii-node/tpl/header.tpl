@@ -12,7 +12,7 @@
 {{ else if eq .Template "blog.tpl" }}
 <link href="{{.PfxPath}}/{{.BasePath}}+topics/rss" type="application/rss+xml" rel="alternate" title="{{.Sysname}} {{.BasePath}} :: RSS feed" />
 {{ else if eq .Template "topics.tpl" }}
-<link href="{{.PfxPath}}/{{.Echo}}/rss" type="application/rss+xml" rel="alternate" title="{{.Sysname}} {{.Echo}} :: RSS feed" />
+<link href="{{.PfxPath}}/topics/{{.Echo}}/rss" type="application/rss+xml" rel="alternate" title="{{.Sysname}} {{.Echo}} :: RSS feed" />
 {{ else if eq .Template "index.tpl" }}
 <link href="{{.PfxPath}}/echo/all/rss" type="application/rss+xml" rel="alternate" title="{{.Sysname}} Posts :: RSS feed" />
 {{ end }}
@@ -27,12 +27,12 @@
     <td class="title">
       <span class="logo"><a href="/"><img class="logo" src="/lib/icon.png">{{.Sysname}}</a></span>
 {{ if gt (len .Topics) 0}}
-      <span class="info">II/IDEC networks {{ with .Echo }} :: <a href="{{$.PfxPath}}/{{.}}">{{.}}</a> :: <span class="info">{{index $.Echolist.Info .}}</span>{{end}}
+      <span class="info">II/IDEC networks {{ with .Echo }} :: <a href="{{$.PfxPath}}/topics/{{.}}">{{.}}</a> :: <span class="info">{{index $.Echolist.Info .}}</span>{{end}}
 {{ else if eq .Template "query.tpl" }}
-      <span class="info">II/IDEC networks {{ with .Echo }} :: <a href="{{$.PfxPath}}/{{.}}">{{.}}</a> :: <span class="info">{{index $.Echolist.Info .}} / feed</span>{{end}}
+      <span class="info">II/IDEC networks {{ with .Echo }} :: <a href="{{$.PfxPath}}/topics/{{.}}">{{.}}</a> :: <span class="info">{{index $.Echolist.Info .}} / feed</span>{{end}}
 {{ else if eq .Template "topic.tpl" }}
       {{ $desc := (index .Msg 0).Subj }}
-      <span class="info">II/IDEC networks {{ with .Echo }} :: <a href="{{$.PfxPath}}/{{.}}">{{.}}</a> :: <span class="info">{{index $.Echolist.Info .}} / {{ $desc }}</span>{{end}}
+      <span class="info">II/IDEC networks {{ with .Echo }} :: <a href="{{$.PfxPath}}/topics/{{.}}">{{.}}</a> :: <span class="info">{{index $.Echolist.Info .}} / {{ $desc }}</span>{{end}}
 {{ else }}
       <span class="info">II/IDEC networks</span>
 {{ end }}
