@@ -25,15 +25,18 @@
 <table id="header">
   <tr>
     <td class="title">
-      <span class="logo"><a href="/"><img class="logo" src="/lib/icon.png">{{.Sysname}}</a></span>
-{{ if gt (len .Topics) 0}}
+{{ if eq .Template "topics.tpl"}}
+      <span class="logo"><a href="{{$.PfxPath}}/"><img class="logo" src="/lib/icon.png">{{.Sysname}}</a></span>
       <span class="info">II/IDEC networks {{ with .Echo }} :: <a href="{{$.PfxPath}}/topics/{{.}}">{{.}}</a> :: <span class="info">{{index $.Echolist.Info .}}</span>{{end}}
 {{ else if eq .Template "query.tpl" }}
+      <span class="logo"><a href="{{$.PfxPath}}/"><img class="logo" src="/lib/icon.png">{{.Sysname}}</a></span>
       <span class="info">II/IDEC networks {{ with .Echo }} :: <a href="{{$.PfxPath}}/topics/{{.}}">{{.}}</a> :: <span class="info">{{index $.Echolist.Info .}} / feed</span>{{end}}
 {{ else if eq .Template "topic.tpl" }}
+      <span class="logo"><a href="{{$.PfxPath}}/"><img class="logo" src="/lib/icon.png">{{.Sysname}}</a></span>
       {{ $desc := (index .Msg 0).Subj }}
       <span class="info">II/IDEC networks {{ with .Echo }} :: <a href="{{$.PfxPath}}/topics/{{.}}">{{.}}</a> :: <span class="info">{{index $.Echolist.Info .}} / {{ $desc }}</span>{{end}}
 {{ else }}
+      <span class="logo"><a href="/"><img class="logo" src="/lib/icon.png">{{.Sysname}}</a></span>
       <span class="info">II/IDEC networks</span>
 {{ end }}
 </span>
