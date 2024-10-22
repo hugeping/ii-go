@@ -16,7 +16,7 @@
 <a class="blacklist" href="{{$.PfxPath}}/{{.MsgId}}/blacklist">blacklist</a>
 {{ end }}
 <br>
-<span class="echo"><a href="{{$.PfxPath}}/{{ .Echo }}">{{.Echo}}</a></span><br>
+<!-- <span class="echo"><a href="{{$.PfxPath}}/{{ .Echo }}">{{.Echo}}</a></span><br> -->
 <span class="info"><a href="{{$.PfxPath}}/from/{{.From}}">{{.From}}</a>({{.Addr}}) &mdash; {{.To}}<br>{{.Date | fdate}}</span><br>
 <div class="text">
 <br>
