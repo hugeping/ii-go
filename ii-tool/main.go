@@ -283,7 +283,11 @@ Options:
 		if len(args) > 2 {
 			str := GetFile(args[2])
 			for _, v := range strings.Split(str, "\n") {
-				echolist = append(echolist, strings.Split(v, ":")[0])
+				if strings.HasPrefix(v, "-") {
+					v = v[1:]
+				}
+				e := strings.Split(strings.Split(v, ":")[0], "!")[0]
+				echolist = append(echolist, e)
 			}
 		}
 		err = n.Fetch(db, echolist, *lim_opt)
