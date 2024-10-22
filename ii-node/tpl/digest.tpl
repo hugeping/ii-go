@@ -17,7 +17,8 @@
 <span class="info">{{.From}}({{.Addr}}) &mdash; {{.To}}<br>{{.Date | fdate}}</span><br>
 <div class="text">
 <br>
-{{ msg_text . }}
+{{$more := (print " ... <a class='more' href='" $.PfxPath "/echo/" .Echo "/" .MsgId "#" .MsgId "'>[&gt;&gt;&gt;]</a>")}}
+{{msg_trunc . 2048 $more}}
 <br>
 
 {{if $.User.Name}}
