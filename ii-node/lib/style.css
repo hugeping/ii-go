@@ -316,6 +316,12 @@ body {
     text-decoration: none;
 }
 
+.blacklist {
+    color: #ea5555;
+    text-decoration: none;
+    float: right;
+}
+
 @media (max-width: 640px) {
       .extra {
 	  display: none;

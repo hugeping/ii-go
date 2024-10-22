@@ -11,7 +11,11 @@
 {{ if and (msg_local .) (has_avatar .From)}}
 <img class="avatar" src="/avatar/{{.From}}">
 {{ end }}
-<span class="subj"> <a href="{{$.PfxPath}}/{{. | repto}}#{{. | repto}}">{{with .Subj}}{{.}}{{else}}No subject{{end}}</a></span><br>
+<span class="subj"> <a href="{{$.PfxPath}}/{{. | repto}}#{{. | repto}}">{{with .Subj}}{{.}}{{else}}No subject{{end}}</a></span>
+{{ if eq $.User.Id 1 }}
+<a class="blacklist" href="{{$.PfxPath}}/{{.MsgId}}/blacklist">blacklist</a>
+{{ end }}
+<br>
 <span class="echo"><a href="{{$.PfxPath}}/{{ .Echo }}">{{.Echo}}</a></span><br>
 <span class="info"><a href="{{$.PfxPath}}/from/{{.From}}">{{.From}}</a>({{.Addr}}) &mdash; {{.To}}<br>{{.Date | fdate}}</span><br>
 <div class="text">

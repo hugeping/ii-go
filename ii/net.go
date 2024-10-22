@@ -93,7 +93,7 @@ func (n *Node) Fetcher(db *DB, Echo string, limit int, wait *sync.WaitGroup, con
 		if !n.Force {
 			id, err := http_get_id(n.Host + "/u/e/" + Echo + "/-1:1")
 			if !IsMsgId(id) {
-				Info.Printf("%s: no valid MsgId", Echo)
+				Info.Printf("%s: no valid MsgId (%s)", Echo, id)
 				return
 			}
 			if err == nil && db.Exists(id) != nil { /* no sync needed */

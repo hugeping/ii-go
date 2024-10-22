@@ -163,16 +163,21 @@ func DecodeBundle(msg string) (*Msg, error) {
 	if err != nil {
 		return nil, err
 	}
+	data_str := strings.Replace(string(data), "\r", "", -1)
 	if m.MsgId == "" {
-		m.MsgId = MsgId(string(data))
+		m.MsgId = MsgId(data_str)
 	}
-	text := strings.Split(string(data), "\n")
+	text := strings.Split(data_str, "\n")
 	if len(text) <= 8 {
 		return nil, errors.New("Wrong message format")
 	}
 	m.Tags, err = MakeTags(text[0])
 	if err != nil {
 		return nil, err
+	}
+	repto, ok := m.Tags.Get("repto")
+	if ok && !IsMsgId(repto) {
+		return nil, errors.New("Wrong repto format")
 	}
 	m.Echo = text[1]
 	if !IsEcho(m.Echo) {
