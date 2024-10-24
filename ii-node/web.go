@@ -1157,6 +1157,8 @@ func parseQueryArgs(args []string, ctx *WebContext, page *int, rss *bool) error 
 		} else {
 			fmt.Sscanf(args[2], "%d", page)
 		}
+	} else if ii.IsMsgId(args[1]) {
+		ctx.Selected = args[1]
 	}
 	return nil
 }
@@ -1271,9 +1273,8 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 		ctx.BasePath = ""
 		return www_new(ctx, w, r)
 	} else if args[0] == "to" {
-		page := 0
 		rss := false
-		ctx.Selected = ""
+		page := 0
 
 		err := parseQueryArgs(args, ctx, &page, &rss)
 		if err != nil {
@@ -1282,9 +1283,8 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 		ctx.BasePath = "to/" + args[1]
 		return www_query(ctx, w, r, ii.Query{To: args[1]}, page, rss)
 	} else if args[0] == "from" {
-		page := 0
 		rss := false
-		ctx.Selected = ""
+		page := 0
 
 		err := parseQueryArgs(args, ctx, &page, &rss)
 		if err != nil {
@@ -1293,17 +1293,24 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 		ctx.BasePath = "from/" + args[1]
 		return www_query(ctx, w, r, ii.Query{From: args[1]}, page, rss)
 	} else if args[0] == "echo" || args[0] == "echo+topics" {
-		page := 0
 		rss := false
-		ctx.Selected = ""
+		page := 0
+
 		err := parseQueryArgs(args, ctx, &page, &rss)
 		if err != nil {
 			return err
 		}
-
-		q := ii.Query{Echo: args[1]}
-
-		if args[1] == "all" {
+		q := ii.Query{}
+		if ii.IsEcho(args[1]) {
+			q.Echo = args[1]
+		} else if ii.IsMsgId(args[1]) {
+			mi := ctx.www.db.Lookup(args[1])
+			if mi != nil {
+				q.Echo = mi.Echo
+			} else { /* all */
+				q.Start = -PAGE_SIZE
+			}
+		} else if args[1] == "all" {
 			q.Echo = ""
 			q.Start = -PAGE_SIZE
 		}

@@ -17,7 +17,7 @@
 <!-- <span class="subj"><a href="{{$.PfxPath}}/{{.MsgId}}#{{.MsgId}}">{{with .Subj}}{{.}}{{else}}No subject{{end}}</a></span><br> -->
 <a class="msgid" href="{{$.PfxPath}}/{{.MsgId}}#{{.MsgId}}">[&gt;]</a>
 <span class="subj">
-<a href="{{$.PfxPath}}/{{. | repto}}#{{. | repto}}">{{with .Subj}}{{.}}{{else}}No subject{{end}}</a>
+<a href="{{$.PfxPath}}/echo/{{. | repto}}#{{. | repto}}">{{with .Subj}}{{.}}{{else}}No subject{{end}}</a>
 </span>
 {{ if eq $.User.Id 1 }}
 <a class="blacklist" href="{{$.PfxPath}}/{{.MsgId}}/blacklist">blacklist</a>
