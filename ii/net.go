@@ -93,11 +93,10 @@ func (n *Node) Fetcher(db *DB, Echo string, limit int, wait *sync.WaitGroup, con
 		if !n.Force {
 			id, err := http_get_id(n.Host + "/u/e/" + Echo + "/-1:1")
 			if err != nil || !IsMsgId(id) {
-				Info.Printf("%s: no valid MsgId (%s)", Echo, id)
-				Info.Printf("%s: fallback to old scheme", Echo)
+				Info.Printf("%s(%s): no valid MsgId (%s)", n.Host, Echo, id)
 				limit = 0
 			} else if db.Exists(id) != nil { /* no sync needed */
-				Info.Printf("%s: no sync needed", Echo)
+				Info.Printf("%s(%s): no sync needed", n.Host, Echo)
 				return
 			}
 		}
@@ -106,14 +105,14 @@ func (n *Node) Fetcher(db *DB, Echo string, limit int, wait *sync.WaitGroup, con
 			try := 0
 			for { // adaptive
 				if try > 16 { /* fallback to old scheme */
-					Info.Printf("%s: fallback to old scheme", Echo)
+					Info.Printf("%s(%s): fallback to old scheme", n.Host, Echo)
 					limit = 0
 					break
 				}
 				id, err := http_get_id(fmt.Sprintf("%s/u/e/%s/%d:1",
 					n.Host, Echo, -limit))
 				if err != nil || !IsMsgId(id) { /* fallback to old scheme */
-					Info.Printf("%s: fallback to old scheme", Echo)
+					Info.Printf("%s(%s): fallback to old scheme", n.Host, Echo)
 					limit = 0
 					break
 				}
