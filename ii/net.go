@@ -92,11 +92,10 @@ func (n *Node) Fetcher(db *DB, Echo string, limit int, wait *sync.WaitGroup, con
 	if n.IsFeature("u/e") { /* fast path */
 		if !n.Force {
 			id, err := http_get_id(n.Host + "/u/e/" + Echo + "/-1:1")
-			if !IsMsgId(id) {
+			if err != nil || !IsMsgId(id) {
 				Info.Printf("%s: no valid MsgId (%s)", Echo, id)
-				return
-			}
-			if err == nil && db.Exists(id) != nil { /* no sync needed */
+				limit = 0
+			} else if db.Exists(id) != nil { /* no sync needed */
 				Info.Printf("%s: no sync needed", Echo)
 				return
 			}
@@ -111,7 +110,7 @@ func (n *Node) Fetcher(db *DB, Echo string, limit int, wait *sync.WaitGroup, con
 				}
 				id, err := http_get_id(fmt.Sprintf("%s/u/e/%s/%d:1",
 					n.Host, Echo, -limit))
-				if err != nil { /* fallback to old scheme */
+				if err != nil || !IsMsgId(id) { /* fallback to old scheme */
 					limit = 0
 					break
 				}
