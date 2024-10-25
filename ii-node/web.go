@@ -841,7 +841,7 @@ func www_new(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 				ii.Error.Printf("Error while storig new topic %s: %s", m.MsgId, err)
 				return err
 			}
-			http.Redirect(w, r, ctx.PfxPath+"/"+m.MsgId+"#"+m.MsgId, http.StatusSeeOther)
+			http.Redirect(w, r, ctx.PfxPath+"/echo/"+m.MsgId+"#"+m.MsgId, http.StatusSeeOther)
 			return nil
 		}
 		if !edit {
