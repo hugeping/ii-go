@@ -11,6 +11,7 @@
 {{ if and (msg_local .) (has_avatar .From)}}
 <img class="avatar" src="/avatar/{{.From}}">
 {{ end }}
+<a class="msgid" href="{{$.PfxPath}}/{{.MsgId}}#{{.MsgId}}">[#]</a>
 <span class="subj"> <a href="{{$.PfxPath}}/{{. | repto}}#{{. | repto}}">{{with .Subj}}{{.}}{{else}}No subject{{end}}</a></span>
 {{ if eq $.User.Id 1 }}
 <a class="blacklist" href="{{$.PfxPath}}/{{.MsgId}}/blacklist">blacklist</a>

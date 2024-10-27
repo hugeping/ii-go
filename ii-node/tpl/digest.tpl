@@ -1,5 +1,5 @@
 {{template "header.tpl" $}}
-<a class="rss" href="{{$.PfxPath}}/forum/">Forum</a> :: <a class="rss" href="{{$.PfxPath}}/echo/all/rss">RSS</a>
+<a class="rss" href="{{$.PfxPath}}/forum/">Forum</a> :: <a class="rss" href="{{$.PfxPath}}/echo/all/">Feed</a>
 {{template "pager.tpl" $}}
 
 <div id="topic">
