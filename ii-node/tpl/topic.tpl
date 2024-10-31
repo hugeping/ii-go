@@ -12,7 +12,15 @@
 <img class="avatar" src="/avatar/{{.From}}">
 {{ end }}
 <a class="msgid" href="{{$.PfxPath}}/{{.MsgId}}#{{.MsgId}}">[#]</a>
-<span class="subj"> <a href="{{$.PfxPath}}/{{. | repto}}#{{. | repto}}">{{with .Subj}}{{.}}{{else}}No subject{{end}}</a></span>
+
+<span class="subj">
+{{if eq $.Selected .MsgId }}
+<a href="{{$.PfxPath}}/{{. | repto}}#{{. | repto}}">{{with .Subj}}{{.}}{{else}}No subject{{end}}</a>
+{{else}}
+<a href="{{$.PfxPath}}/{{.MsgId}}#{{.MsgId}}">{{with .Subj}}{{.}}{{else}}No subject{{end}}</a>
+{{end}}
+</span>
+
 {{ if eq $.User.Id 1 }}
 <a class="blacklist" href="{{$.PfxPath}}/{{.MsgId}}/blacklist">blacklist</a>
 {{ end }}
