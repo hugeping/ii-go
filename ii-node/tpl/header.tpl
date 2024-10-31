@@ -33,8 +33,10 @@
       <span class="info">II/IDEC networks {{ with .Echo }} :: <a href="{{$.PfxPath}}/{{.}}">{{.}}</a> :: <span class="info">{{index $.Echolist.Info .}} / feed</span>{{end}}
 {{ else if eq .Template "topic.tpl" }}
       <span class="logo"><a href="{{$.PfxPath}}/"><img class="logo" src="/lib/icon.png">{{.Sysname}}</a></span>
+      {{ if gt (len .Msg) (0) }}
       {{ $desc := (index .Msg 0).Subj }}
       <span class="info">II/IDEC networks {{ with .Echo }} :: <a href="{{$.PfxPath}}/{{.}}">{{.}}</a> :: <span class="info">{{index $.Echolist.Info .}} / {{ $desc }}</span>{{end}}
+      {{ end }}
 {{ else }}
       <span class="logo"><a href="/"><img class="logo" src="/lib/icon.png">{{.Sysname}}</a></span>
       <span class="info">II/IDEC networks</span>
