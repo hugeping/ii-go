@@ -728,12 +728,14 @@ func (db *DB) SelectIDS(r Query) []string {
 		return Resp
 	}
 	found := 0
-	for i := r.Start; i < size; i++ {
+	for i := 0; i < size; i++ {
 		id := db.Idx.List[i]
 		if db.Match(db.Idx.Hash[id], r) {
-			Resp = append(Resp, id)
+			if found >= r.Start {
+				Resp = append(Resp, id)
+			}
 			found += 1
-			if r.Lim > 0 && found == r.Lim {
+			if r.Lim > 0 && len(Resp) >= r.Lim {
 				break
 			}
 		}
