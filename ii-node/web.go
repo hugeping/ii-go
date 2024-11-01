@@ -285,7 +285,7 @@ func www_logout(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 
 func www_index(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 	ii.Trace.Printf("www index")
-	ctx.Echoes = ctx.www.db.Echoes(nil, ii.Query{User: *ctx.User})
+	ctx.Echoes = ctx.www.db.Echoes(nil, &ii.Query{User: *ctx.User})
 	ctx.Template = "index.tpl"
 	err := ctx.www.tpl.ExecuteTemplate(w, "index.tpl", ctx)
 	return err
@@ -293,7 +293,7 @@ func www_index(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 
 func www_forum(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 	ii.Trace.Printf("www forum index")
-	ctx.Echoes = ctx.www.db.Echoes(nil, ii.Query{User: *ctx.User})
+	ctx.Echoes = ctx.www.db.Echoes(nil, &ii.Query{User: *ctx.User})
 	ctx.Template = "forum.tpl"
 	err := ctx.www.tpl.ExecuteTemplate(w, "forum.tpl", ctx)
 	return err
@@ -501,7 +501,7 @@ func makePager(ctx *WebContext, count int, page int) int {
 	return start
 }
 
-func Select(ctx *WebContext, q ii.Query) []string {
+func Select(ctx *WebContext, q *ii.Query) []string {
 	q.User = *ctx.User
 	return ctx.www.db.SelectIDS(q)
 }
@@ -514,7 +514,7 @@ func trunc(str string, limit int) string {
 	return str
 }
 
-func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Query, page int, rss bool) error {
+func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q *ii.Query, page int, rss bool) error {
 	db := ctx.www.db
 	req := ctx.BasePath
 
@@ -602,7 +602,7 @@ func www_query(ctx *WebContext, w http.ResponseWriter, r *http.Request, q ii.Que
 func www_topics(ctx *WebContext, w http.ResponseWriter, r *http.Request, page int) error {
 	db := ctx.www.db
 	echo := ctx.Echo
-	mis := db.LookupIDS(Select(ctx, ii.Query{Echo: echo}))
+	mis := db.LookupIDS(Select(ctx, &ii.Query{Echo: echo}))
 	ii.Trace.Printf("www topics: %s", echo)
 	topicsIds := db.GetTopics(mis)
 	var topics []*Topic
@@ -676,7 +676,7 @@ func www_topic(ctx *WebContext, w http.ResponseWriter, r *http.Request, page int
 		ctx.Selected = id
 	}
 	ctx.Echo = mi.Echo
-	mis := db.LookupIDS(Select(ctx, ii.Query{Echo: mi.Echo}))
+	mis := db.LookupIDS(Select(ctx, &ii.Query{Echo: mi.Echo}))
 
 	topics := db.GetTopics(mis)
 	topic := mi.Topic
@@ -1281,7 +1281,7 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 			return err
 		}
 		ctx.BasePath = "to/" + args[1]
-		return www_query(ctx, w, r, ii.Query{To: args[1]}, page, rss)
+		return www_query(ctx, w, r, &ii.Query{To: args[1]}, page, rss)
 	} else if args[0] == "from" {
 		rss := false
 		page := 0
@@ -1291,7 +1291,7 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 			return err
 		}
 		ctx.BasePath = "from/" + args[1]
-		return www_query(ctx, w, r, ii.Query{From: args[1]}, page, rss)
+		return www_query(ctx, w, r, &ii.Query{From: args[1]}, page, rss)
 	} else if args[0] == "echo" || args[0] == "echo+topics" {
 		rss := false
 		page := 0
@@ -1321,7 +1321,7 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 		} else {
 			ctx.BasePath = "echo/" + args[1]
 		}
-		return www_query(ctx, w, r, q, page, rss)
+		return www_query(ctx, w, r, &q, page, rss)
 	} else if ii.IsEcho(args[0]) {
 		page := 1
 		ctx.Echo = args[0]

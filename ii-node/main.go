@@ -30,7 +30,7 @@ func PointPolicy(ui *ii.User, db *ii.DB, m *ii.Msg) bool {
 		} else {
 			lim, _ = strconv.Atoi(tlim)
 		}
-		mis := db.LookupIDS(db.SelectIDS(ii.Query{From: m.From, Lim: lim}))
+		mis := db.LookupIDS(db.SelectIDS(&ii.Query{From: m.From, Lim: lim}))
 		if len(mis) >= lim {
 			return false
 		}
@@ -117,7 +117,7 @@ func get_ue(echoes []string, db *ii.DB, user ii.User, w http.ResponseWriter, r *
 			continue
 		}
 		fmt.Fprintf(w, "%s\n", e)
-		ids := db.SelectIDS(ii.Query{Echo: e, Start: idx, Lim: lim, User: user})
+		ids := db.SelectIDS(&ii.Query{Echo: e, Start: idx, Lim: lim, User: user})
 		for _, id := range ids {
 			fmt.Fprintf(w, "%s\n", id)
 		}
@@ -149,7 +149,7 @@ func main() {
 	http.Handle("/lib/", http.StripPrefix("/lib/", fs))
 
 	http.HandleFunc("/list.txt", func(w http.ResponseWriter, r *http.Request) {
-		echoes := db.Echoes(nil, ii.Query{})
+		echoes := db.Echoes(nil, &ii.Query{})
 		for _, v := range echoes {
 			if !ii.IsPrivate(v.Name) {
 				fmt.Fprintf(w, "%s:%d:%s\n", v.Name, v.Count, www.edb.Info[v.Name])
@@ -157,7 +157,7 @@ func main() {
 		}
 	})
 	http.HandleFunc("/blacklist.txt", func(w http.ResponseWriter, r *http.Request) {
-		ids := db.SelectIDS(ii.Query{Blacklisted: true})
+		ids := db.SelectIDS(&ii.Query{Blacklisted: true})
 		for _, v := range ids {
 			fmt.Fprintf(w, "%s\n", v)
 		}
@@ -230,7 +230,7 @@ func main() {
 	})
 	http.HandleFunc("/x/c/", func(w http.ResponseWriter, r *http.Request) {
 		enames := strings.Split(r.URL.Path[5:], "/")
-		echoes := db.Echoes(enames, ii.Query{})
+		echoes := db.Echoes(enames, &ii.Query{})
 		for _, v := range echoes {
 			if !ii.IsPrivate(v.Name) {
 				fmt.Fprintf(w, "%s:%d:\n", v.Name, v.Count)
@@ -266,7 +266,7 @@ func main() {
 		if !ii.IsEcho(e) || ii.IsPrivate(e) {
 			return
 		}
-		ids := db.SelectIDS(ii.Query{Echo: e})
+		ids := db.SelectIDS(&ii.Query{Echo: e})
 		for _, id := range ids {
 			fmt.Fprintf(w, "%s\n", id)
 		}

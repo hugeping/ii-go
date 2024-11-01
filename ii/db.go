@@ -513,6 +513,8 @@ func (db *DB) GetFast(Id string) *Msg {
 // Blacklisted: search in blacklisted messages if true.
 // NoAccess: do not skip private and blacklisted
 // Invert: inverse result
+// Skip: dec by 1 and match after zero
+// Count: if non 0: dec by 1 and match until 0 -> -1
 // User: authorized access to private areas.
 // Start & Lim: slice of query. For example: -1, 1 -- get last message in db. 0, 1 -- first.
 type Query struct {
@@ -522,11 +524,13 @@ type Query struct {
 	To          string
 	Start       int
 	Lim         int
+	Skip        int
+	Count       int
 	Blacklisted bool
 	NoAccess    bool
 	User        User
 	Invert      bool
-	Match       func(mi *MsgInfo, q Query) bool
+	Match       func(mi *MsgInfo, q *Query) bool
 }
 
 // utility function to add string in front of slice
@@ -551,7 +555,10 @@ func (db *DB) Access(info *MsgInfo, user *User) bool {
 }
 
 // internal match function
-func (db *DB) _Match(info *MsgInfo, r Query) bool {
+func (db *DB) _Match(info *MsgInfo, r *Query) bool {
+	if r.Count < 0 {
+		return false
+	}
 	if r.Blacklisted {
 		if info.Off >= 0 {
 			return false
@@ -578,17 +585,30 @@ func (db *DB) _Match(info *MsgInfo, r Query) bool {
 	if !r.NoAccess && !db.Access(info, &r.User) {
 		return false
 	}
+	ret := true
 	if r.Match != nil {
-		return r.Match(info, r)
+		ret = r.Match(info, r)
 	}
-	return true
+	if ret {
+		if r.Skip > 0 {
+			r.Skip -= 1
+			return false
+		} else if r.Count > 0 {
+			r.Count -= 1
+			if r.Count == 0 {
+				r.Count = -1
+			}
+			return true
+		}
+	}
+	return ret
 }
 
 // Default match function for queries.
-func (db *DB) Match(info *MsgInfo, r Query) bool {
+func (db *DB) Match(info *MsgInfo, r *Query) bool {
 	ret := db._Match(info, r)
 	if r.Invert {
-		return !ret
+		ret = !ret
 	}
 	return ret
 }
@@ -612,7 +632,7 @@ type Echo struct {
 // Does lock.
 // Load/create index if needed.
 // Echoes sorted by date of last messages.
-func (db *DB) Echoes(names []string, q Query) []*Echo {
+func (db *DB) Echoes(names []string, q *Query) []*Echo {
 	db.Sync.Lock()
 	defer db.Sync.Unlock()
 	db.Lock()
@@ -692,7 +712,7 @@ func (db *DB) Echoes(names []string, q Query) []*Echo {
 // Make query and retuen ids as slice of strings.
 // Does lock. Can create/load index if needed.
 // r: request, see Query
-func (db *DB) SelectIDS(r Query) []string {
+func (db *DB) SelectIDS(r *Query) []string {
 	var Resp []string
 	db.Sync.Lock()
 	defer db.Sync.Unlock()

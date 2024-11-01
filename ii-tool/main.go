@@ -55,17 +55,20 @@ func GetFile(path string) string {
 func main() {
 	ii.OpenLog(ioutil.Discard, os.Stdout, os.Stderr)
 
-	db_opt := flag.String("db", "./db", "II database path (directory)")
+	db_opt := flag.String("db", "./db", "Database path (directory)")
 	lim_opt := flag.Int("lim", 0, "Fetch last N messages")
 	verbose_opt := flag.Bool("v", false, "Verbose")
-	bundle_opt := flag.Bool("b", false, "Show bundle")
+	bundle_opt := flag.Bool("b", false, "select: show bundles")
 	invert_opt := flag.Bool("i", false, "Invert select")
 	force_opt := flag.Bool("f", false, "Force full sync")
 	users_opt := flag.String("u", "points.txt", "Users database")
 	conns_opt := flag.Int("j", 6, "Maximum parallel jobs")
-	topics_opt := flag.Bool("t", false, "Select topics only")
-	from_opt := flag.String("from", "", "Select from")
-	to_opt := flag.String("to", "", "Select to")
+	topics_opt := flag.Bool("t", false, "select, get: topics only")
+	from_opt := flag.String("from", "", "select: from")
+	to_opt := flag.String("to", "", "select: to")
+	count_opt := flag.Int("count", 0, "select: count <nr> messages")
+	skip_opt := flag.Int("skip", 0, "select: skip <nr> messages")
+
 	flag.Parse()
 	ii.MaxConnections = *conns_opt
 	if *verbose_opt {
@@ -82,17 +85,22 @@ Commands:
 	fetch <url> [echofile|-]      - fetch
 	store <bundle|->              - import bundle to database
 	get <msgid>                   - show message from database
-	select <echo> [[start]:lim]          - get slice from echo
+	select <echo> [[start]:lim]   - get slice from echo
 	index                         - recreate index
 	blacklist <msgid>             - blacklist msg
-	useradd <name> <e-mail> <password> - adduser
+	useradd <name> <e-mail> <password>
+	                              - adduser
 Options:
 	-db=<path>                    - database path
 	-lim=<lim>                    - fetch lim last messages
 	-u=<path>                     - points account file
-	-t                            - topics only (select,get)
-	-from=<user>                  - select from
-	-to=<user>                    - select to
+	-t                            - select, get: topics only
+	-from=<user>                  - select: from
+	-to=<user>                    - select: to
+	-skip=<nr>                    - select: skip nr msgs
+	-count=<nr>                   - select: count nr msgs
+	-b                            - select: show bundles
+	-v                            - select, search: verbose show
 `, os.Args[0])
 		os.Exit(1)
 	}
@@ -348,7 +356,7 @@ Options:
 			if mi == nil {
 				return
 			}
-			mis := db.LookupIDS(db.SelectIDS(ii.Query{Echo: mi.Echo}))
+			mis := db.LookupIDS(db.SelectIDS(&ii.Query{Echo: mi.Echo}))
 			topic := mi.Id
 			for p := mi; p != nil; p = db.LookupFast(p.Repto, false) {
 				if p.Repto == p.Id {
@@ -379,7 +387,8 @@ Options:
 			os.Exit(1)
 		}
 		db := open_db(*db_opt)
-		req := ii.Query{Echo: args[1], NoAccess: true, Invert: *invert_opt}
+		req := ii.Query{Echo: args[1], NoAccess: true,
+			Invert: *invert_opt, Count: *count_opt, Skip: *skip_opt }
 		if *from_opt != "" {
 			req.From = *from_opt
 		}
@@ -393,7 +402,7 @@ Options:
 		if len(args) > 2 {
 			fmt.Sscanf(args[2], "%d:%d", &req.Start, &req.Lim)
 		}
-		resp := db.SelectIDS(req)
+		resp := db.SelectIDS(&req)
 		for _, v := range resp {
 			if *verbose_opt {
 				fmt.Println(db.Get(v))
