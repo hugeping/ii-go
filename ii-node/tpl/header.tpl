@@ -18,7 +18,22 @@
 {{ end }}
 
 
-<title>{{.Sysname}}</title>
+<title>
+{{ if eq .Template "topics.tpl" }}
+{{ .Echo }}
+{{ else if eq .Template "query.tpl" }}
+{{ .Echo }}
+{{ else if eq .Template "topic.tpl" }}
+  {{ if gt (len .Msg) (0) }}
+  {{ $desc := (index .Msg 0).Subj }}
+  {{.Echo}} / {{ $desc }}
+  {{ else }}
+  {{.Echo}} / ???
+  {{ end }}
+{{ else }}
+{{.Sysname}}
+{{ end }}
+</title>
 </head>
 <body>
 <div id="body">
