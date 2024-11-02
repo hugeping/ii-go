@@ -27,6 +27,8 @@
   {{ end }}
 {{ else if eq .Template "edit.tpl" }}
   Edit: {{(index .Msg 0).Subj}}
+{{ else if eq .Template "preview.tpl" }}
+  Preview: {{(index .Msg 0).Subj}}
 {{ else if eq .Template "reply.tpl" }}
   Reply: {{(index .Msg 0).Subj}}
 {{ else if eq .Template "topics.tpl" }}
