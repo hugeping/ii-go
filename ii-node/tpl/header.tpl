@@ -19,7 +19,17 @@
 
 
 <title>
-{{ if eq .Template "topics.tpl" }}
+{{ if eq .Template "new.tpl" }}
+  {{ if eq .Echo "" }}
+  New
+  {{ else }}
+  New: {{.Echo}}
+  {{ end }}
+{{ else if eq .Template "edit.tpl" }}
+  Edit: {{(index .Msg 0).Subj}}
+{{ else if eq .Template "reply.tpl" }}
+  Reply: {{(index .Msg 0).Subj}}
+{{ else if eq .Template "topics.tpl" }}
 {{ .Echo }}
 {{ else if eq .Template "query.tpl" }}
 {{ .Echo }}
