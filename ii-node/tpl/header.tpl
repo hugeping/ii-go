@@ -32,7 +32,11 @@
 {{ else if eq .Template "topics.tpl" }}
 {{ .Echo }}
 {{ else if eq .Template "query.tpl" }}
-{{ .Echo }}
+  {{ if eq .Echo "" }}
+  Feed
+  {{ else }}
+  {{ .Echo }}
+  {{ end }}
 {{ else if eq .Template "topic.tpl" }}
   {{ if gt (len .Msg) (0) }}
   {{ $desc := (index .Msg 0).Subj }}
