@@ -266,7 +266,8 @@ body {
 }
 
 .text .img {
-    min-width: 100%;
+    min-width: 8em;
+    max-width: 100%;
     height: auto;
     image-rendering: auto;
     image-rendering: crisp-edges;
