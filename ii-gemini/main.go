@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/base64"
 	"flag"
 	"fmt"
 	"github.com/hugeping/ii-go/ii"
@@ -46,7 +47,7 @@ func GetFile(path string) string {
 
 var urlRegex = regexp.MustCompile(`(http|ftp|https|gemini)://[^ <>"]+`)
 
-func gemini(f io.Writer, m *ii.Msg) {
+func gemini(f io.Writer, m *ii.Msg, data string) {
 	fmt.Fprintln(f, "# "+m.Subj)
 	if m.To != "All" && m.To != m.From {
 		fmt.Fprintf(f, "To: %s\n\n", m.To)
@@ -56,6 +57,9 @@ func gemini(f io.Writer, m *ii.Msg) {
 	temp := strings.Split(m.Text, "\n")
 	pre := false
 	xpm := false
+	b64 := false
+	b64str := ""
+	b64fname := ""
 	link := 0
 	var links []string
 	for _, l := range temp {
@@ -72,6 +76,8 @@ func gemini(f io.Writer, m *ii.Msg) {
 				fmt.Fprintln(f, "```")
 				continue
 			}
+		} else if b64 {
+			b64str += l
 		} else {
 			if l == "====" {
 				l = "```"
@@ -79,9 +85,15 @@ func gemini(f io.Writer, m *ii.Msg) {
 			} else if strings.HasPrefix(l, "/* XPM */") {
 				fmt.Fprintln(f, "```")
 				xpm = true
+			} else if strings.HasPrefix(l, "@base64:") {
+				fname := strings.TrimPrefix(l, "@base64:")
+				fname = strings.Trim(fname, " ")
+				b64 = true
+				fname = strings.Replace(fname, "/", "_", -1)
+				b64fname = strings.Replace(fname, "\\", "_", -1)
 			}
 		}
-		if !pre && !xpm {
+		if !pre && !xpm && !b64 {
 			l = string(urlRegex.ReplaceAllFunc([]byte(l),
 				func(line []byte) []byte {
 					link++
@@ -91,8 +103,21 @@ func gemini(f io.Writer, m *ii.Msg) {
 					return []byte(fmt.Sprintf("%s [%d]", s, link))
 				}))
 		}
-		fmt.Fprintln(f, l)
+		if !b64 {
+			fmt.Fprintln(f, l)
+		}
 	}
+
+	if b64 {
+		if d, err := base64.StdEncoding.DecodeString(b64str); err == nil {
+			if bf, err := os.Create(data + "/" + b64fname); err == nil {
+				bf.Write(d)
+				bf.Close()
+				fmt.Fprintf(f, "=> %s %s\n", b64fname, b64fname)
+			}
+		}
+	}
+
 	for _, v := range links {
 		fmt.Fprintln(f, v)
 	}
@@ -170,7 +195,7 @@ Options:
 			if m != nil {
 				f, err := os.Create(data + "/" + m.MsgId + ".gmi")
 				if err == nil {
-					gemini(f, m)
+					gemini(f, m, data)
 					d := time.Unix(m.Date, 0).Format("2006-01-02")
 					fmt.Println("=> " + *base_opt + m.MsgId + ".gmi " + d + " - " + m.Subj)
 				}
