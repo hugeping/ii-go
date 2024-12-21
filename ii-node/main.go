@@ -281,6 +281,9 @@ func main() {
 	//	})
 
 	//	http.Handle("hugeping.ru/", http.FileServer(http.Dir("/home/pi/Devel/gemini/www")))
+	http.HandleFunc("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "User-agent: *\nCrawl-delay: 3\n")
+	})
 
 	if err := http.ListenAndServe(*listen_opt, nil); err != nil {
 		ii.Error.Printf("Error running web server: %s", err)
