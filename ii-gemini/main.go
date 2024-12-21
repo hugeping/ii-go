@@ -108,6 +108,10 @@ func gemini(f io.Writer, m *ii.Msg, data string) {
 		}
 	}
 
+	for _, v := range links {
+		fmt.Fprintln(f, v)
+	}
+
 	if b64 {
 		if d, err := base64.StdEncoding.DecodeString(b64str); err == nil {
 			if bf, err := os.Create(data + "/" + b64fname); err == nil {
@@ -116,10 +120,6 @@ func gemini(f io.Writer, m *ii.Msg, data string) {
 				fmt.Fprintf(f, "=> %s %s\n", b64fname, b64fname)
 			}
 		}
-	}
-
-	for _, v := range links {
-		fmt.Fprintln(f, v)
 	}
 }
 
