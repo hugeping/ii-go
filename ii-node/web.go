@@ -1035,6 +1035,12 @@ func msg_trunc(m *ii.Msg, maxlen int, more string) string {
 				fname = "file"
 			}
 			f += fmt.Sprintf("<a class=\"attach\" href=\"/%s/base64\">%s</a><br>\n", m.MsgId, str_esc(fname))
+			if strings.HasSuffix(fname, ".png") || strings.HasSuffix(fname, ".jpg") ||
+				strings.HasSuffix(fname, ".gif") {
+				f += fmt.Sprintf("<img class=\"img\" alt=\"%s\" src=\"/%s/base64\">\n", str_esc(fname), m.MsgId)
+			} else {
+				f += fmt.Sprintf("<a class=\"attach\" href=\"/%s/base64\">%s</a><br>\n", m.MsgId, str_esc(fname))
+			}
 			return f
 		} else {
 			l = msg_esc(l)
