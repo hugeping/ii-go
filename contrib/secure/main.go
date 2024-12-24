@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"time"
 	"golang.org/x/crypto/acme/autocert"
 )
 
@@ -55,10 +56,15 @@ func main() {
 	}
 
 	tlsConfig := certManager.TLSConfig()
+
 	srv := http.Server{
 		Handler: rp,
 		TLSConfig: tlsConfig,
 		Addr: addr,
+		ReadTimeout:       5 * time.Second,
+		WriteTimeout:      5 * time.Second,
+		IdleTimeout:       8 * time.Second,
+		ReadHeaderTimeout: 2 * time.Second,
 	}
 
 	log.Printf("listen-addr=%s upstream-url=%s", srv.Addr, u.String())
