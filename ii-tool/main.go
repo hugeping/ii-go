@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/base64"
 	"flag"
 	"fmt"
 	"github.com/hugeping/ii-go/ii"
@@ -91,6 +92,84 @@ func text_trunc(txt string, max int) string {
 	return f
 }
 
+var urlRegex = regexp.MustCompile(`(http|ftp|https|gemini)://[^ <>"]+`)
+
+func gemini(f io.Writer, m *ii.Msg, data string) {
+	fmt.Fprintln(f, "# "+m.Subj)
+	if m.To != "All" && m.To != m.From {
+		fmt.Fprintf(f, "To: %s\n\n", m.To)
+	}
+	d := time.Unix(m.Date, 0).Format("2006-01-02 15:04:05")
+	fmt.Fprintf(f, "by %s on %s\n\n", m.From, d)
+	temp := strings.Split(m.Text, "\n")
+	pre := false
+	xpm := false
+	b64 := false
+	b64str := ""
+	b64fname := ""
+	link := 0
+	var links []string
+	for _, l := range temp {
+		l = strings.Replace(l, "\r", "", -1)
+		if pre {
+			if l == "====" {
+				l = "```"
+				pre = false
+			}
+		} else if xpm {
+			if strings.HasSuffix(l, "};") {
+				xpm = false
+				fmt.Fprintln(f, l)
+				fmt.Fprintln(f, "```")
+				continue
+			}
+		} else if b64 {
+			b64str += l
+		} else {
+			if l == "====" {
+				l = "```"
+				pre = true
+			} else if strings.HasPrefix(l, "/* XPM */") {
+				fmt.Fprintln(f, "```")
+				xpm = true
+			} else if strings.HasPrefix(l, "@base64:") {
+				fname := strings.TrimPrefix(l, "@base64:")
+				fname = strings.Trim(fname, " ")
+				b64 = true
+				fname = strings.Replace(fname, "/", "_", -1)
+				b64fname = strings.Replace(fname, "\\", "_", -1)
+			}
+		}
+		if !pre && !xpm && !b64 {
+			l = string(urlRegex.ReplaceAllFunc([]byte(l),
+				func(line []byte) []byte {
+					link++
+					s := string(line)
+					links = append(links, fmt.Sprintf("=> %s %s [%d]",
+						s, s, link))
+					return []byte(fmt.Sprintf("%s [%d]", s, link))
+				}))
+		}
+		if !b64 {
+			fmt.Fprintln(f, l)
+		}
+	}
+
+	for _, v := range links {
+		fmt.Fprintln(f, v)
+	}
+
+	if b64 {
+		if d, err := base64.StdEncoding.DecodeString(b64str); err == nil {
+			if bf, err := os.Create(data + "/" + b64fname); err == nil {
+				bf.Write(d)
+				bf.Close()
+				fmt.Fprintf(f, "=> %s %s\n", b64fname, b64fname)
+			}
+		}
+	}
+}
+
 type TplContext struct {
 	Msg []*ii.Msg
 	Now int64
@@ -134,6 +213,9 @@ Commands:
 	blacklist <msgid>             - blacklist msg
 	useradd <name> <e-mail> <password>
 	                              - adduser
+	gemini <dir>                  - ids in stdin: export articles/files to dir in .gmi
+	sort                          - ids in stdin: sort by date
+	template <tpl>                - ids in stdin: do golang template over msgs
 Options:
 	-db=<path>                    - database path
 	-lim=<lim>                    - fetch lim last messages
@@ -145,6 +227,7 @@ Options:
 	-count=<nr>                   - select: count nr msgs
 	-b                            - select: show bundles
 	-v                            - select, search: verbose show
+	-i                            - select, sort: invert
 `, os.Args[0])
 		os.Exit(1)
 	}
@@ -527,6 +610,32 @@ Options:
 			}
 		}
 		tpl.ExecuteTemplate(os.Stdout, filepath.Base(args[1]), &ctx)
+	case "gemini":
+		if len(args) < 2 {
+			fmt.Printf("No dir supplied\n")
+			os.Exit(1)
+		}
+		data := strings.TrimSuffix(args[1], "/")
+
+		db := open_db(*db_opt)
+		db.LoadIndex()
+
+		scanner := bufio.NewScanner(os.Stdin)
+		for scanner.Scan() {
+			mi := db.LookupFast(scanner.Text(), false)
+			if mi == nil {
+				continue
+			}
+			m := db.Get(mi.Id)
+			if m == nil {
+				continue
+			}
+			f, err := os.Create(data + "/" + m.MsgId + ".gmi")
+			if err == nil {
+				gemini(f, m, data)
+			}
+			f.Close()
+		}
 	default:
 		fmt.Printf("Wrong cmd: %s\n", cmd)
 		os.Exit(1)
