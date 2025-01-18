@@ -619,7 +619,7 @@ Options:
 
 		db := open_db(*db_opt)
 		db.LoadIndex()
-
+		var mm []*ii.Msg
 		scanner := bufio.NewScanner(os.Stdin)
 		for scanner.Scan() {
 			mi := db.LookupFast(scanner.Text(), false)
@@ -630,9 +630,15 @@ Options:
 			if m == nil {
 				continue
 			}
+			mm = append(mm, db.Get(mi.Id))
+		}
+		for _, m := range mm {
 			f, err := os.Create(data + "/" + m.MsgId + ".gmi")
 			if err == nil {
 				gemini(f, m, data)
+				if *verbose_opt {
+					fmt.Println(m.MsgId)
+				}
 			}
 			f.Close()
 		}
