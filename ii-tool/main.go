@@ -468,6 +468,9 @@ Options:
 			}
 		}
 		sort.SliceStable(mm, func(i, j int) bool {
+			if *invert_opt {
+				return mm[i].Date > mm[j].Date
+			}
 			return mm[i].Date < mm[j].Date
 		})
 		for _, v := range mm {
