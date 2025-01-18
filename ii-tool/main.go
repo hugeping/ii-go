@@ -8,9 +8,12 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
+	"text/template"
+	"time"
 )
 
 func open_db(path string) *ii.DB {
@@ -50,6 +53,47 @@ func GetFile(path string) string {
 		os.Exit(1)
 	}
 	return string(b)
+}
+
+func html_esc(l string) string {
+	l = strings.Replace(l, "&", "&amp;", -1)
+	l = strings.Replace(l, "<", "&lt;", -1)
+	l = strings.Replace(l, ">", "&gt;", -1)
+	return l
+}
+
+func text_clean(txt string) string {
+	txt = strings.Replace(txt, "\r", "", -1)
+	txt = strings.TrimLeft(txt, "\n")
+	txt = strings.TrimRight(txt, "\n")
+	return txt
+}
+
+func text_trunc(txt string, max int) string {
+	txt = text_clean(txt)
+	f := ""
+	ln := 0
+	lines := strings.Split(txt, "\n")
+	for _, l := range lines {
+		ln++
+		l = strings.Replace(l, "\r", "", -1)
+		if l == "====" || strings.HasPrefix(l, "/* XPM */") ||
+			strings.HasPrefix(l, "! XPM2") ||
+			strings.HasPrefix(l, "@base64:") {
+			break
+		}
+		f += l + "\n"
+		if ln >= max && l == "" {
+			f += "..."
+			break
+		}
+	}
+	return f
+}
+
+type TplContext struct {
+	Msg []*ii.Msg
+	Now int64
 }
 
 func main() {
@@ -388,7 +432,7 @@ Options:
 		}
 		db := open_db(*db_opt)
 		req := ii.Query{Echo: args[1], NoAccess: true,
-			Invert: *invert_opt, Count: *count_opt, Skip: *skip_opt }
+			Invert: *invert_opt, Count: *count_opt, Skip: *skip_opt}
 		if *from_opt != "" {
 			req.From = *from_opt
 		}
@@ -439,6 +483,47 @@ Options:
 			fmt.Printf("Can not rebuild index: %s\n", err)
 			os.Exit(1)
 		}
+	case "template":
+		var ctx TplContext
+		ctx.Now = time.Now().Unix()
+		if len(args) < 2 {
+			fmt.Printf("No template supplied\n")
+			os.Exit(1)
+		}
+		funcMap := template.FuncMap{
+			"replace": func(s string, f string, t string) string {
+				return strings.Replace(s, f, t, -1)
+			},
+			"trunc": func(t string, lines int) string {
+				return text_trunc(t, lines)
+			},
+			"html_esc": func(t string) string {
+				return html_esc(t)
+			},
+			"now": func() int64 {
+				return time.Now().Unix()
+			},
+			"fmt_date": func(date int64, f string) string {
+				return time.Unix(date, 0).Format(f)
+			},
+			"RFC3339": func(date int64) string {
+				return time.Unix(date, 0).Format(time.RFC3339)
+			},
+		}
+
+		tpl := template.Must(template.New("main").Funcs(funcMap).ParseFiles(args[1]))
+
+		db := open_db(*db_opt)
+		db.LoadIndex()
+		scanner := bufio.NewScanner(os.Stdin)
+
+		for scanner.Scan() {
+			mi := db.LookupFast(scanner.Text(), false)
+			if mi != nil {
+				ctx.Msg = append(ctx.Msg, db.Get(mi.Id))
+			}
+		}
+		tpl.ExecuteTemplate(os.Stdout, filepath.Base(args[1]), &ctx)
 	default:
 		fmt.Printf("Wrong cmd: %s\n", cmd)
 		os.Exit(1)

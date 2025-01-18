@@ -280,7 +280,7 @@ func main() {
 	//		http.Redirect(w, r, "//club.hugeping.ru/blog/std.hugeping", http.StatusSeeOther)
 	//	})
 
-	//	http.Handle("hugeping.ru/", http.FileServer(http.Dir("/home/pi/Devel/gemini/www")))
+	http.Handle("hugeping.ru/", http.FileServer(http.Dir("/home/peter/Devel/server/gemini/www")))
 	http.HandleFunc("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "User-agent: *\nCrawl-delay: 3\n")
 	})
