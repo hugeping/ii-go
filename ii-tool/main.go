@@ -2,15 +2,19 @@ package main
 
 import (
 	"bufio"
+	"encoding/base64"
 	"flag"
 	"fmt"
 	"github.com/hugeping/ii-go/ii"
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
+	"text/template"
+	"time"
 )
 
 func open_db(path string) *ii.DB {
@@ -52,6 +56,125 @@ func GetFile(path string) string {
 	return string(b)
 }
 
+func html_esc(l string) string {
+	l = strings.Replace(l, "&", "&amp;", -1)
+	l = strings.Replace(l, "<", "&lt;", -1)
+	l = strings.Replace(l, ">", "&gt;", -1)
+	return l
+}
+
+func text_clean(txt string) string {
+	txt = strings.Replace(txt, "\r", "", -1)
+	txt = strings.TrimLeft(txt, "\n")
+	txt = strings.TrimRight(txt, "\n")
+	return txt
+}
+
+func text_trunc(txt string, max int) string {
+	txt = text_clean(txt)
+	f := ""
+	ln := 0
+	lines := strings.Split(txt, "\n")
+	for _, l := range lines {
+		ln++
+		l = strings.Replace(l, "\r", "", -1)
+		if l == "====" || strings.HasPrefix(l, "/* XPM */") ||
+			strings.HasPrefix(l, "! XPM2") ||
+			strings.HasPrefix(l, "@base64:") {
+			break
+		}
+		f += l + "\n"
+		if ln >= max && l == "" {
+			f += "..."
+			break
+		}
+	}
+	return f
+}
+
+var urlRegex = regexp.MustCompile(`(http|ftp|https|gemini)://[^ <>"]+`)
+
+func gemini(f io.Writer, m *ii.Msg, data string) {
+	fmt.Fprintln(f, "# "+m.Subj)
+	if m.To != "All" && m.To != m.From {
+		fmt.Fprintf(f, "To: %s\n\n", m.To)
+	}
+	d := time.Unix(m.Date, 0).Format("2006-01-02 15:04:05")
+	fmt.Fprintf(f, "by %s on %s\n\n", m.From, d)
+	temp := strings.Split(m.Text, "\n")
+	pre := false
+	xpm := false
+	b64 := false
+	b64str := ""
+	b64fname := ""
+	link := 0
+	var links []string
+	for _, l := range temp {
+		l = strings.Replace(l, "\r", "", -1)
+		if pre {
+			if l == "====" {
+				l = "```"
+				pre = false
+			}
+		} else if xpm {
+			if strings.HasSuffix(l, "};") {
+				xpm = false
+				fmt.Fprintln(f, l)
+				fmt.Fprintln(f, "```")
+				continue
+			}
+		} else if b64 {
+			b64str += l
+		} else {
+			if l == "====" {
+				l = "```"
+				pre = true
+			} else if strings.HasPrefix(l, "/* XPM */") {
+				fmt.Fprintln(f, "```")
+				xpm = true
+			} else if strings.HasPrefix(l, "@base64:") {
+				fname := strings.TrimPrefix(l, "@base64:")
+				fname = strings.Trim(fname, " ")
+				b64 = true
+				fname = strings.Replace(fname, "/", "_", -1)
+				b64fname = strings.Replace(fname, "\\", "_", -1)
+			}
+		}
+		if !pre && !xpm && !b64 {
+			l = string(urlRegex.ReplaceAllFunc([]byte(l),
+				func(line []byte) []byte {
+					link++
+					s := string(line)
+					links = append(links, fmt.Sprintf("=> %s %s [%d]",
+						s, s, link))
+					return []byte(fmt.Sprintf("%s [%d]", s, link))
+				}))
+		}
+		if !b64 {
+			fmt.Fprintln(f, l)
+		}
+	}
+
+	for _, v := range links {
+		fmt.Fprintln(f, v)
+	}
+
+	if b64 {
+		if d, err := base64.StdEncoding.DecodeString(b64str); err == nil {
+			if bf, err := os.Create(data + "/" + b64fname); err == nil {
+				bf.Write(d)
+				bf.Close()
+				fmt.Fprintf(f, "=> %s %s\n", b64fname, b64fname)
+			}
+		}
+	}
+}
+
+type TplContext struct {
+	Msg []*ii.Msg
+	Now int64
+}
+
 func main() {
 	ii.OpenLog(ioutil.Discard, os.Stdout, os.Stderr)
 
@@ -90,6 +213,9 @@ Commands:
 	blacklist <msgid>             - blacklist msg
 	useradd <name> <e-mail> <password>
 	                              - adduser
+	gemini <dir>                  - ids in stdin: export articles/files to dir in .gmi
+	sort                          - ids in stdin: sort by date
+	template <tpl>                - ids in stdin: do golang template over msgs
 Options:
 	-db=<path>                    - database path
 	-lim=<lim>                    - fetch lim last messages
@@ -101,6 +227,7 @@ Options:
 	-count=<nr>                   - select: count nr msgs
 	-b                            - select: show bundles
 	-v                            - select, search: verbose show
+	-i                            - select, sort: invert
 `, os.Args[0])
 		os.Exit(1)
 	}
@@ -388,7 +515,7 @@ Options:
 		}
 		db := open_db(*db_opt)
 		req := ii.Query{Echo: args[1], NoAccess: true,
-			Invert: *invert_opt, Count: *count_opt, Skip: *skip_opt }
+			Invert: *invert_opt, Count: *count_opt, Skip: *skip_opt}
 		if *from_opt != "" {
 			req.From = *from_opt
 		}
@@ -424,6 +551,9 @@ Options:
 			}
 		}
 		sort.SliceStable(mm, func(i, j int) bool {
+			if *invert_opt {
+				return mm[i].Date > mm[j].Date
+			}
 			return mm[i].Date < mm[j].Date
 		})
 		for _, v := range mm {
@@ -438,6 +568,79 @@ Options:
 		if err := db.CreateIndex(); err != nil {
 			fmt.Printf("Can not rebuild index: %s\n", err)
 			os.Exit(1)
+		}
+	case "template":
+		var ctx TplContext
+		ctx.Now = time.Now().Unix()
+		if len(args) < 2 {
+			fmt.Printf("No template supplied\n")
+			os.Exit(1)
+		}
+		funcMap := template.FuncMap{
+			"replace": func(s string, f string, t string) string {
+				return strings.Replace(s, f, t, -1)
+			},
+			"trunc": func(t string, lines int) string {
+				return text_trunc(t, lines)
+			},
+			"html_esc": func(t string) string {
+				return html_esc(t)
+			},
+			"now": func() int64 {
+				return time.Now().Unix()
+			},
+			"fmt_date": func(date int64, f string) string {
+				return time.Unix(date, 0).Format(f)
+			},
+			"RFC3339": func(date int64) string {
+				return time.Unix(date, 0).Format(time.RFC3339)
+			},
+		}
+
+		tpl := template.Must(template.New("main").Funcs(funcMap).ParseFiles(args[1]))
+
+		db := open_db(*db_opt)
+		db.LoadIndex()
+		scanner := bufio.NewScanner(os.Stdin)
+
+		for scanner.Scan() {
+			mi := db.LookupFast(scanner.Text(), false)
+			if mi != nil {
+				ctx.Msg = append(ctx.Msg, db.Get(mi.Id))
+			}
+		}
+		tpl.ExecuteTemplate(os.Stdout, filepath.Base(args[1]), &ctx)
+	case "gemini":
+		if len(args) < 2 {
+			fmt.Printf("No dir supplied\n")
+			os.Exit(1)
+		}
+		data := strings.TrimSuffix(args[1], "/")
+
+		db := open_db(*db_opt)
+		db.LoadIndex()
+		var mm []*ii.Msg
+		scanner := bufio.NewScanner(os.Stdin)
+		for scanner.Scan() {
+			mi := db.LookupFast(scanner.Text(), false)
+			if mi == nil {
+				continue
+			}
+			m := db.Get(mi.Id)
+			if m == nil {
+				continue
+			}
+			mm = append(mm, db.Get(mi.Id))
+		}
+		for _, m := range mm {
+			f, err := os.Create(data + "/" + m.MsgId + ".gmi")
+			if err == nil {
+				gemini(f, m, data)
+				if *verbose_opt {
+					fmt.Println(m.MsgId)
+				}
+			}
+			f.Close()
 		}
 	default:
 		fmt.Printf("Wrong cmd: %s\n", cmd)

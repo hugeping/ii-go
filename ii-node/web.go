@@ -1246,6 +1246,7 @@ func _handleWWW(ctx *WebContext, w http.ResponseWriter, r *http.Request) error {
 		return www_profile(ctx, w, r)
 	} else if args[0] == "register" {
 		ctx.BasePath = "register"
+		ctx.www.udb.LoadUsers()
 		if ctx.www.udb.Locked {
 			return www_register_locked(ctx, w, r)
 		}
