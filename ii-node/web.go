@@ -165,6 +165,7 @@ func www_register(ctx *WebContext, w http.ResponseWriter, r *http.Request) error
 		return err
 	case "POST":
 		udb := ctx.www.udb
+		udb.LoadUsers()
 		if err := r.ParseForm(); err != nil {
 			ii.Error.Printf("Error in POST request: %s", err)
 			return err
